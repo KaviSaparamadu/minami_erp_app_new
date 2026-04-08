@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="#1C1C1E"/>
+
+  <!-- Decorative ring 1 -->
+  <circle cx="1000" cy="300" r="380" fill="none" stroke="#E91E63" stroke-width="60" opacity="0.07"/>
+  <!-- Decorative ring 2 -->
+  <circle cx="80"   cy="1650" r="260" fill="none" stroke="#E91E63" stroke-width="44" opacity="0.05"/>
+  <!-- Decorative ring 3 -->
+  <circle cx="540"  cy="960"  r="500" fill="none" stroke="#E91E63" stroke-width="2"  opacity="0.06"/>
+
+  <!-- Pink glow blob behind logo -->
+  <circle cx="540" cy="880" r="180" fill="#E91E63" opacity="0.08"/>
+
+  <!-- Logo card -->
+  <rect x="340" y="720" width="400" height="320" rx="40" fill="#2C2C2E" stroke="rgba(255,255,255,0.07)" stroke-width="1.5"/>
+
+  <!-- Pink top accent bar on card -->
+  <rect x="340" y="720" width="400" height="6" rx="3" fill="#E91E63"/>
+
+  <!-- G -->
+  <text x="400" y="930" font-family="Arial, sans-serif" font-weight="900" font-size="130" fill="#FFFFFF">G</text>
+  <!-- P pink -->
+  <text x="498" y="930" font-family="Arial, sans-serif" font-weight="900" font-size="130" fill="#E91E63">P</text>
+  <!-- IT -->
+  <text x="590" y="930" font-family="Arial, sans-serif" font-weight="900" font-size="130" fill="#FFFFFF">IT</text>
+
+  <!-- ERP pill -->
+  <rect x="456" y="952" width="168" height="52" rx="10" fill="rgba(233,30,99,0.18)" stroke="rgba(233,30,99,0.4)" stroke-width="1.5"/>
+  <text x="540" y="986" font-family="Arial, sans-serif" font-weight="800" font-size="28" fill="#E91E63" text-anchor="middle" letter-spacing="5">ERP</text>
+
+  <!-- Tagline -->
+  <text x="540" y="1120" font-family="Arial, sans-serif" font-size="34" fill="rgba(255,255,255,0.3)" text-anchor="middle" letter-spacing="2">Enterprise Resource Planning</text>
+
+  <!-- Powered by -->
+  <text x="540" y="1820" font-family="Arial, sans-serif" font-size="28" fill="rgba(255,255,255,0.15)" text-anchor="middle">Powered by GPIT</text>
+</svg>

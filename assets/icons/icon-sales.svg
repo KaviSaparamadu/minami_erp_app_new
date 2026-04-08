@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <!-- Pink circle background -->
+  <circle cx="48" cy="48" r="48" fill="#E91E63"/>
+
+  <!-- Bar chart (3 bars, ascending) -->
+  <rect x="18" y="58" width="14" height="22" rx="3" fill="#FFFFFF"/>
+  <rect x="41" y="42" width="14" height="38" rx="3" fill="#FFFFFF"/>
+  <rect x="64" y="26" width="14" height="54" rx="3" fill="#FFFFFF"/>
+
+  <!-- Trend arrow line -->
+  <polyline points="18,62 41,46 64,30" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Arrow head -->
+  <polygon points="64,22 76,30 64,38" fill="rgba(255,255,255,0.5)"/>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <!-- Pink circle background -->
+  <circle cx="48" cy="48" r="48" fill="#E91E63"/>
+
+  <!-- Person 1 (center, larger) -->
+  <circle cx="48" cy="30" r="11" fill="#FFFFFF"/>
+  <path d="M26 72 Q26 52 48 52 Q70 52 70 72" fill="#FFFFFF"/>
+
+  <!-- Person 2 (left, smaller) -->
+  <circle cx="24" cy="36" r="8" fill="rgba(255,255,255,0.75)"/>
+  <path d="M8 72 Q8 56 24 56 Q34 56 38 62" fill="rgba(255,255,255,0.65)"/>
+
+  <!-- Person 3 (right, smaller) -->
+  <circle cx="72" cy="36" r="8" fill="rgba(255,255,255,0.75)"/>
+  <path d="M58 62 Q62 56 72 56 Q88 56 88 72" fill="rgba(255,255,255,0.65)"/>
+</svg>
