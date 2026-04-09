@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,56 +9,63 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { useNavigation } from '../../context/NavigationContext';
+import type { ScreenName } from '../../context/NavigationContext';
 
-// ─── Sub-module definitions ───────────────────────────────────────────────────
+// ─── Sub-module data ──────────────────────────────────────────────────────────
 interface UMSubModule {
   id: string;
+  screen: ScreenName;
   name: string;
   description: string;
   count: string;
   countLabel: string;
-  accentColor: string;
 }
 
 const UM_SUBMODULES: UMSubModule[] = [
   {
     id: '1',
+    screen: 'CreateSystemUsers',
     name: 'Create System Users',
-    description: 'Add new system accounts, set credentials, and configure login access for staff.',
+    description: 'Add accounts, set credentials and configure login access for staff members.',
     count: '24',
     countLabel: 'Active Users',
-    accentColor: '#3F51B5',
   },
   {
     id: '2',
+    screen: 'AssignUserPermission',
     name: 'Assign User Permission',
-    description: 'Grant or revoke individual permissions for specific modules and actions.',
+    description: 'Grant or revoke individual module permissions per user.',
     count: '18',
     countLabel: 'Configured',
-    accentColor: '#E91E63',
   },
   {
     id: '3',
+    screen: 'CreateUserRole',
     name: 'Create User Role',
-    description: 'Define reusable role profiles that bundle a set of permissions together.',
+    description: 'Define reusable role profiles that bundle a set of permissions.',
     count: '7',
     countLabel: 'Roles',
-    accentColor: '#FF9800',
   },
   {
     id: '4',
-    name: 'Assign User Role Permission',
-    description: 'Map permissions to roles and assign those roles to users across the system.',
+    screen: 'AssignUserRolePermission',
+    name: 'Assign Role Permission',
+    description: 'Map permissions to roles and assign roles to users system-wide.',
     count: '12',
     countLabel: 'Assignments',
-    accentColor: '#009688',
   },
 ];
 
-// ─── Icons (pure RN, white on colored square) ─────────────────────────────────
+const SUBMODULE_SCREENS: Record<string, ScreenName> = {
+  '1': 'CreateSystemUsers',
+  '2': 'AssignUserPermission',
+  '3': 'CreateUserRole',
+  '4': 'AssignUserRolePermission',
+};
 
-/** Create System Users — person + plus */
-function CreateUserIcon() {
+// ─── Icons (white shapes on pink bg) ─────────────────────────────────────────
+function UserPlusIcon() {
   return (
     <View style={icon.wrap}>
       <View style={icon.head} />
@@ -70,63 +76,62 @@ function CreateUserIcon() {
   );
 }
 
-/** Assign User Permission — person + key */
-function AssignPermIcon() {
+function KeyIcon() {
   return (
     <View style={icon.wrap}>
-      <View style={icon.head} />
-      <View style={icon.body} />
       <View style={icon.keyRing} />
       <View style={icon.keyShank} />
-      <View style={icon.keyTooth1} />
+      <View style={icon.keyT1} />
+      <View style={icon.keyT2} />
     </View>
   );
 }
 
-/** Create User Role — badge / tag */
-function CreateRoleIcon() {
+function BadgeIcon() {
   return (
     <View style={icon.wrap}>
-      <View style={icon.badge} />
-      <View style={icon.badgeHole} />
-      <View style={icon.badgeLine1} />
-      <View style={icon.badgeLine2} />
+      <View style={icon.badgeCard} />
+      <View style={icon.badgeTop} />
+      <View style={icon.badgeL1} />
+      <View style={icon.badgeL2} />
     </View>
   );
 }
 
-/** Assign User Role Permission — shield + checkmark */
-function AssignRolePermIcon() {
+function ShieldIcon() {
   return (
     <View style={icon.wrap}>
       <View style={icon.shield} />
-      <View style={icon.ckL} />
-      <View style={icon.ckR} />
+      <View style={icon.ckShort} />
+      <View style={icon.ckLong} />
     </View>
   );
 }
 
-const ICONS = [CreateUserIcon, AssignPermIcon, CreateRoleIcon, AssignRolePermIcon];
+const ICONS = [UserPlusIcon, KeyIcon, BadgeIcon, ShieldIcon];
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export function UserManagementScreen() {
-  function handlePress(mod: UMSubModule) {
-    Alert.alert(mod.name, `"${mod.name}" module is coming soon.`, [{ text: 'OK' }]);
+  const { navigate } = useNavigation();
+
+  function handlePress(id: string) {
+    const screen = SUBMODULE_SCREENS[id];
+    if (screen) navigate(screen);
   }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
 
-      {/* Dark band */}
+      {/* Dark top band */}
       <View style={styles.darkBand}>
         <PageHeader title="User Management" showBack={true} />
         <View style={styles.bandContent}>
           <Text style={styles.bandTitle}>User Management</Text>
-          <Text style={styles.bandSub}>Manage system access, roles &amp; permissions</Text>
+          <Text style={styles.bandSub}>Select a module to manage</Text>
         </View>
       </View>
 
-      {/* Light card sheet */}
+      {/* Light sheet */}
       <View style={styles.sheet}>
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -138,12 +143,12 @@ export function UserManagementScreen() {
               <Pressable
                 key={mod.id}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPress={() => handlePress(mod)}
+                onPress={() => handlePress(mod.id)}
                 accessibilityRole="button"
                 accessibilityLabel={mod.name}>
 
-                {/* Icon area — each sub-module has its own accent colour */}
-                <View style={[styles.iconArea, { backgroundColor: mod.accentColor }]}>
+                {/* Left icon area */}
+                <View style={styles.iconArea}>
                   <IconComp />
                 </View>
 
@@ -154,9 +159,9 @@ export function UserManagementScreen() {
 
                   {/* Count chip */}
                   <View style={styles.chipRow}>
-                    <View style={[styles.chip, { borderColor: mod.accentColor + '33' }]}>
-                      <View style={[styles.chipDot, { backgroundColor: mod.accentColor }]} />
-                      <Text style={[styles.chipCount, { color: mod.accentColor }]}>{mod.count}</Text>
+                    <View style={styles.chip}>
+                      <View style={styles.chipDot} />
+                      <Text style={styles.chipCount}>{mod.count}</Text>
                       <Text style={styles.chipLabel}>{mod.countLabel}</Text>
                     </View>
                   </View>
@@ -178,28 +183,43 @@ export function UserManagementScreen() {
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const DARK     = '#1C1C1E';
 const LIGHT_BG = '#F2F2F7';
 
 const styles = StyleSheet.create({
-  safe:     { flex: 1, backgroundColor: DARK },
-  darkBand: { backgroundColor: DARK, paddingBottom: 32 },
+  safe: { flex: 1, backgroundColor: DARK },
 
-  bandContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
+  darkBand: {
+    backgroundColor: DARK,
+    paddingBottom: 32,
+  },
+
+  bandContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+  },
   bandTitle: {
-    fontFamily: FontFamily.bold, fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold, color: '#FFFFFF', letterSpacing: 0.2,
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   bandSub: {
-    fontFamily: FontFamily.regular, fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.4)', marginTop: 3,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    color: 'rgba(255,255,255,0.4)',
+    marginTop: 3,
   },
 
   sheet: {
-    flex: 1, backgroundColor: LIGHT_BG,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    marginTop: -28, overflow: 'hidden',
+    flex: 1,
+    backgroundColor: LIGHT_BG,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -28,
+    overflow: 'hidden',
   },
   scroll: {
     paddingHorizontal: Spacing.lg,
@@ -208,76 +228,133 @@ const styles = StyleSheet.create({
     gap: 6,
   },
 
-  // Card
+  // ── Card ──────────────────────────────────────────────────────────────────
   card: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderRadius: 18,
-    padding: Spacing.lg, gap: Spacing.md,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-    borderWidth: 1, borderColor: '#F0F0F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
-  cardPressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
+  cardPressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
+  },
 
   iconArea: {
-    width: 52, height: 52, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: Colors.primaryHighlight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
 
-  content: { flex: 1, gap: 4 },
+  content: {
+    flex: 1,
+    gap: 4,
+  },
   cardTitle: {
-    fontFamily: FontFamily.bold, fontSize: FontSize.md,
-    fontWeight: FontWeight.bold, color: Colors.primaryText, letterSpacing: 0.1,
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.primaryText,
+    letterSpacing: 0.1,
   },
   cardDesc: {
-    fontFamily: FontFamily.regular, fontSize: FontSize.xs,
-    color: Colors.placeholder, lineHeight: 15,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.xs,
+    color: Colors.placeholder,
+    lineHeight: 15,
   },
 
-  chipRow: { flexDirection: 'row', marginTop: 4 },
+  chipRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
   chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#F5F5F7', borderRadius: 8,
-    paddingHorizontal: 8, paddingVertical: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F5F5F7',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderWidth: 1,
+    borderColor: '#EBEBEB',
   },
-  chipDot:   { width: 5, height: 5, borderRadius: 3 },
-  chipCount: { fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
-  chipLabel: { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder },
+  chipDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#30D158',
+  },
+  chipCount: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    color: Colors.primaryText,
+  },
+  chipLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.xs,
+    color: Colors.placeholder,
+  },
 
-  arrowWrap: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  arrowHead: { width: 8, height: 8, borderTopWidth: 2, borderRightWidth: 2, borderColor: '#C0C0C8', transform: [{ rotate: '45deg' }, { translateX: -2 }] },
+  arrowWrap: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  arrowHead: {
+    width: 8,
+    height: 8,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#C0C0C8',
+    transform: [{ rotate: '45deg' }, { translateX: -2 }],
+  },
 });
 
-// ─── Icon shapes ──────────────────────────────────────────────────────────────
+// ─── Icon shapes (white on pink) ─────────────────────────────────────────────
 const icon = StyleSheet.create({
   wrap: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
 
-  // Shared person shape
-  head: { position: 'absolute', top: 1, width: 9, height: 9, borderRadius: 5, backgroundColor: '#FFF' },
-  body: { position: 'absolute', bottom: 2, width: 16, height: 9, borderTopLeftRadius: 8, borderTopRightRadius: 8, backgroundColor: '#FFF' },
+  // User + plus
+  head:  { width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFF', marginBottom: 2 },
+  body:  { width: 14, height: 9, borderTopLeftRadius: 7, borderTopRightRadius: 7, backgroundColor: '#FFF' },
+  plusH: { position: 'absolute', bottom: 2, right: 0, width: 8, height: 2, borderRadius: 1, backgroundColor: '#FFF' },
+  plusV: { position: 'absolute', bottom: -2, right: 3, width: 2, height: 8, borderRadius: 1, backgroundColor: '#FFF' },
 
-  // Plus (Create System Users)
-  plusH: { position: 'absolute', bottom: 2, right: 1, width: 8, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.9)' },
-  plusV: { position: 'absolute', bottom: -1, right: 4, width: 2, height: 8, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.9)' },
+  // Key
+  keyRing:  { position: 'absolute', top: 2, left: 2, width: 11, height: 11, borderRadius: 6, borderWidth: 2.5, borderColor: '#FFF' },
+  keyShank: { position: 'absolute', bottom: 4, right: 1, width: 12, height: 2.5, borderRadius: 1.5, backgroundColor: '#FFF', transform: [{ rotate: '-30deg' }] },
+  keyT1:    { position: 'absolute', bottom: 6, right: 2, width: 2.5, height: 5, borderRadius: 1, backgroundColor: '#FFF', transform: [{ rotate: '-30deg' }] },
+  keyT2:    { position: 'absolute', bottom: 3, right: 5, width: 2.5, height: 4, borderRadius: 1, backgroundColor: '#FFF', transform: [{ rotate: '-30deg' }] },
 
-  // Key (Assign User Permission)
-  keyRing:  { position: 'absolute', bottom: 3, right: 0, width: 7, height: 7, borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.9)' },
-  keyShank: { position: 'absolute', bottom: 5, right: 5, width: 6, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.9)' },
-  keyTooth1:{ position: 'absolute', bottom: 3, right: 6, width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.9)' },
+  // Badge / ID card
+  badgeCard: { position: 'absolute', width: 20, height: 24, borderRadius: 4, borderWidth: 2, borderColor: '#FFF' },
+  badgeTop:  { position: 'absolute', top: 0, width: 8, height: 4, borderRadius: 2, backgroundColor: '#FFF' },
+  badgeL1:   { position: 'absolute', top: 10, width: 12, height: 2.5, borderRadius: 1, backgroundColor: '#FFF' },
+  badgeL2:   { position: 'absolute', top: 15, width: 8,  height: 2.5, borderRadius: 1, backgroundColor: '#FFF', opacity: 0.6 },
 
-  // Badge (Create User Role)
-  badge:      { position: 'absolute', width: 18, height: 22, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.9)' },
-  badgeHole:  { position: 'absolute', top: 2, width: 5, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,152,0,0.8)' },
-  badgeLine1: { position: 'absolute', top: 10, width: 10, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,152,0,0.7)' },
-  badgeLine2: { position: 'absolute', top: 14, width: 7, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,152,0,0.5)' },
-
-  // Shield + checkmark (Assign User Role Permission)
-  shield: {
-    position: 'absolute', width: 18, height: 20,
-    borderRadius: 4, borderBottomLeftRadius: 9, borderBottomRightRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+  // Shield + check
+  shield:  {
+    position: 'absolute', width: 20, height: 22,
+    borderRadius: 5, borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
+    borderWidth: 2.5, borderColor: '#FFF',
   },
-  ckL: { position: 'absolute', bottom: 7, left: 4, width: 5, height: 2, backgroundColor: 'rgba(0,150,136,0.9)', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  ckR: { position: 'absolute', bottom: 8, right: 3, width: 9, height: 2, backgroundColor: 'rgba(0,150,136,0.9)', borderRadius: 1, transform: [{ rotate: '-55deg' }] },
+  ckShort: { position: 'absolute', bottom: 7, left: 4,  width: 5, height: 2.5, borderRadius: 1, backgroundColor: '#FFF', transform: [{ rotate: '45deg' }] },
+  ckLong:  { position: 'absolute', bottom: 8, right: 2, width: 9, height: 2.5, borderRadius: 1, backgroundColor: '#FFF', transform: [{ rotate: '-55deg' }] },
 });

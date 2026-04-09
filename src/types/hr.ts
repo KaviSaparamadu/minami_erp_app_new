@@ -1,5 +1,27 @@
 export type Country = 'Japan' | 'Sri Lanka';
 
+// ── System User ───────────────────────────────────────────────────────────────
+export type UserStatus = 'Active' | 'Inactive';
+
+export interface SystemUser {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  roleName?: string;
+  department?: string;
+  status: UserStatus;
+  lastLogin?: string;
+}
+
+// ── User Role ─────────────────────────────────────────────────────────────────
+export interface UserRole {
+  id: string;
+  roleName: string;
+  description?: string;
+  permissions: string[];   // e.g. ['HR:View','HR:Create']
+}
+
 // ── Employee ──────────────────────────────────────────────────────────────────
 export interface Employee {
   id: string;

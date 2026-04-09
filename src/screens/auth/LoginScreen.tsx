@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
 
-  // ── Grid row 1: logo ──────────────────────
+  // ── Grid row 1: logo 
   logoSection: {
     flex: 1,
     alignItems: 'center',
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     height: 60,
   },
 
-  // ── Grid row 2: form ─────────────────────
+  // ── Grid row 2: form 
   formSection: {
     flex: 1,
     justifyContent: 'center',
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // ── Grid row 3: spacer ───────────────────
+  // ── Grid row 3: spacer 
   bottomSection: {
     flex: 1,
   },

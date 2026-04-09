@@ -7,7 +7,8 @@ import { ProfileSheet } from '../dashboard/ProfileSheet';
 
 interface PageHeaderProps {
   title: string;
-  showBack?: boolean;       // true on sub-screens; false on Dashboard
+  showBack?: boolean;   // true on sub-screens; false on Dashboard
+  transparent?: boolean; // removes dark background (for coloured parent headers)
 }
 
 function BackArrow() {
@@ -30,7 +31,7 @@ function BellIcon() {
   );
 }
 
-export function PageHeader({ title, showBack = true }: PageHeaderProps) {
+export function PageHeader({ title, showBack = true, transparent = false }: PageHeaderProps) {
   const { goBack } = useNavigation();
   const { user, logout } = useAuth();
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -39,7 +40,7 @@ export function PageHeader({ title, showBack = true }: PageHeaderProps) {
 
   return (
     <>
-      <View style={styles.header}>
+      <View style={[styles.header, transparent && styles.headerTransparent]}>
 
         {/* ── Left: back arrow or spacer ── */}
         {showBack ? (
@@ -103,6 +104,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     backgroundColor: DARK,
     gap: Spacing.sm,
+  },
+  headerTransparent: {
+    backgroundColor: 'transparent',
   },
   iconBtn: {
     width: 36,

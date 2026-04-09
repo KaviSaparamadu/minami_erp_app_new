@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -324,6 +325,7 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
   const [cardNumber,    setCardNumber]    = useState('');
 
   const pct = calcProgress({ employeeName, salaryBoard, designationCategory, designation, designationGrade, employeeType, entity, workBranch, department });
+  const [saving, setSaving] = useState(false);
 
   // ── Reset / populate ──
   useEffect(() => {
@@ -398,17 +400,21 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
     if (!entity)                     { Alert.alert('Required', 'Select Entity (Company).'); return; }
     if (!workBranch)                 { Alert.alert('Required', 'Select Work Branch.'); return; }
     if (!department)                 { Alert.alert('Required', 'Select Department.'); return; }
-    onSave({
-      employeeNumber: employeeNumber.trim() || undefined,
-      employeeName: employeeName.trim(), salaryBoard, designationCategory,
-      designation, designationGrade, employeeType, entity, workBranch,
-      department, subDepartment: subDepartment || undefined,
-      section: section || undefined, subSection: subSection || undefined,
-      rosterGroup: rosterGroup || undefined, shiftPattern: shiftPattern || undefined,
-      reportingBranch: reportingBranch || undefined, costCentre: costCentre || undefined,
-      companyCode: companyCode || undefined, payrollCompany: payrollCompany || undefined,
-      fingerprintId: fingerprintId.trim() || undefined, cardNumber: cardNumber.trim() || undefined,
-    });
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      onSave({
+        employeeNumber: employeeNumber.trim() || undefined,
+        employeeName: employeeName.trim(), salaryBoard, designationCategory,
+        designation, designationGrade, employeeType, entity, workBranch,
+        department, subDepartment: subDepartment || undefined,
+        section: section || undefined, subSection: subSection || undefined,
+        rosterGroup: rosterGroup || undefined, shiftPattern: shiftPattern || undefined,
+        reportingBranch: reportingBranch || undefined, costCentre: costCentre || undefined,
+        companyCode: companyCode || undefined, payrollCompany: payrollCompany || undefined,
+        fingerprintId: fingerprintId.trim() || undefined, cardNumber: cardNumber.trim() || undefined,
+      });
+    }, 700);
   }
 
   // ── Tab content ──────────────────────────────────────────────────────────
@@ -650,8 +656,10 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
               <Text style={s.cancelTxt}>Cancel</Text>
             </Pressable>
             {!isView && (
-              <Pressable onPress={handleSave} style={({ pressed }) => [s.saveBtn, pressed && { opacity: 0.85 }]}>
-                <Text style={s.saveTxt}>{isEdit ? 'Update Employee' : 'Create Employee'}</Text>
+              <Pressable onPress={handleSave} disabled={saving} style={({ pressed }) => [s.saveBtn, (pressed || saving) && { opacity: 0.85 }]}>
+                {saving
+                  ? <ActivityIndicator color="#FFF" size="small" />
+                  : <Text style={s.saveTxt}>{isEdit ? 'Update Employee' : 'Create Employee'}</Text>}
               </Pressable>
             )}
           </View>

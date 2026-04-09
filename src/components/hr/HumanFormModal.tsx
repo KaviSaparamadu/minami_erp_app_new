@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Modal,
@@ -236,6 +237,8 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
   const isEdit   = mode === 'edit';
   const scrollRef = useRef<ScrollView>(null);
 
+  const [saving, setSaving] = useState(false);
+
   // ── Step ──
   const [step, setStep] = useState(1);
 
@@ -351,17 +354,21 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
       if (!city)         { Alert.alert('Required','Select a city.'); return; }
       if (!townDistrict) { Alert.alert('Required','Select a town/district.'); return; }
     }
-    onSave({
-      country: country as Country,
-      nic:         isSL ? nic.trim() : undefined,
-      dateOfBirth: isSL ? dob        : undefined,
-      gender:      isSL ? gender     : undefined,
-      title, fullName: fullName.trim(),
-      surname:   surnames.join(', '),
-      firstName: firstName.trim(),
-      otherName: otherName.trim()||undefined,
-      ...(isSL ? { province, district, gnDivision } : { prefecture, city, townDistrict }),
-    });
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      onSave({
+        country: country as Country,
+        nic:         isSL ? nic.trim() : undefined,
+        dateOfBirth: isSL ? dob        : undefined,
+        gender:      isSL ? gender     : undefined,
+        title, fullName: fullName.trim(),
+        surname:   surnames.join(', '),
+        firstName: firstName.trim(),
+        otherName: otherName.trim()||undefined,
+        ...(isSL ? { province, district, gnDivision } : { prefecture, city, townDistrict }),
+      });
+    }, 700);
   }
 
   const stepTitles = ['Identity','Names','Address'];
@@ -473,8 +480,10 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
                   <Text style={s.nextTxt}>Next</Text><View style={s.nextArrow}/>
                 </Pressable>
               : !isView
-                ? <Pressable onPress={handleSave} style={({pressed})=>[s.saveBtn,pressed&&{opacity:0.85}]}>
-                    <Text style={s.saveTxt}>{isEdit ? 'Update' : 'Create Human'}</Text>
+                ? <Pressable onPress={handleSave} disabled={saving} style={({pressed})=>[s.saveBtn,(pressed||saving)&&{opacity:0.85}]}>
+                    {saving
+                      ? <ActivityIndicator color="#FFF" size="small" />
+                      : <Text style={s.saveTxt}>{isEdit ? 'Update' : 'Create Human'}</Text>}
                   </Pressable>
                 : null}
           </View>
