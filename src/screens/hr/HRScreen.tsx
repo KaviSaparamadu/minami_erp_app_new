@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -91,11 +92,19 @@ const SUBMODULE_SCREENS: Record<string, ScreenName> = {
 
 export function HRScreen() {
   const { navigate } = useNavigation();
+  const [search, setSearch] = useState('');
 
   function handleSubModulePress(id: string) {
     const screen = SUBMODULE_SCREENS[id];
     if (screen) navigate(screen);
   }
+
+  const q = search.trim().toLowerCase();
+  const filtered = q === ''
+    ? HR_SUBMODULES
+    : HR_SUBMODULES.filter(m =>
+        m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q),
+      );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -113,11 +122,34 @@ export function HRScreen() {
 
       {/* Light sheet */}
       <View style={styles.sheet}>
+
+        {/* Search bar */}
+        <View style={sb.wrap}>
+          <View style={sb.iconWrap}>
+            <View style={sb.glass} />
+            <View style={sb.handle} />
+          </View>
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search modules…"
+            placeholderTextColor={Colors.placeholder}
+            style={sb.input}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch('')} style={sb.clearBtn} hitSlop={8}>
+              <View style={sb.clearX1} /><View style={sb.clearX2} />
+            </Pressable>
+          )}
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}>
 
-          {HR_SUBMODULES.map((mod, idx) => {
+          {filtered.map((mod, idx) => {
             const IconComp = ICONS[idx];
             return (
               <Pressable
@@ -232,10 +264,12 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: Colors.primaryHighlight,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
   },
 
   content: {
@@ -318,7 +352,7 @@ const icon = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1C1C1E',
     marginBottom: 2,
   },
   body: {
@@ -326,7 +360,7 @@ const icon = StyleSheet.create({
     height: 9,
     borderTopLeftRadius: 7,
     borderTopRightRadius: 7,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1C1C1E',
   },
   arm: {
     position: 'absolute',
@@ -334,7 +368,7 @@ const icon = StyleSheet.create({
     width: 4,
     height: 7,
     borderRadius: 2,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1C1C1E',
   },
   armLeft: { left: 2, transform: [{ rotate: '-25deg' }] },
   armRight: { right: 2, transform: [{ rotate: '25deg' }] },
@@ -346,16 +380,16 @@ const icon = StyleSheet.create({
     width: 14,
     height: 9,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: '#E0E0E0',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: '#BDBDBD',
   },
   cardLine: {
     position: 'absolute',
     bottom: 3,
     width: 8,
     height: 1.5,
-    backgroundColor: Colors.primaryHighlight,
+    backgroundColor: '#1C1C1E',
     borderRadius: 1,
   },
 
@@ -368,8 +402,24 @@ const icon = StyleSheet.create({
     borderRadius: 3,
     borderBottomLeftRadius: 6,
     borderBottomRightRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: '#E0E0E0',
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: '#1C1C1E',
   },
+});
+
+const sb = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    paddingTop: Spacing.md, paddingBottom: 10,
+    gap: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0',
+  },
+  iconWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  glass:  { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0 },
+  handle: { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  input:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.primaryText, paddingVertical: 0 },
+  clearBtn: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#EBEBEB', alignItems: 'center', justifyContent: 'center' },
+  clearX1: { position: 'absolute', width: 9, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  clearX2: { position: 'absolute', width: 9, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
 });

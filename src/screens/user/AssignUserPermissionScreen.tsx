@@ -17,7 +17,7 @@ const DEMO_USERS = [
   { id: '5', name: 'Emma Jayasekara', username: 'emma.j',    role: 'IT Manager' },
 ];
 
-const AVATAR_COLORS = ['#5E35B1', '#1565C0', '#00796B', '#AD1457', '#E65100'];
+const AVATAR_COLORS = ['#1D4ED8', '#0891B2', '#059669', '#7C3AED', '#D97706'];
 
 // ─── Permission grid (inline, same as CreateUserRoleScreen) ───────────────────
 function PermissionGrid({ selected, onChange }: { selected: string[]; onChange(p: string[]): void }) {
@@ -180,7 +180,7 @@ export function AssignUserPermissionScreen() {
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const PURPLE = '#1565C0';
+const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const ACCENT = '#1C1C1E';
 
 const s = StyleSheet.create({
   safe:  { flex: 1, backgroundColor: DARK },
@@ -190,7 +190,7 @@ const s = StyleSheet.create({
   bandSub:   { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: 'rgba(255,255,255,0.4)', marginTop: 3 },
   sheet: { flex: 1, backgroundColor: LIGHT, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -28, overflow: 'hidden' },
   // Search
-  sbWrap:  { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, marginTop: 20, marginBottom: 4, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', gap: 8 },
+  sbWrap:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: 10, gap: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0' },
   sbIcon:  { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
   sbG:     { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0 },
   sbH:     { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
@@ -208,7 +208,7 @@ const s = StyleSheet.create({
   uName:    { fontFamily: FontFamily.medium, fontSize: FontSize.md, fontWeight: FontWeight.medium, color: Colors.primaryText },
   uRole:    { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder },
   uPermBadge: { alignItems: 'center', backgroundColor: 'rgba(21,101,192,0.08)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  uPermNum: { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: PURPLE },
+  uPermNum: { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: ACCENT },
   uPermLbl: { fontFamily: FontFamily.regular, fontSize: 8, color: Colors.placeholder },
   uArrow:   { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
   uArrowHead: { width: 8, height: 8, borderTopWidth: 2, borderRightWidth: 2, borderColor: '#C0C0C8', transform: [{ rotate: '45deg' }, { translateX: -2 }] },
@@ -226,8 +226,8 @@ const s = StyleSheet.create({
   permHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
   permTitle:  { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.primaryText },
   permBadge:  { backgroundColor: 'rgba(21,101,192,0.1)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  permBadgeTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: PURPLE },
-  saveBtn: { marginTop: Spacing.xl, alignItems: 'center', justifyContent: 'center', backgroundColor: PURPLE, borderRadius: 12, paddingVertical: 15 },
+  permBadgeTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: ACCENT },
+  saveBtn: { marginTop: Spacing.xl, alignItems: 'center', justifyContent: 'center', backgroundColor: ACCENT, borderRadius: 12, paddingVertical: 15 },
   saveTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
 });
 
@@ -239,9 +239,9 @@ const pg = StyleSheet.create({
   actCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
   hTxt:   { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: FontWeight.bold, color: Colors.placeholder, textTransform: 'uppercase', textAlign: 'center', letterSpacing: 0.4 },
   modTxt: { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.primaryText },
-  modTxtOn: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: PURPLE },
+  modTxtOn: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: ACCENT },
   cell:   { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: '#D0D0D8', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF' },
-  cellOn: { backgroundColor: PURPLE, borderColor: PURPLE },
+  cellOn: { backgroundColor: ACCENT, borderColor: ACCENT },
   ckL:    { position: 'absolute', left: 1, bottom: 3, width: 4, height: 1.5, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '45deg' }] },
   ckR:    { position: 'absolute', right: 1, bottom: 4, width: 7, height: 1.5, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '-50deg' }] },
 });

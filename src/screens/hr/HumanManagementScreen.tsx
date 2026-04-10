@@ -198,31 +198,27 @@ export function HumanManagementScreen() {
         <FilterToggle active={filter} counts={counts} onChange={setFilter} />
 
         {/* Search bar */}
-        {humans.length > 0 && (
-          <View style={sb.wrap}>
-            {/* Search icon */}
-            <View style={sb.iconWrap}>
-              <View style={sb.glass} />
-              <View style={sb.handle} />
-            </View>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name, NIC, location…"
-              placeholderTextColor={Colors.placeholder}
-              style={sb.input}
-              autoCapitalize="none"
-              clearButtonMode="while-editing"
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} style={sb.clearBtn} hitSlop={8}>
-                <View style={sb.clearX1} />
-                <View style={sb.clearX2} />
-              </Pressable>
-            )}
+        <View style={sb.wrap}>
+          <View style={sb.iconWrap}>
+            <View style={sb.glass} />
+            <View style={sb.handle} />
           </View>
-        )}
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search by name, NIC, location…"
+            placeholderTextColor={Colors.placeholder}
+            style={sb.input}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} style={sb.clearBtn} hitSlop={8}>
+              <View style={sb.clearX1} />
+              <View style={sb.clearX2} />
+            </Pressable>
+          )}
+        </View>
 
         {/* Table header (shown when there are records) */}
         {filtered.length > 0 && (
@@ -280,7 +276,7 @@ export function HumanManagementScreen() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const DARK   = '#1C1C1E';
 const LIGHT  = '#F2F2F7';
-const AVATAR_COLORS = ['#E91E63', '#9C27B0', '#3F51B5', '#009688', '#FF5722', '#607D8B'];
+const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#D97706', '#475569'];
 
 const styles = StyleSheet.create({
   safe:     { flex: 1, backgroundColor: DARK },
@@ -294,7 +290,7 @@ const styles = StyleSheet.create({
   statChip: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', minWidth: 64 },
   statValue: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
   statLabel: { fontFamily: FontFamily.regular, fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
-  fab: { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.primaryHighlight, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 },
+  fab: { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 10 },
   fabPressed: { transform: [{ scale: 0.93 }], opacity: 0.88 },
   fabH: { position: 'absolute', width: 24, height: 3, borderRadius: 1.5, backgroundColor: '#FFF' },
   fabV: { position: 'absolute', width: 3, height: 24, borderRadius: 1.5, backgroundColor: '#FFF' },
@@ -303,13 +299,13 @@ const styles = StyleSheet.create({
 const ft = StyleSheet.create({
   wrap: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm, gap: 8 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#E5E5EA' },
-  btnActive: { backgroundColor: DARK, borderColor: DARK },
+  btnActive: { backgroundColor: '#1C1C1E', borderColor: '#1C1C1E' },
   label: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder },
-  labelActive: { color: '#FFF', fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
+  labelActive: { color: '#FFFFFF', fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
   badge: { backgroundColor: '#F0F0F5', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
-  badgeActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
+  badgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
   badgeText: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, color: Colors.placeholder },
-  badgeTextActive: { color: '#FFF' },
+  badgeTextActive: { color: '#FFFFFF' },
 });
 
 const th = StyleSheet.create({
@@ -368,44 +364,32 @@ const sb = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    marginBottom: 2,
-    paddingBottom: 8,
+    paddingTop: Spacing.md,
+    paddingBottom: 10,
+    gap: 8,
     borderBottomWidth: 1.5,
     borderBottomColor: '#D0D0D0',
-    gap: 8,
   },
   iconWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
   glass: {
-    width: 11, height: 11,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: Colors.placeholder,
-    position: 'absolute', top: 0, left: 0,
+    width: 11, height: 11, borderRadius: 6, borderWidth: 1.5,
+    borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0,
   },
   handle: {
     position: 'absolute', bottom: 0, right: 0,
-    width: 5, height: 1.5,
-    backgroundColor: Colors.placeholder,
-    borderRadius: 1,
-    transform: [{ rotate: '45deg' }],
+    width: 5, height: 1.5, backgroundColor: Colors.placeholder,
+    borderRadius: 1, transform: [{ rotate: '45deg' }],
   },
   input: {
-    flex: 1,
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.sm,
-    color: Colors.primaryText,
-    paddingVertical: 0,
+    flex: 1, fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm, color: Colors.primaryText, paddingVertical: 0,
   },
   clearBtn: {
-    width: 18, height: 18,
-    borderRadius: 9,
-    backgroundColor: '#E0E0E8',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: '#EBEBEB', alignItems: 'center', justifyContent: 'center',
   },
-  clearX1: { position: 'absolute', width: 9, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  clearX2: { position: 'absolute', width: 9, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  clearX1: { position: 'absolute', width: 9, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  clearX2: { position: 'absolute', width: 9, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
 });
 
 const nr = StyleSheet.create({

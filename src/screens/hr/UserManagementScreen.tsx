@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -113,11 +114,19 @@ const ICONS = [UserPlusIcon, KeyIcon, BadgeIcon, ShieldIcon];
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function UserManagementScreen() {
   const { navigate } = useNavigation();
+  const [search, setSearch] = useState('');
 
   function handlePress(id: string) {
     const screen = SUBMODULE_SCREENS[id];
     if (screen) navigate(screen);
   }
+
+  const q = search.trim().toLowerCase();
+  const filtered = q === ''
+    ? UM_SUBMODULES
+    : UM_SUBMODULES.filter(m =>
+        m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q),
+      );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -133,11 +142,33 @@ export function UserManagementScreen() {
 
       {/* Light sheet */}
       <View style={styles.sheet}>
+
+        {/* Search bar */}
+        <View style={sb.wrap}>
+          <View style={sb.iconWrap}>
+            <View style={sb.glass} /><View style={sb.handle} />
+          </View>
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search modules…"
+            placeholderTextColor={Colors.placeholder}
+            style={sb.input}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch('')} style={sb.clearBtn} hitSlop={8}>
+              <View style={sb.clearX1} /><View style={sb.clearX2} />
+            </Pressable>
+          )}
+        </View>
+
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}>
 
-          {UM_SUBMODULES.map((mod, idx) => {
+          {filtered.map((mod, idx) => {
             const IconComp = ICONS[idx];
             return (
               <Pressable
@@ -253,10 +284,12 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: Colors.primaryHighlight,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
   },
 
   content: {
@@ -327,34 +360,51 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Icon shapes (white on pink) ─────────────────────────────────────────────
+// ─── Icon shapes (black on white bg) ─────────────────────────────────────────
+const BK = '#1C1C1E';
 const icon = StyleSheet.create({
   wrap: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
 
   // User + plus
-  head:  { width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFF', marginBottom: 2 },
-  body:  { width: 14, height: 9, borderTopLeftRadius: 7, borderTopRightRadius: 7, backgroundColor: '#FFF' },
-  plusH: { position: 'absolute', bottom: 2, right: 0, width: 8, height: 2, borderRadius: 1, backgroundColor: '#FFF' },
-  plusV: { position: 'absolute', bottom: -2, right: 3, width: 2, height: 8, borderRadius: 1, backgroundColor: '#FFF' },
+  head:  { width: 10, height: 10, borderRadius: 5, backgroundColor: BK, marginBottom: 2 },
+  body:  { width: 14, height: 9, borderTopLeftRadius: 7, borderTopRightRadius: 7, backgroundColor: BK },
+  plusH: { position: 'absolute', bottom: 2, right: 0, width: 8, height: 2, borderRadius: 1, backgroundColor: BK },
+  plusV: { position: 'absolute', bottom: -2, right: 3, width: 2, height: 8, borderRadius: 1, backgroundColor: BK },
 
   // Key
-  keyRing:  { position: 'absolute', top: 2, left: 2, width: 11, height: 11, borderRadius: 6, borderWidth: 2.5, borderColor: '#FFF' },
-  keyShank: { position: 'absolute', bottom: 4, right: 1, width: 12, height: 2.5, borderRadius: 1.5, backgroundColor: '#FFF', transform: [{ rotate: '-30deg' }] },
-  keyT1:    { position: 'absolute', bottom: 6, right: 2, width: 2.5, height: 5, borderRadius: 1, backgroundColor: '#FFF', transform: [{ rotate: '-30deg' }] },
-  keyT2:    { position: 'absolute', bottom: 3, right: 5, width: 2.5, height: 4, borderRadius: 1, backgroundColor: '#FFF', transform: [{ rotate: '-30deg' }] },
+  keyRing:  { position: 'absolute', top: 2, left: 2, width: 11, height: 11, borderRadius: 6, borderWidth: 2.5, borderColor: BK },
+  keyShank: { position: 'absolute', bottom: 4, right: 1, width: 12, height: 2.5, borderRadius: 1.5, backgroundColor: BK, transform: [{ rotate: '-30deg' }] },
+  keyT1:    { position: 'absolute', bottom: 6, right: 2, width: 2.5, height: 5, borderRadius: 1, backgroundColor: BK, transform: [{ rotate: '-30deg' }] },
+  keyT2:    { position: 'absolute', bottom: 3, right: 5, width: 2.5, height: 4, borderRadius: 1, backgroundColor: BK, transform: [{ rotate: '-30deg' }] },
 
   // Badge / ID card
-  badgeCard: { position: 'absolute', width: 20, height: 24, borderRadius: 4, borderWidth: 2, borderColor: '#FFF' },
-  badgeTop:  { position: 'absolute', top: 0, width: 8, height: 4, borderRadius: 2, backgroundColor: '#FFF' },
-  badgeL1:   { position: 'absolute', top: 10, width: 12, height: 2.5, borderRadius: 1, backgroundColor: '#FFF' },
-  badgeL2:   { position: 'absolute', top: 15, width: 8,  height: 2.5, borderRadius: 1, backgroundColor: '#FFF', opacity: 0.6 },
+  badgeCard: { position: 'absolute', width: 20, height: 24, borderRadius: 4, borderWidth: 2, borderColor: BK },
+  badgeTop:  { position: 'absolute', top: 0, width: 8, height: 4, borderRadius: 2, backgroundColor: BK },
+  badgeL1:   { position: 'absolute', top: 10, width: 12, height: 2.5, borderRadius: 1, backgroundColor: BK },
+  badgeL2:   { position: 'absolute', top: 15, width: 8,  height: 2.5, borderRadius: 1, backgroundColor: BK, opacity: 0.45 },
 
   // Shield + check
   shield:  {
     position: 'absolute', width: 20, height: 22,
     borderRadius: 5, borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
-    borderWidth: 2.5, borderColor: '#FFF',
+    borderWidth: 2.5, borderColor: BK,
   },
-  ckShort: { position: 'absolute', bottom: 7, left: 4,  width: 5, height: 2.5, borderRadius: 1, backgroundColor: '#FFF', transform: [{ rotate: '45deg' }] },
-  ckLong:  { position: 'absolute', bottom: 8, right: 2, width: 9, height: 2.5, borderRadius: 1, backgroundColor: '#FFF', transform: [{ rotate: '-55deg' }] },
+  ckShort: { position: 'absolute', bottom: 7, left: 4,  width: 5, height: 2.5, borderRadius: 1, backgroundColor: BK, transform: [{ rotate: '45deg' }] },
+  ckLong:  { position: 'absolute', bottom: 8, right: 2, width: 9, height: 2.5, borderRadius: 1, backgroundColor: BK, transform: [{ rotate: '-55deg' }] },
+});
+
+const sb = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    paddingTop: Spacing.md, paddingBottom: 10,
+    gap: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0',
+  },
+  iconWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  glass:  { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0 },
+  handle: { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  input:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.primaryText, paddingVertical: 0 },
+  clearBtn: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#EBEBEB', alignItems: 'center', justifyContent: 'center' },
+  clearX1: { position: 'absolute', width: 9, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  clearX2: { position: 'absolute', width: 9, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
 });

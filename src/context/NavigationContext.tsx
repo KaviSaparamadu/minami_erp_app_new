@@ -5,7 +5,19 @@ export type ScreenName =
   | 'HumanManagement' | 'EmployeeManagement'
   | 'UserManagement'
   | 'CreateSystemUsers' | 'AssignUserPermission'
-  | 'CreateUserRole'    | 'AssignUserRolePermission';
+  | 'CreateUserRole'    | 'AssignUserRolePermission'
+  // System Admin
+  | 'SystemAdmin'
+  | 'EmployeeSettings'
+  | 'ItemSettings'
+  | 'SupplierSettings'
+  | 'StoresSetting'
+  | 'FinanceSetting'
+  | 'FinanceInstitutesAccSetting'
+  | 'SecurityPostSetting'
+  | 'VehicleSettings'
+  | 'ServiceOfferedSettings'
+  | 'DistributionBusinessSettings';
 
 interface NavigationContextValue {
   currentScreen: ScreenName;

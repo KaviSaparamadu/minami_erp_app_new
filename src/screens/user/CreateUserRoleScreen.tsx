@@ -12,7 +12,7 @@ import type { UserRole } from '../../types/hr';
 let nextId = 1;
 const genId = () => String(nextId++);
 
-const ROLE_COLORS = ['#5E35B1', '#1565C0', '#00796B', '#AD1457', '#E65100', '#2E7D32'];
+const ROLE_COLORS = ['#1D4ED8', '#1565C0', '#00796B', '#AD1457', '#E65100', '#2E7D32'];
 
 // ─── Permission grid ──────────────────────────────────────────────────────────
 function PermissionGrid({ selected, onChange, disabled }: {
@@ -301,7 +301,7 @@ export function CreateUserRoleScreen() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const PINK = Colors.primaryHighlight; const PURPLE = '#5E35B1';
+const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const ACCENT = Colors.primaryHighlight;
 
 const s = StyleSheet.create({
   safe:  { flex: 1, backgroundColor: DARK },
@@ -311,7 +311,7 @@ const s = StyleSheet.create({
   chip:  { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'center', minWidth: 80 },
   chipV: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
   chipL: { fontFamily: FontFamily.regular, fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
-  sbWrap:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, marginTop: 16, marginBottom: 2, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', gap: 8 },
+  sbWrap:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: 10, gap: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0' },
   sbIcon:   { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
   sbG:  { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0 },
   sbH:  { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
@@ -325,13 +325,13 @@ const s = StyleSheet.create({
   empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingBottom: 60 },
   emptyIcon:  { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(94,53,177,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   eBadge: { position: 'absolute', width: 28, height: 34, borderRadius: 6, backgroundColor: 'rgba(94,53,177,0.3)' },
-  eLine1: { position: 'absolute', top: 22, width: 16, height: 3, borderRadius: 1.5, backgroundColor: PURPLE },
-  eLine2: { position: 'absolute', top: 29, width: 10, height: 3, borderRadius: 1.5, backgroundColor: PURPLE, opacity: 0.5 },
+  eLine1: { position: 'absolute', top: 22, width: 16, height: 3, borderRadius: 1.5, backgroundColor: ACCENT },
+  eLine2: { position: 'absolute', top: 29, width: 10, height: 3, borderRadius: 1.5, backgroundColor: ACCENT, opacity: 0.5 },
   emptyTitle:  { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.primaryText },
   emptySub:    { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.placeholder },
-  emptyBtn:    { marginTop: 4, backgroundColor: PURPLE, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
+  emptyBtn:    { marginTop: 4, backgroundColor: ACCENT, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
   emptyBtnTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: '#FFF' },
-  fab:  { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: PINK, alignItems: 'center', justifyContent: 'center', shadowColor: PINK, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 },
+  fab:  { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 10 },
   fabP: { transform: [{ scale: 0.93 }], opacity: 0.88 },
   fabH: { position: 'absolute', width: 24, height: 3, borderRadius: 1.5, backgroundColor: '#FFF' },
   fabV: { position: 'absolute', width: 3, height: 24, borderRadius: 1.5, backgroundColor: '#FFF' },
@@ -348,7 +348,7 @@ const tr = StyleSheet.create({
   name:    { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.primaryText },
   desc:    { fontFamily: FontFamily.regular, fontSize: 10, color: Colors.placeholder },
   permBadge: { backgroundColor: 'rgba(94,53,177,0.1)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  permTxt:   { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: FontWeight.bold, color: PURPLE },
+  permTxt:   { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: FontWeight.bold, color: ACCENT },
   permLbl:   { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
   btn:   { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   bView: { backgroundColor: 'rgba(63,81,181,0.1)' }, bEdit: { backgroundColor: 'rgba(255,152,0,0.1)' }, bDel: { backgroundColor: 'rgba(211,47,47,0.1)' },
@@ -363,7 +363,7 @@ const tr = StyleSheet.create({
 const fm = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F7' },
   header: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : 22, paddingBottom: Spacing.md, gap: Spacing.md, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
-  headerIcon: { width: 38, height: 38, borderRadius: 8, backgroundColor: PURPLE, alignItems: 'center', justifyContent: 'center' },
+  headerIcon: { width: 38, height: 38, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
   badgeOuter: { position: 'absolute', width: 20, height: 24, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.9)' },
   badgeClip:  { position: 'absolute', top: 5, width: 7, height: 4, borderRadius: 2, backgroundColor: 'rgba(94,53,177,0.5)' },
   badgeLine:  { position: 'absolute', bottom: 9, width: 12, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.6)' },
@@ -375,7 +375,7 @@ const fm = StyleSheet.create({
   form: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg },
   fieldWrap:  { marginBottom: Spacing.lg },
   fieldLabel: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder, marginBottom: 5 },
-  req:        { color: PINK },
+  req:        { color: ACCENT },
   fieldInput: { fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText, paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#EAEAEA', paddingHorizontal: 0 },
   fieldActive:{ borderBottomColor: '#D0D0D0' },
   presetWrap: { marginBottom: Spacing.lg, zIndex: 20 },
@@ -393,11 +393,11 @@ const fm = StyleSheet.create({
   gridHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
   gridTitle:   { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.primaryText },
   gridBadge:   { backgroundColor: 'rgba(94,53,177,0.1)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  gridBadgeTxt:{ fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: PURPLE },
+  gridBadgeTxt:{ fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: ACCENT },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E5E5EA', gap: Spacing.sm },
   cancelBtn: { paddingVertical: 12, paddingHorizontal: Spacing.md, borderRadius: 8, borderWidth: 1.5, borderColor: '#D0D0D8', backgroundColor: '#FFF', minWidth: 80, alignItems: 'center' },
   cancelTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, color: Colors.primaryText },
-  saveBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: PURPLE, borderRadius: 10, paddingVertical: 14 },
+  saveBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: ACCENT, borderRadius: 10, paddingVertical: 14 },
   saveTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
 });
 
@@ -409,9 +409,9 @@ const pg = StyleSheet.create({
   actCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
   hTxt:   { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: FontWeight.bold, color: Colors.placeholder, textTransform: 'uppercase', textAlign: 'center', letterSpacing: 0.4 },
   modTxt: { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.primaryText },
-  modTxtOn: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: PURPLE },
+  modTxtOn: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: ACCENT },
   cell:   { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: '#D0D0D8', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF' },
-  cellOn: { backgroundColor: PURPLE, borderColor: PURPLE },
+  cellOn: { backgroundColor: ACCENT, borderColor: ACCENT },
   ckL: { position: 'absolute', left: 1, bottom: 3, width: 4, height: 1.5, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '45deg' }] },
   ckR: { position: 'absolute', right: 1, bottom: 4, width: 7, height: 1.5, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '-50deg' }] },
 });

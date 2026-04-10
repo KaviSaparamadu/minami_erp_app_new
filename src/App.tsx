@@ -14,6 +14,19 @@ import { CreateSystemUsersScreen } from './screens/user/CreateSystemUsersScreen'
 import { AssignUserPermissionScreen } from './screens/user/AssignUserPermissionScreen';
 import { CreateUserRoleScreen } from './screens/user/CreateUserRoleScreen';
 import { AssignUserRolePermissionScreen } from './screens/user/AssignUserRolePermissionScreen';
+import { SystemAdminScreen } from './screens/system-admin/SystemAdminScreen';
+import {
+  EmployeeSettingsScreen,
+  ItemSettingsScreen,
+  SupplierSettingsScreen,
+  StoresSettingScreen,
+  FinanceSettingScreen,
+  FinanceInstitutesAccSettingScreen,
+  SecurityPostSettingScreen,
+  VehicleSettingsScreen,
+  ServiceOfferedSettingsScreen,
+  DistributionBusinessSettingsScreen,
+} from './screens/system-admin/SettingsScreens';
 
 function AppNavigator() {
   const { currentScreen, navigating } = useNavigation();
@@ -27,9 +40,21 @@ function AppNavigator() {
       case 'CreateSystemUsers':       return <CreateSystemUsersScreen />;
       case 'AssignUserPermission':    return <AssignUserPermissionScreen />;
       case 'CreateUserRole':          return <CreateUserRoleScreen />;
-      case 'AssignUserRolePermission':return <AssignUserRolePermissionScreen />;
+      case 'AssignUserRolePermission':        return <AssignUserRolePermissionScreen />;
+      // System Admin
+      case 'SystemAdmin':                     return <SystemAdminScreen />;
+      case 'EmployeeSettings':                return <EmployeeSettingsScreen />;
+      case 'ItemSettings':                    return <ItemSettingsScreen />;
+      case 'SupplierSettings':                return <SupplierSettingsScreen />;
+      case 'StoresSetting':                   return <StoresSettingScreen />;
+      case 'FinanceSetting':                  return <FinanceSettingScreen />;
+      case 'FinanceInstitutesAccSetting':     return <FinanceInstitutesAccSettingScreen />;
+      case 'SecurityPostSetting':             return <SecurityPostSettingScreen />;
+      case 'VehicleSettings':                 return <VehicleSettingsScreen />;
+      case 'ServiceOfferedSettings':          return <ServiceOfferedSettingsScreen />;
+      case 'DistributionBusinessSettings':    return <DistributionBusinessSettingsScreen />;
       case 'Dashboard':
-      default:                        return <DashboardScreen />;
+      default:                                return <DashboardScreen />;
     }
   })();
 
@@ -41,7 +66,7 @@ function AppNavigator() {
       {navigating && (
         <View style={styles.overlay}>
           <View style={styles.loaderCard}>
-            <ActivityIndicator size="large" color="#E91E63" />
+            <ActivityIndicator size="large" color="#1C1C1E" />
           </View>
         </View>
       )}

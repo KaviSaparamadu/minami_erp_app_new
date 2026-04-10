@@ -17,7 +17,7 @@ import type { Employee } from '../../types/hr';
 let nextId = 1;
 const genId = () => String(nextId++);
 
-const AVATAR_COLORS = ['#E91E63', '#9C27B0', '#3F51B5', '#009688', '#FF5722', '#607D8B'];
+const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#D97706', '#475569'];
 
 // ─── Row action icons ─────────────────────────────────────────────────────────
 function EyeIcon() {
@@ -190,27 +190,25 @@ export function EmployeeManagementScreen() {
       <View style={styles.sheet}>
 
         {/* Search bar */}
-        {employees.length > 0 && (
-          <View style={sb.wrap}>
-            <View style={sb.iconWrap}>
-              <View style={sb.glass} /><View style={sb.handle} />
-            </View>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name, department, type…"
-              placeholderTextColor={Colors.placeholder}
-              style={sb.input}
-              autoCapitalize="none"
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} style={sb.clearBtn} hitSlop={8}>
-                <View style={sb.clearX1} /><View style={sb.clearX2} />
-              </Pressable>
-            )}
+        <View style={sb.wrap}>
+          <View style={sb.iconWrap}>
+            <View style={sb.glass} /><View style={sb.handle} />
           </View>
-        )}
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search by name, department, type…"
+            placeholderTextColor={Colors.placeholder}
+            style={sb.input}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} style={sb.clearBtn} hitSlop={8}>
+              <View style={sb.clearX1} /><View style={sb.clearX2} />
+            </Pressable>
+          )}
+        </View>
 
         {/* Table header */}
         {filtered.length > 0 && (
@@ -290,8 +288,8 @@ const styles = StyleSheet.create({
     width: 56, height: 56, borderRadius: 28,
     backgroundColor: Colors.primaryHighlight,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: Colors.primaryHighlight, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45, shadowRadius: 14, elevation: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18, shadowRadius: 10, elevation: 10,
   },
   fabPressed: { transform: [{ scale: 0.93 }], opacity: 0.88 },
   fabH: { position: 'absolute', width: 24, height: 3, borderRadius: 1.5, backgroundColor: '#FFF' },
@@ -355,16 +353,17 @@ const es = StyleSheet.create({
 const sb = StyleSheet.create({
   wrap: {
     flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: Spacing.lg, marginTop: Spacing.md, marginBottom: 2,
-    paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', gap: 8,
+    marginHorizontal: Spacing.lg,
+    paddingTop: Spacing.md, paddingBottom: 10,
+    gap: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0',
   },
   iconWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
   glass:  { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0 },
   handle: { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
   input:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.primaryText, paddingVertical: 0 },
-  clearBtn: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#E0E0E8', alignItems: 'center', justifyContent: 'center' },
-  clearX1: { position: 'absolute', width: 9, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  clearX2: { position: 'absolute', width: 9, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  clearBtn: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#EBEBEB', alignItems: 'center', justifyContent: 'center' },
+  clearX1: { position: 'absolute', width: 9, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  clearX2: { position: 'absolute', width: 9, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
 });
 
 const nr = StyleSheet.create({

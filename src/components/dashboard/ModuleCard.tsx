@@ -54,10 +54,12 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   top: {
-    backgroundColor: '#F5F5F7',
+    backgroundColor: '#FFFFFF',
     paddingVertical: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   bottom: {
     paddingHorizontal: 6,

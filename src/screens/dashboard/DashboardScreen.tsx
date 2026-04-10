@@ -20,7 +20,7 @@ import { useNavigation } from '../../context/NavigationContext';
 const DARK_BG  = '#1C1C1E';
 const LIGHT_BG = '#F2F2F7';
 const H_PAD    = Spacing.lg;
-const GAP      = 6;
+const GAP      = 10;
 const NUM_COLS = 3;
 
 function getGreeting() {
@@ -70,12 +70,12 @@ export function DashboardScreen() {
   const { user } = useAuth();
   const { navigate } = useNavigation();
   const { width } = useWindowDimensions();
-  const cardWidth = (width - H_PAD * 2 - GAP) / NUM_COLS;
+  const cardWidth = (width - H_PAD * 2 - GAP * (NUM_COLS - 1)) / NUM_COLS;
 
   function handleModulePress(module: AppModule) {
-    if (module.id === '4') {
-      navigate('HR');
-    }
+    if (module.id === '4') navigate('HR');
+    else if (module.id === '8') navigate('EmployeeManagement');
+    else if (module.id === '7') navigate('SystemAdmin');
   }
 
   return (
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: GAP,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
 });
 
@@ -176,7 +176,7 @@ const welcome = StyleSheet.create({
     height: 130,
     borderRadius: 65,
     borderWidth: 28,
-    borderColor: 'rgba(233,30,99,0.08)',
+    borderColor: 'rgba(37,99,235,0.08)',
     top: -45,
     right: -30,
   },
@@ -186,7 +186,7 @@ const welcome = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     borderWidth: 14,
-    borderColor: 'rgba(233,30,99,0.06)',
+    borderColor: 'rgba(37,99,235,0.06)',
     bottom: -20,
     left: -10,
   },

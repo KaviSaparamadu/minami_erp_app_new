@@ -10,11 +10,11 @@ import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constan
 
 // ─── Demo roles (mirrors CreateUserRoleScreen store in a real app) ────────────
 const DEMO_ROLES = [
-  { id: '1', roleName: 'Super Admin',      permCount: 54, color: '#5E35B1' },
-  { id: '2', roleName: 'HR Manager',       permCount: 6,  color: '#1565C0' },
-  { id: '3', roleName: 'Finance Manager',  permCount: 6,  color: '#00796B' },
-  { id: '4', roleName: 'Viewer',           permCount: 9,  color: '#AD1457' },
-  { id: '5', roleName: 'Auditor',          permCount: 18, color: '#E65100' },
+  { id: '1', roleName: 'Super Admin',      permCount: 54, color: '#1D4ED8' },
+  { id: '2', roleName: 'HR Manager',       permCount: 6,  color: '#0891B2' },
+  { id: '3', roleName: 'Finance Manager',  permCount: 6,  color: '#059669' },
+  { id: '4', roleName: 'Viewer',           permCount: 9,  color: '#7C3AED' },
+  { id: '5', roleName: 'Auditor',          permCount: 18, color: '#D97706' },
 ];
 
 // ─── Permission grid ──────────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ export function AssignUserRolePermissionScreen() {
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const TEAL = '#00796B';
+const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const TEAL = '#059669';
 
 const s = StyleSheet.create({
   safe:  { flex: 1, backgroundColor: DARK },
@@ -181,7 +181,7 @@ const s = StyleSheet.create({
   bandTitle: { fontFamily: FontFamily.bold, fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: '#FFF', letterSpacing: 0.2 },
   bandSub:   { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: 'rgba(255,255,255,0.4)', marginTop: 3 },
   sheet: { flex: 1, backgroundColor: LIGHT, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -28, overflow: 'hidden' },
-  sbWrap:  { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, marginTop: 20, marginBottom: 4, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', gap: 8 },
+  sbWrap:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: 10, gap: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0' },
   sbIcon:  { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
   sbG:     { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0 },
   sbH:     { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },

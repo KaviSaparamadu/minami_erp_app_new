@@ -13,7 +13,7 @@ import type { SystemUser, UserStatus } from '../../types/hr';
 let nextId = 1;
 const genId = () => String(nextId++);
 
-const AVATAR_COLORS = ['#5E35B1', '#1565C0', '#00796B', '#AD1457', '#E65100', '#2E7D32'];
+const AVATAR_COLORS = ['#1D4ED8', '#1565C0', '#00796B', '#AD1457', '#E65100', '#2E7D32'];
 const STATUS_COLORS: Record<UserStatus, string> = { Active: '#30A84B', Inactive: '#E53935' };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -315,7 +315,7 @@ export function CreateSystemUsersScreen() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const PINK = Colors.primaryHighlight;
+const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const ACCENT = Colors.primaryHighlight;
 
 const s = StyleSheet.create({
   safe:  { flex: 1, backgroundColor: DARK },
@@ -326,7 +326,7 @@ const s = StyleSheet.create({
   chipV: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
   chipL: { fontFamily: FontFamily.regular, fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
   // search
-  sbWrap:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, marginTop: 16, marginBottom: 2, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', gap: 8 },
+  sbWrap:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: 10, gap: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0' },
   sbIcon:   { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
   sbGlass:  { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0 },
   sbHandle: { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
@@ -343,14 +343,14 @@ const s = StyleSheet.create({
   emptyIcon:  { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(94,53,177,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   eHead:  { position: 'absolute', top: 12, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(94,53,177,0.35)' },
   eBody:  { position: 'absolute', bottom: 14, width: 28, height: 16, borderTopLeftRadius: 14, borderTopRightRadius: 14, backgroundColor: 'rgba(94,53,177,0.35)' },
-  ePlus:  { position: 'absolute', bottom: 10, right: 8, width: 14, height: 3, borderRadius: 1.5, backgroundColor: '#5E35B1' },
-  ePlusV: { position: 'absolute', bottom: 4, right: 14, width: 3, height: 14, borderRadius: 1.5, backgroundColor: '#5E35B1' },
+  ePlus:  { position: 'absolute', bottom: 10, right: 8, width: 14, height: 3, borderRadius: 1.5, backgroundColor: '#1C1C1E' },
+  ePlusV: { position: 'absolute', bottom: 4, right: 14, width: 3, height: 14, borderRadius: 1.5, backgroundColor: '#1C1C1E' },
   emptyTitle:  { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.primaryText },
   emptySub:    { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.placeholder, textAlign: 'center' },
-  emptyBtn:    { marginTop: 4, backgroundColor: '#5E35B1', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
+  emptyBtn:    { marginTop: 4, backgroundColor: '#1C1C1E', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
   emptyBtnTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: '#FFF' },
   // FAB
-  fab:  { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: PINK, alignItems: 'center', justifyContent: 'center', shadowColor: PINK, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 },
+  fab:  { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 10 },
   fabP: { transform: [{ scale: 0.93 }], opacity: 0.88 },
   fabH: { position: 'absolute', width: 24, height: 3, borderRadius: 1.5, backgroundColor: '#FFF' },
   fabV: { position: 'absolute', width: 3, height: 24, borderRadius: 1.5, backgroundColor: '#FFF' },
@@ -384,7 +384,7 @@ const tr = StyleSheet.create({
 const fm = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F7' },
   header: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : 22, paddingBottom: Spacing.md, gap: Spacing.md, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
-  headerIcon: { width: 38, height: 38, borderRadius: 8, backgroundColor: '#5E35B1', alignItems: 'center', justifyContent: 'center' },
+  headerIcon: { width: 38, height: 38, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
   hHead: { position: 'absolute', top: 6, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFF' },
   hBody: { position: 'absolute', bottom: 7, width: 18, height: 10, borderTopLeftRadius: 9, borderTopRightRadius: 9, backgroundColor: '#FFF' },
   title: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: DARK },
@@ -396,14 +396,14 @@ const fm = StyleSheet.create({
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E5E5EA', gap: Spacing.sm },
   cancelBtn: { paddingVertical: 12, paddingHorizontal: Spacing.md, borderRadius: 8, borderWidth: 1.5, borderColor: '#D0D0D8', backgroundColor: '#FFF', minWidth: 80, alignItems: 'center' },
   cancelTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, color: Colors.primaryText },
-  saveBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#5E35B1', borderRadius: 10, paddingVertical: 14 },
+  saveBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1C1C1E', borderRadius: 10, paddingVertical: 14 },
   saveTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
 });
 
 const dd = StyleSheet.create({
   wrap: { marginBottom: Spacing.lg, zIndex: 10 },
   label: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder, marginBottom: 5 },
-  req:  { color: PINK },
+  req:  { color: ACCENT },
   trigger: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0' },
   open: { borderBottomColor: Colors.primaryText }, disabled: { opacity: 0.55 },
   val:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText },
@@ -415,13 +415,13 @@ const dd = StyleSheet.create({
   opt: { paddingHorizontal: Spacing.lg, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
   optActive: { backgroundColor: 'rgba(94,53,177,0.05)' },
   optTxt: { fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText },
-  optTxtA: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: '#5E35B1' },
+  optTxtA: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: '#1D4ED8' },
 });
 
 const fi = StyleSheet.create({
   wrap: { marginBottom: Spacing.lg },
   label: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder, marginBottom: 5 },
-  labelF: { color: Colors.primaryText }, req: { color: PINK },
+  labelF: { color: Colors.primaryText }, req: { color: ACCENT },
   input: { fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText, paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', paddingHorizontal: 0 },
   inputF: { borderBottomColor: Colors.primaryText }, inputRO: { color: Colors.placeholder, borderBottomColor: '#EAEAEA' },
 });
@@ -437,7 +437,7 @@ const st = StyleSheet.create({
 
 const sh = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: Spacing.xl, marginBottom: Spacing.md },
-  bar: { width: 3, height: 13, borderRadius: 2, backgroundColor: '#5E35B1' },
+  bar: { width: 3, height: 13, borderRadius: 2, backgroundColor: Colors.primaryHighlight },
   txt: { fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: Colors.placeholder, textTransform: 'uppercase', letterSpacing: 0.8 },
   line: { flex: 1, height: 1, backgroundColor: '#E8E8EE' },
 });
