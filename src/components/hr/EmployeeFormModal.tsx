@@ -674,7 +674,7 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
 const DARK = '#1C1C1E';
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F7' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
 
   // Header
   header: {

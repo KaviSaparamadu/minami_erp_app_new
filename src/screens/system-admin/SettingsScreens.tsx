@@ -12,7 +12,7 @@ import { FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme
 
 // ─── Shared palette & base styles ────────────────────────────────────────────
 const DARK     = '#1C1C1E';
-const LIGHT_BG = '#F2F2F7';
+const LIGHT_BG = '#FFFFFF';
 const ACCENT   = '#1C1C1E';
 
 const base = StyleSheet.create({

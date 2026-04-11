@@ -21,6 +21,7 @@ export type ScreenName =
 
 interface NavigationContextValue {
   currentScreen: ScreenName;
+  stack: ScreenName[];
   navigate: (screen: ScreenName) => void;
   goBack: () => void;
   canGoBack: boolean;
@@ -55,7 +56,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const canGoBack = stack.length > 1;
 
   return (
-    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating }}>
+    <NavigationContext.Provider value={{ currentScreen, stack, navigate, goBack, canGoBack, navigating }}>
       {children}
     </NavigationContext.Provider>
   );

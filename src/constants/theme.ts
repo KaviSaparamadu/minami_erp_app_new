@@ -2,14 +2,14 @@
 import { Platform } from 'react-native';
 
 export const Colors = {
-  background:        '#F2F2F7',        // light gray sheet
+  background:        '#FFFFFF',        // white — main UI color
   primaryText:       '#1C1C1E',        // near-black — all main text
   primaryHighlight:  '#E91E63',        // pink — accent lines, icons, indicators
   secondaryDark:     '#3A3A3C',        // dark gray — pressed states
 
-  // Button — stays BLACK (Uber-style bold CTAs)
-  buttonBg:          '#1C1C1E',
-  buttonBgPressed:   '#3A3A3C',
+  // Button
+  buttonBg:          '#595959',
+  buttonBgPressed:   '#3D3D3D',
   buttonText:        '#FFFFFF',
 
   // Inputs / Lines
@@ -30,9 +30,9 @@ export const Spacing = {
 } as const;
 
 export const BorderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
+  sm: 8,
+  md: 12,
+  lg: 16,
 } as const;
 
 export const FontWeight = {
@@ -43,12 +43,12 @@ export const FontWeight = {
 };
 
 export const FontSize = {
-  xs:  10,
-  sm:  11,
-  md:  12,
-  lg:  14,
-  xl:  18,
-  xxl: 22,
+  xs:  11,
+  sm:  13,
+  md:  15,
+  lg:  17,
+  xl:  20,
+  xxl: 26,
 } as const;
 
 export const FontFamily = {

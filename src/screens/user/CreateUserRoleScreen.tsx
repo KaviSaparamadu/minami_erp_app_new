@@ -274,7 +274,6 @@ export function CreateUserRoleScreen() {
             <View style={s.emptyIcon}><View style={s.eBadge}/><View style={s.eLine1}/><View style={s.eLine2}/></View>
             <Text style={s.emptyTitle}>No roles defined yet</Text>
             <Text style={s.emptySub}>Tap + to create the first role</Text>
-            <Pressable onPress={openCreate} style={s.emptyBtn}><Text style={s.emptyBtnTxt}>+ Create Role</Text></Pressable>
           </View>
         ) : filtered.length === 0 ? (
           <View style={s.empty}>
@@ -361,7 +360,7 @@ const tr = StyleSheet.create({
 });
 
 const fm = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F7' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : 22, paddingBottom: Spacing.md, gap: Spacing.md, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
   headerIcon: { width: 38, height: 38, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
   badgeOuter: { position: 'absolute', width: 20, height: 24, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.9)' },
@@ -403,7 +402,7 @@ const fm = StyleSheet.create({
 
 const pg = StyleSheet.create({
   wrap:   { borderRadius: 12, borderWidth: 1, borderColor: '#E5E5EA', overflow: 'hidden' },
-  hRow:   { flexDirection: 'row', backgroundColor: '#F5F5F7', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+  hRow:   { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
   row:    { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
   modCol: { width: 72, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10 },
   actCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },

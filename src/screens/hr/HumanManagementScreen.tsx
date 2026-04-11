@@ -122,9 +122,6 @@ function EmptyState({ filter, onAdd }: { filter: Filter; onAdd(): void }) {
       </View>
       <Text style={es.title}>{filter === 'All' ? 'No humans yet' : `No ${filter} records`}</Text>
       <Text style={es.sub}>Tap + to add your first record</Text>
-      <Pressable onPress={onAdd} style={({ pressed }) => [es.btn, pressed && { opacity: 0.85 }]}>
-        <Text style={es.btnTxt}>+ Create Human</Text>
-      </Pressable>
     </View>
   );
 }
@@ -176,22 +173,8 @@ export function HumanManagementScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
 
-      {/* Dark band */}
-      <View style={styles.darkBand}>
-        <PageHeader title="Human Management" showBack={true} />
+      <PageHeader title="Human Management" showBack={true} />
 
-        {/* Stats chips */}
-        <View style={styles.statsRow}>
-          {(['All', 'Sri Lanka', 'Japan'] as Filter[]).map(f => (
-            <View key={f} style={styles.statChip}>
-              <Text style={styles.statValue}>{counts[f]}</Text>
-              <Text style={styles.statLabel}>{f}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {/* Light sheet */}
       <View style={styles.sheet}>
 
         {/* Filter toggle */}
@@ -275,21 +258,12 @@ export function HumanManagementScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const DARK   = '#1C1C1E';
-const LIGHT  = '#F2F2F7';
+const LIGHT  = '#FFFFFF';
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#D97706', '#475569'];
 
 const styles = StyleSheet.create({
-  safe:     { flex: 1, backgroundColor: DARK },
-  darkBand: { backgroundColor: DARK, paddingBottom: 24 },
-  sheet: {
-    flex: 1, backgroundColor: LIGHT,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    marginTop: -28, overflow: 'hidden',
-  },
-  statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
-  statChip: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', minWidth: 64 },
-  statValue: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
-  statLabel: { fontFamily: FontFamily.regular, fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
+  safe:  { flex: 1, backgroundColor: LIGHT },
+  sheet: { flex: 1, backgroundColor: LIGHT },
   fab: { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 10 },
   fabPressed: { transform: [{ scale: 0.93 }], opacity: 0.88 },
   fabH: { position: 'absolute', width: 24, height: 3, borderRadius: 1.5, backgroundColor: '#FFF' },
@@ -318,32 +292,32 @@ const th = StyleSheet.create({
 });
 
 const tr = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F5', backgroundColor: '#FFF' },
-  rowEven: { backgroundColor: '#FAFAFA' },
-  colIdx:  { width: 28 },
-  colName: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  colMeta: { width: 80 },
-  colActions: { width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F0F0F5', backgroundColor: '#FFF' },
+  rowEven: { backgroundColor: '#FAFAFE' },
+  colIdx:  { width: 30 },
+  colName: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  colMeta: { width: 82 },
+  colActions: { width: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5 },
 
-  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder },
-  avatar:  { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: FontWeight.bold, color: '#FFF' },
-  nameBlock: { flex: 1, gap: 2 },
-  nameText: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.primaryText },
-  countryBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  idxText: { fontFamily: FontFamily.regular, fontSize: 12, color: Colors.placeholder },
+  avatar:  { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: FontWeight.bold, color: '#FFF' },
+  nameBlock: { flex: 1, gap: 3 },
+  nameText: { fontFamily: FontFamily.medium, fontSize: 13, fontWeight: FontWeight.medium, color: Colors.primaryText },
+  countryBadge: { alignSelf: 'flex-start', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
   badgeSL: { backgroundColor: 'rgba(233,30,99,0.1)' },
   badgeJP: { backgroundColor: 'rgba(63,81,181,0.1)' },
-  countryTxt: { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5 },
+  countryTxt: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5 },
   countryTxtSL: { color: Colors.primaryHighlight },
   countryTxtJP: { color: '#3F51B5' },
 
-  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: FontWeight.medium, color: Colors.primaryText },
-  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder, marginTop: 1 },
+  metaText: { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: FontWeight.medium, color: Colors.primaryText },
+  metaSub:  { fontFamily: FontFamily.regular, fontSize: 11, color: Colors.placeholder, marginTop: 2 },
 
-  btn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  btnView:   { backgroundColor: 'rgba(63,81,181,0.1)' },
-  btnEdit:   { backgroundColor: 'rgba(255,152,0,0.1)' },
-  btnDelete: { backgroundColor: 'rgba(211,47,47,0.1)' },
+  btn: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  btnView:   { backgroundColor: 'rgba(63,81,181,0.10)' },
+  btnEdit:   { backgroundColor: 'rgba(255,152,0,0.10)' },
+  btnDelete: { backgroundColor: 'rgba(211,47,47,0.10)' },
 });
 
 const es = StyleSheet.create({

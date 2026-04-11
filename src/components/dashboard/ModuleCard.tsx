@@ -1,8 +1,15 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
-import type { AppModule } from '../../constants/modules';
+import { FontFamily, FontWeight, Spacing } from '../../constants/theme';
+import type { AppModule, ModuleIconType } from '../../constants/modules';
 import { ModuleIcon } from './ModuleIcon';
+
+// ─── Soft icon tint per module ─────────────────────────────────────────────
+const MODULE_TINT: Record<ModuleIconType, string> = {
+  'hr':           '#EEF2FF',   // indigo tint
+  'employee':     '#F0FDF4',   // emerald tint
+  'system-admin': '#F8FAFC',   // slate tint
+};
 
 interface ModuleCardProps {
   module: AppModule;
@@ -11,6 +18,8 @@ interface ModuleCardProps {
 }
 
 export function ModuleCard({ module, width, onPress }: ModuleCardProps) {
+  const tint = MODULE_TINT[module.iconType] ?? '#F5F5F7';
+
   return (
     <Pressable
       style={({ pressed }) => [styles.card, { width }, pressed && styles.pressed]}
@@ -18,20 +27,20 @@ export function ModuleCard({ module, width, onPress }: ModuleCardProps) {
       accessibilityRole="button"
       accessibilityLabel={`${module.name} module`}>
 
-      {/* Icon area */}
-      <View style={styles.top}>
-        <ModuleIcon type={module.iconType} size={36} />
+      {/* Icon circle */}
+      <View style={[styles.iconCircle, { backgroundColor: tint }]}>
+        <ModuleIcon type={module.iconType} size={28} />
       </View>
 
-      {/* Info area */}
-      <View style={styles.bottom}>
-        <Text style={styles.name} numberOfLines={1}>{module.name}</Text>
-        <Text style={styles.value} numberOfLines={1}>{module.value}</Text>
-        <View style={styles.labelRow}>
-          <View style={styles.dot} />
-          <Text style={styles.label} numberOfLines={1}>{module.valueLabel}</Text>
-        </View>
-      </View>
+      {/* Value */}
+      <Text style={styles.value}>{module.value}</Text>
+      <Text style={styles.valueLabel}>{module.valueLabel}</Text>
+
+      {/* Divider */}
+      <View style={styles.divider} />
+
+      {/* Module name */}
+      <Text style={styles.name} numberOfLines={1}>{module.name}</Text>
 
     </Pressable>
   );
@@ -40,65 +49,63 @@ export function ModuleCard({ module, width, onPress }: ModuleCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: Spacing.sm,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    paddingTop: 16,
+    paddingBottom: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    gap: 4,
+    // clean shadow — no border stripe
+    shadowColor: '#1C1C1E',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
     elevation: 3,
   },
   pressed: {
-    transform: [{ scale: 0.96 }],
-    opacity: 0.9,
+    transform: [{ scale: 0.95 }],
+    opacity: 0.88,
   },
-  top: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: Spacing.md,
+
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    marginBottom: 6,
   },
-  bottom: {
-    paddingHorizontal: 6,
-    paddingTop: 6,
-    paddingBottom: Spacing.sm,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  name: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
+
   value: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.md,
+    fontSize: 20,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,       // dark gray — no pink
-    marginTop: 3,
-    letterSpacing: -0.3,
+    color: '#1C1C1E',
+    letterSpacing: -0.5,
+    lineHeight: 24,
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginTop: 2,
-  },
-  dot: {
-    width: 4, height: 4,
-    borderRadius: 2,
-    backgroundColor: '#30D158',
-  },
-  label: {
+  valueLabel: {
     fontFamily: FontFamily.regular,
-    fontSize: 8,
-    color: Colors.placeholder,
+    fontSize: 9,
+    color: '#9E9E9E',
+    textAlign: 'center',
+    letterSpacing: 0.1,
+  },
+
+  divider: {
+    width: '80%',
+    height: 1,
+    backgroundColor: '#F0F0F5',
+    marginVertical: 6,
+  },
+
+  name: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: '#3A3A3C',
+    textAlign: 'center',
+    letterSpacing: 0.1,
   },
 });

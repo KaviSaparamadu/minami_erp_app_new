@@ -109,18 +109,9 @@ export function HRScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
 
-      {/* Dark top band with PageHeader */}
-      <View style={styles.darkBand}>
-        <PageHeader title="HR" showBack={true} />
+      <PageHeader title="HR" showBack={true} />
 
-        {/* Section label */}
-        <View style={styles.bandContent}>
-          <Text style={styles.bandTitle}>Human Resources</Text>
-          <Text style={styles.bandSub}>Select a module to manage</Text>
-        </View>
-      </View>
-
-      {/* Light sheet */}
+      {/* Content */}
       <View style={styles.sheet}>
 
         {/* Search bar */}
@@ -150,7 +141,8 @@ export function HRScreen() {
           showsVerticalScrollIndicator={false}>
 
           {filtered.map((mod, idx) => {
-            const IconComp = ICONS[idx];
+            const IconComp = ICONS[idx % ICONS.length];
+            const tint = CARD_TINTS[idx % CARD_TINTS.length];
             return (
               <Pressable
                 key={mod.id}
@@ -159,8 +151,8 @@ export function HRScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={mod.name}>
 
-                {/* Left icon area */}
-                <View style={styles.iconArea}>
+                {/* Icon area — unique tint, no pink border */}
+                <View style={[styles.iconArea, { backgroundColor: tint }]}>
                   <IconComp />
                 </View>
 
@@ -195,48 +187,27 @@ export function HRScreen() {
   );
 }
 
-const DARK = '#1C1C1E';
-const LIGHT_BG = '#F2F2F7';
+const LIGHT_BG = '#FFFFFF';
+
+// Unique accent tint per sub-module card (no pink line)
+const CARD_TINTS = [
+  '#EEF2FF',   // indigo — Human Management
+  '#F0FDF4',   // emerald — Employee Management
+  '#F5F3FF',   // violet — User Management
+];
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: DARK },
-
-  darkBand: {
-    backgroundColor: DARK,
-    paddingBottom: 32,
-  },
-
-  bandContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-  },
-  bandTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  bandSub: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: 3,
-  },
+  safe: { flex: 1, backgroundColor: LIGHT_BG },
 
   sheet: {
     flex: 1,
     backgroundColor: LIGHT_BG,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -28,
-    overflow: 'hidden',
   },
   scroll: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.lg,
     paddingBottom: 40,
-    gap: 6,
+    gap: 12,
   },
 
   // ── Submodule card ──────────────────────────
@@ -244,32 +215,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: Spacing.lg,
-    gap: Spacing.md,
-    shadowColor: '#000',
+    borderRadius: 20,
+    padding: 16,
+    gap: 14,
+    // Shadow only — no border stripes
+    shadowColor: '#1C1C1E',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
   },
   cardPressed: {
     transform: [{ scale: 0.97 }],
-    opacity: 0.9,
+    opacity: 0.86,
   },
 
   iconArea: {
-    width: 52,
-    height: 52,
+    width: 54,
+    height: 54,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    // backgroundColor injected per-card via inline style
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
   },
 
   content: {
@@ -278,54 +246,54 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.md,
+    fontSize: 15,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
+    color: '#1C1C1E',
     letterSpacing: 0.1,
   },
   cardDesc: {
     fontFamily: FontFamily.regular,
-    fontSize: FontSize.xs,
-    color: Colors.placeholder,
-    lineHeight: 15,
+    fontSize: 12,
+    color: '#9E9E9E',
+    lineHeight: 17,
   },
 
   chipRow: {
     flexDirection: 'row',
-    marginTop: 4,
+    marginTop: 6,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: '#F5F5F7',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   chipDot: {
-    width: 5,
-    height: 5,
+    width: 6,
+    height: 6,
     borderRadius: 3,
     backgroundColor: '#30D158',
   },
   chipCount: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.xs,
+    fontSize: 12,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
+    color: '#1C1C1E',
   },
   chipLabel: {
     fontFamily: FontFamily.regular,
-    fontSize: FontSize.xs,
-    color: Colors.placeholder,
+    fontSize: 12,
+    color: '#9E9E9E',
   },
 
   arrowWrap: {
-    width: 20,
-    height: 20,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F5F5F7',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -335,7 +303,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderTopWidth: 2,
     borderRightWidth: 2,
-    borderColor: '#C0C0C8',
+    borderColor: '#ADADB8',
     transform: [{ rotate: '45deg' }, { translateX: -2 }],
   },
 });

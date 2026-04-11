@@ -1,82 +1,125 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Colors, FontFamily, FontWeight, Spacing } from '../../constants/theme';
 import { useNavigation } from '../../context/NavigationContext';
+import type { ScreenName } from '../../context/NavigationContext';
 import { useAuth } from '../../hooks/useAuth';
 import { ProfileSheet } from '../dashboard/ProfileSheet';
 
-interface PageHeaderProps {
+// ─── Screen labels ────────────────────────────────────────────────────────────
+const SCREEN_LABELS: Record<ScreenName, string> = {
+  Dashboard:                    'Dashboard',
+  HR:                           'HR',
+  HumanManagement:              'Human Management',
+  EmployeeManagement:           'Employee Management',
+  UserManagement:               'User Management',
+  CreateSystemUsers:            'Create Users',
+  AssignUserPermission:         'Assign Permission',
+  CreateUserRole:               'Create Role',
+  AssignUserRolePermission:     'Assign Role Permission',
+  SystemAdmin:                  'System Admin',
+  EmployeeSettings:             'Employee Settings',
+  ItemSettings:                 'Item Settings',
+  SupplierSettings:             'Supplier Settings',
+  StoresSetting:                'Stores',
+  FinanceSetting:               'Finance',
+  FinanceInstitutesAccSetting:  'Finance Accounts',
+  SecurityPostSetting:          'Security Post',
+  VehicleSettings:              'Vehicles',
+  ServiceOfferedSettings:       'Services',
+  DistributionBusinessSettings: 'Distribution',
+};
+
+export interface PageHeaderProps {
   title: string;
-  showBack?: boolean;   // true on sub-screens; false on Dashboard
-  transparent?: boolean; // removes dark background (for coloured parent headers)
+  showBack?: boolean;
 }
 
-function BackArrow() {
+// ─── Back chevron (white) ─────────────────────────────────────────────────────
+function BackChevron() {
   return (
-    <View style={arrow.wrap}>
-      <View style={arrow.stem} />
-      <View style={arrow.head} />
+    <View style={ic.chevron}>
+      <View style={ic.chevTop} />
+      <View style={ic.chevBot} />
     </View>
   );
 }
 
+// ─── Bell icon (white) ────────────────────────────────────────────────────────
 function BellIcon() {
   return (
-    <View style={bell.wrap}>
-      <View style={bell.top} />
-      <View style={bell.body} />
-      <View style={bell.clapper} />
-      <View style={bell.dot} />
+    <View style={ic.bell}>
+      <View style={ic.bellStem} />
+      <View style={ic.bellBody} />
+      <View style={ic.bellClap} />
+      <View style={ic.bellDot} />
     </View>
   );
 }
 
-export function PageHeader({ title, showBack = true, transparent = false }: PageHeaderProps) {
-  const { goBack } = useNavigation();
+// ─── Component ────────────────────────────────────────────────────────────────
+export function PageHeader({ title, showBack = true }: PageHeaderProps) {
+  const { goBack, stack } = useNavigation();
   const { user, logout } = useAuth();
-  const [sheetVisible, setSheetVisible] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const initial = user?.fullName.charAt(0).toUpperCase() ?? '?';
+  const crumbs  = stack.slice(0, -1).map(s => SCREEN_LABELS[s]);
 
   return (
     <>
-      <View style={[styles.header, transparent && styles.headerTransparent]}>
+      <View style={styles.header}>
 
-        {/* ── Left: back arrow or spacer ── */}
+        {/* ── Back button ────────────────────────────────────────────────────── */}
         {showBack ? (
           <Pressable
             onPress={goBack}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
-            accessibilityLabel="Go back"
+            style={({ pressed }) => [styles.backBtn, pressed && styles.backBtnPressed]}
+            hitSlop={14}
             accessibilityRole="button"
-            hitSlop={14}>
-            <BackArrow />
+            accessibilityLabel="Go back">
+            <BackChevron />
           </Pressable>
         ) : (
-          <View style={styles.iconBtn} />
+          /* Spacer to balance right-side icons */
+          <View style={styles.backBtn} />
         )}
 
-        {/* ── Center: page title ── */}
-        <View style={styles.titleWrap}>
+        {/* ── Title + breadcrumb ─────────────────────────────────────────────── */}
+        <View style={styles.titleBlock}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
+
+          {crumbs.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.crumbRow}>
+              {crumbs.map((lbl, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <Text style={styles.crumbSep}> / </Text>}
+                  <Text style={styles.crumbStep}>{lbl}</Text>
+                </React.Fragment>
+              ))}
+              <Text style={styles.crumbSep}> / </Text>
+              <Text style={styles.crumbActive}>{title}</Text>
+            </ScrollView>
+          )}
         </View>
 
-        {/* ── Right: bell + avatar ── */}
-        <View style={styles.rightRow}>
+        {/* ── Right actions ──────────────────────────────────────────────────── */}
+        <View style={styles.actions}>
           <Pressable
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
-            accessibilityLabel="Notifications"
-            accessibilityRole="button"
-            hitSlop={14}>
+            style={({ pressed }) => [styles.actionBtn, pressed && styles.actionPressed]}
+            hitSlop={12}
+            accessibilityLabel="Notifications">
             <BellIcon />
           </Pressable>
 
           <Pressable
-            onPress={() => setSheetVisible(true)}
+            onPress={() => setSheetOpen(true)}
             style={({ pressed }) => [styles.avatar, pressed && styles.avatarPressed]}
-            accessibilityLabel="Profile"
-            accessibilityRole="button"
-            hitSlop={8}>
+            hitSlop={8}
+            accessibilityLabel="Profile">
             <Text style={styles.avatarText}>{initial}</Text>
             <View style={styles.onlineDot} />
           </Pressable>
@@ -85,58 +128,102 @@ export function PageHeader({ title, showBack = true, transparent = false }: Page
       </View>
 
       <ProfileSheet
-        visible={sheetVisible}
+        visible={sheetOpen}
         user={user!}
-        onClose={() => setSheetVisible(false)}
+        onClose={() => setSheetOpen(false)}
         onLogout={logout}
       />
     </>
   );
 }
 
-const DARK = '#1C1C1E';
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const BG   = '#111318';  // rich dark — unified with dashboard hero
+const W    = '#FFFFFF';
+const W55  = 'rgba(255,255,255,0.55)';
+const W28  = 'rgba(255,255,255,0.28)';
 
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: DARK,
-    gap: Spacing.sm,
+    paddingVertical: 13,
+    backgroundColor: BG,
+    gap: 10,
   },
-  headerTransparent: {
-    backgroundColor: 'transparent',
-  },
-  iconBtn: {
+
+  // ── Back ────────────────────────────────────────────────────────────────────
+  backBtn: {
     width: 36,
     height: 36,
     borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    flexShrink: 0,
   },
-  iconBtnPressed: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  backBtnPressed: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    transform: [{ scale: 0.92 }],
+  },
 
-  titleWrap: {
+  // ── Title ───────────────────────────────────────────────────────────────────
+  titleBlock: {
     flex: 1,
-    alignItems: 'center',
+    gap: 3,
   },
   title: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.lg,
+    fontSize: 18,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
+    color: W,
+    letterSpacing: -0.2,
   },
 
-  rightRow: {
+  // ── Breadcrumb ──────────────────────────────────────────────────────────────
+  crumbRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
   },
+  crumbStep: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    color: W28,
+    letterSpacing: 0.1,
+  },
+  crumbSep: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.18)',
+  },
+  crumbActive: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    color: W55,
+    fontWeight: FontWeight.medium,
+  },
+
+  // ── Actions ──────────────────────────────────────────────────────────────────
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  },
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionPressed: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+
+  // ── Avatar ───────────────────────────────────────────────────────────────────
   avatar: {
     width: 36,
     height: 36,
@@ -145,84 +232,79 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(233,30,99,0.35)',
+    borderColor: 'rgba(233,30,99,0.45)',
   },
   avatarPressed: {
-    opacity: 0.75,
-    transform: [{ scale: 0.93 }],
+    opacity: 0.78,
+    transform: [{ scale: 0.92 }],
   },
   avatarText: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.sm,
+    fontSize: 14,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
+    color: W,
   },
   onlineDot: {
     position: 'absolute',
-    bottom: 0, right: 0,
+    bottom: 1, right: 1,
     width: 9, height: 9,
     borderRadius: 5,
-    backgroundColor: '#30D158',
+    backgroundColor: '#34D058',
     borderWidth: 1.5,
-    borderColor: DARK,
+    borderColor: BG,
   },
 });
 
-// Back arrow — left-pointing chevron
-const arrow = StyleSheet.create({
-  wrap: {
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stem: {
+// ─── Icon shapes ──────────────────────────────────────────────────────────────
+const ic = StyleSheet.create({
+  // Chevron <
+  chevron: { width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
+  chevTop: {
     position: 'absolute',
-    width: 10,
-    height: 2,
-    backgroundColor: '#FFFFFF',
+    width: 8, height: 2,
+    backgroundColor: W,
     borderRadius: 1,
+    top: 3, left: 3,
+    transform: [{ rotate: '-45deg' }],
   },
-  head: {
+  chevBot: {
     position: 'absolute',
-    left: 0,
-    width: 7,
-    height: 7,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: '#FFFFFF',
-    transform: [{ rotate: '-45deg' }, { translateX: 2 }],
+    width: 8, height: 2,
+    backgroundColor: W,
+    borderRadius: 1,
+    bottom: 3, left: 3,
+    transform: [{ rotate: '45deg' }],
   },
-});
 
-const bell = StyleSheet.create({
-  wrap: { width: 18, height: 19, alignItems: 'center' },
-  top: {
-    width: 7, height: 7,
-    borderRadius: 4,
+  // Bell
+  bell: { width: 18, height: 20, alignItems: 'center' },
+  bellStem: {
+    width: 5, height: 5,
+    borderRadius: 3,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: W,
     borderBottomWidth: 0,
     marginBottom: -1,
+    zIndex: 1,
   },
-  body: {
-    width: 14, height: 9,
+  bellBody: {
+    width: 14, height: 10,
     borderTopLeftRadius: 7, borderTopRightRadius: 7,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: W,
   },
-  clapper: {
+  bellClap: {
     width: 5, height: 3,
     borderBottomLeftRadius: 3, borderBottomRightRadius: 3,
-    backgroundColor: '#FFFFFF',
-    marginTop: -1,
+    backgroundColor: W,
+    marginTop: -0.5,
   },
-  dot: {
+  bellDot: {
     position: 'absolute',
-    top: -1, right: 1,
-    width: 6, height: 6,
-    borderRadius: 3,
+    top: 0, right: 0,
+    width: 7, height: 7,
+    borderRadius: 3.5,
     backgroundColor: Colors.primaryHighlight,
-    borderWidth: 1,
-    borderColor: DARK,
+    borderWidth: 1.5,
+    borderColor: BG,
   },
 });

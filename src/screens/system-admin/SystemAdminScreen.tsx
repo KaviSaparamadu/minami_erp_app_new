@@ -242,16 +242,8 @@ export function SystemAdminScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
 
-      {/* Dark top band */}
-      <View style={styles.darkBand}>
-        <PageHeader title="System Admin" showBack={true} />
-        <View style={styles.bandContent}>
-          <Text style={styles.bandTitle}>System Admin</Text>
-          <Text style={styles.bandSub}>System Settings — Select a module to configure</Text>
-        </View>
-      </View>
+      <PageHeader title="System Admin" showBack={true} />
 
-      {/* Light sheet */}
       <View style={styles.sheet}>
 
         {/* Search bar */}
@@ -280,7 +272,8 @@ export function SystemAdminScreen() {
           showsVerticalScrollIndicator={false}>
 
           {filtered.map((mod, idx) => {
-            const IconComp = ICONS[idx];
+            const IconComp = ICONS[idx % ICONS.length];
+            const tint = CARD_TINTS[idx % CARD_TINTS.length];
             return (
               <Pressable
                 key={mod.id}
@@ -289,8 +282,8 @@ export function SystemAdminScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={mod.name}>
 
-                {/* Left icon */}
-                <View style={styles.iconArea}>
+                {/* Icon with unique tint — no pink border */}
+                <View style={[styles.iconArea, { backgroundColor: tint }]}>
                   <IconComp />
                 </View>
 
@@ -324,83 +317,79 @@ export function SystemAdminScreen() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const DARK     = '#1C1C1E';
-const LIGHT_BG = '#F2F2F7';
+const LIGHT_BG = '#FFFFFF';
+
+// 10 unique card tints — no pink borders
+const CARD_TINTS = [
+  '#EEF2FF',   // indigo   — Employee Settings
+  '#F0F9FF',   // sky      — Item Settings
+  '#F0FDF4',   // emerald  — Supplier Settings
+  '#FFF7ED',   // orange   — Stores
+  '#FFFBEB',   // amber    — Finance
+  '#F5F3FF',   // violet   — Finance Institutes
+  '#FFF1F2',   // rose     — Security Post
+  '#F0FDFA',   // teal     — Vehicle Settings
+  '#FDF4FF',   // purple   — Service Offered
+  '#ECFDF5',   // green    — Distribution
+];
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: DARK },
-
-  darkBand: { backgroundColor: DARK, paddingBottom: 32 },
-  bandContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
-  bandTitle: {
-    fontFamily: FontFamily.bold, fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold, color: '#FFFFFF', letterSpacing: 0.2,
-  },
-  bandSub: {
-    fontFamily: FontFamily.regular, fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.4)', marginTop: 3,
-  },
+  safe: { flex: 1, backgroundColor: LIGHT_BG },
 
   sheet: {
     flex: 1, backgroundColor: LIGHT_BG,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    marginTop: -28, overflow: 'hidden',
   },
   scroll: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.lg,
     paddingBottom: 40,
-    gap: 6,
+    gap: 12,
   },
 
-  // Card
+  // Card — no pink border
   card: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderRadius: 18,
-    padding: Spacing.lg, gap: Spacing.md,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-    borderWidth: 1, borderColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF', borderRadius: 20,
+    padding: 16, gap: 14,
+    shadowColor: '#1C1C1E', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 12, elevation: 3,
   },
-  cardPressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
+  cardPressed: { transform: [{ scale: 0.97 }], opacity: 0.86 },
 
   iconArea: {
-    width: 52, height: 52, borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    width: 54, height: 54, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    borderWidth: 1, borderColor: '#EBEBEB',
   },
 
   content: { flex: 1, gap: 4 },
   cardTitle: {
-    fontFamily: FontFamily.bold, fontSize: FontSize.md,
-    fontWeight: FontWeight.bold, color: Colors.primaryText, letterSpacing: 0.1,
+    fontFamily: FontFamily.bold, fontSize: 15,
+    fontWeight: FontWeight.bold, color: '#1C1C1E', letterSpacing: 0.1,
   },
   cardDesc: {
-    fontFamily: FontFamily.regular, fontSize: FontSize.xs,
-    color: Colors.placeholder, lineHeight: 15,
+    fontFamily: FontFamily.regular, fontSize: 12,
+    color: '#9E9E9E', lineHeight: 17,
   },
 
-  chipRow: { flexDirection: 'row', marginTop: 4 },
+  chipRow: { flexDirection: 'row', marginTop: 6 },
   chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#F5F5F7', borderRadius: 8,
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: '#EBEBEB',
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#F5F5F7', borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 4,
   },
-  chipDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#30D158' },
+  chipDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#30D158' },
   chipCount: {
-    fontFamily: FontFamily.bold, fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold, color: Colors.primaryText,
+    fontFamily: FontFamily.bold, fontSize: 12,
+    fontWeight: FontWeight.bold, color: '#1C1C1E',
   },
   chipLabel: {
-    fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder,
+    fontFamily: FontFamily.regular, fontSize: 12, color: '#9E9E9E',
   },
 
-  arrowWrap: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  arrowWrap: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#F5F5F7', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   arrowHead: {
     width: 8, height: 8,
-    borderTopWidth: 2, borderRightWidth: 2, borderColor: '#C0C0C8',
+    borderTopWidth: 2, borderRightWidth: 2, borderColor: '#ADADB8',
     transform: [{ rotate: '45deg' }, { translateX: -2 }],
   },
 });

@@ -288,7 +288,6 @@ export function CreateSystemUsersScreen() {
             <View style={s.emptyIcon}><View style={s.eHead}/><View style={s.eBody}/><View style={s.ePlus}/><View style={s.ePlusV}/></View>
             <Text style={s.emptyTitle}>No system users yet</Text>
             <Text style={s.emptySub}>Tap + to create the first account</Text>
-            <Pressable onPress={openCreate} style={s.emptyBtn}><Text style={s.emptyBtnTxt}>+ Create User</Text></Pressable>
           </View>
         ) : filtered.length === 0 ? (
           <View style={s.empty}>
@@ -382,7 +381,7 @@ const tr = StyleSheet.create({
 });
 
 const fm = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F7' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : 22, paddingBottom: Spacing.md, gap: Spacing.md, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
   headerIcon: { width: 38, height: 38, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
   hHead: { position: 'absolute', top: 6, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFF' },
@@ -396,7 +395,7 @@ const fm = StyleSheet.create({
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E5E5EA', gap: Spacing.sm },
   cancelBtn: { paddingVertical: 12, paddingHorizontal: Spacing.md, borderRadius: 8, borderWidth: 1.5, borderColor: '#D0D0D8', backgroundColor: '#FFF', minWidth: 80, alignItems: 'center' },
   cancelTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, color: Colors.primaryText },
-  saveBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1C1C1E', borderRadius: 10, paddingVertical: 14 },
+  saveBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#595959', borderRadius: 10, paddingVertical: 14 },
   saveTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
 });
 

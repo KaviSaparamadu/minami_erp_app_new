@@ -44,8 +44,8 @@ export function AppTextInput({
   const lineColor = error
     ? Colors.error
     : isFocused
-    ? Colors.borderFocus   // dark gray on focus
-    : Colors.border;       // gray by default
+    ? Colors.primaryHighlight
+    : '#D0D0D0';
 
   return (
     <View style={styles.wrapper}>
@@ -82,7 +82,7 @@ export function AppTextInput({
             hitSlop={8}>
             <EyeIcon
               visible={isRevealed}
-              color={isFocused ? Colors.borderFocus : Colors.placeholder}
+              color={isFocused ? Colors.primaryHighlight : Colors.placeholder}
             />
           </Pressable>
         )}
@@ -95,17 +95,18 @@ export function AppTextInput({
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   label: {
     fontFamily: FontFamily.medium,
-    fontSize: FontSize.sm,
+    fontSize: 12,
     fontWeight: FontWeight.medium,
-    color: Colors.placeholder,       // gray — inactive
-    marginBottom: Spacing.xs,
+    color: Colors.placeholder,
+    marginBottom: 6,
+    letterSpacing: 0.2,
   },
   labelFocused: {
-    color: Colors.primaryText,       // dark gray — focused
+    color: Colors.primaryText,
   },
   labelError: {
     color: Colors.error,
@@ -113,13 +114,14 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1.5,
+    paddingBottom: 10,
+    paddingTop: 4,
   },
   input: {
     flex: 1,
     fontFamily: FontFamily.regular,
-    fontSize: FontSize.md,           // 12px
+    fontSize: 15,
     color: Colors.primaryText,
     paddingVertical: 0,
   },

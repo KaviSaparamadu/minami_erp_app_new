@@ -233,7 +233,7 @@ const s = StyleSheet.create({
 
 const pg = StyleSheet.create({
   wrap:   { borderRadius: 12, borderWidth: 1, borderColor: '#E5E5EA', overflow: 'hidden' },
-  hRow:   { flexDirection: 'row', backgroundColor: '#F5F5F7', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+  hRow:   { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
   row:    { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
   modCol: { width: 72, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10 },
   actCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
