@@ -17,7 +17,7 @@ import type { Employee } from '../../types/hr';
 let nextId = 1;
 const genId = () => String(nextId++);
 
-const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#D97706', '#475569'];
+const AVATAR_COLORS = ['#595959'];
 
 // ─── Row action icons ─────────────────────────────────────────────────────────
 function EyeIcon() {
@@ -241,7 +241,7 @@ const DARK  = '#1C1C1E';
 const LIGHT = '#FFFFFF';
 
 const styles = StyleSheet.create({
-  safe:  { flex: 1, backgroundColor: LIGHT },
+  safe:  { flex: 1, backgroundColor: '#1C1C1E' },
   sheet: { flex: 1, backgroundColor: LIGHT },
   fab: {
     position: 'absolute', bottom: 28, right: 20,

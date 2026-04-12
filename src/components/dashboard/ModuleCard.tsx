@@ -1,111 +1,135 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { FontFamily, FontWeight, Spacing } from '../../constants/theme';
-import type { AppModule, ModuleIconType } from '../../constants/modules';
+import { FontFamily, FontWeight } from '../../constants/theme';
+import type { AppModule } from '../../constants/modules';
 import { ModuleIcon } from './ModuleIcon';
-
-// ─── Soft icon tint per module ─────────────────────────────────────────────
-const MODULE_TINT: Record<ModuleIconType, string> = {
-  'hr':           '#EEF2FF',   // indigo tint
-  'employee':     '#F0FDF4',   // emerald tint
-  'system-admin': '#F8FAFC',   // slate tint
-};
+import { useTheme } from '../../context/ThemeContext';
 
 interface ModuleCardProps {
   module: AppModule;
-  width: number;
   onPress?: (module: AppModule) => void;
+  // legacy prop — kept so existing call sites don't break
+  width?: number;
 }
 
-export function ModuleCard({ module, width, onPress }: ModuleCardProps) {
-  const tint = MODULE_TINT[module.iconType] ?? '#F5F5F7';
+// ─── Chevron arrow (pure View) ────────────────────────────────────────────────
+function Chevron({ color }: { color: string }) {
+  return (
+    <View style={ch.wrap}>
+      <View style={[ch.top, { backgroundColor: color }]} />
+      <View style={[ch.bot, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
+export function ModuleCard({ module, onPress }: ModuleCardProps) {
+  const { theme } = useTheme();
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, { width }, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.card,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        pressed && styles.pressed,
+      ]}
       onPress={() => onPress?.(module)}
       accessibilityRole="button"
       accessibilityLabel={`${module.name} module`}>
 
-      {/* Icon circle */}
-      <View style={[styles.iconCircle, { backgroundColor: tint }]}>
-        <ModuleIcon type={module.iconType} size={28} />
+      {/* Icon container */}
+      <View style={[styles.iconWrap, { backgroundColor: theme.iconBg }]}>
+        <ModuleIcon type={module.iconType} size={24} color={theme.accent} />
       </View>
 
-      {/* Value */}
-      <Text style={styles.value}>{module.value}</Text>
-      <Text style={styles.valueLabel}>{module.valueLabel}</Text>
+      {/* Name + label */}
+      <View style={styles.info}>
+        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+          {module.name}
+        </Text>
+        <Text style={[styles.label, { color: theme.textMuted }]} numberOfLines={1}>
+          {module.valueLabel}
+        </Text>
+      </View>
 
-      {/* Divider */}
-      <View style={styles.divider} />
-
-      {/* Module name */}
-      <Text style={styles.name} numberOfLines={1}>{module.name}</Text>
+      {/* Count + chevron */}
+      <View style={styles.right}>
+        <Text style={[styles.value, { color: theme.accent }]}>{module.value}</Text>
+        <Chevron color={theme.textMuted} />
+      </View>
 
     </Pressable>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    marginBottom: Spacing.sm,
-    paddingTop: 16,
-    paddingBottom: 12,
-    paddingHorizontal: 8,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    // clean shadow — no border stripe
-    shadowColor: '#1C1C1E',
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 14,
+    borderWidth: 1,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 3,
   },
   pressed: {
-    transform: [{ scale: 0.95 }],
+    transform: [{ scale: 0.985 }],
     opacity: 0.88,
   },
-
-  iconCircle: {
+  iconWrap: {
     width: 48,
     height: 48,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    flexShrink: 0,
   },
-
+  info: {
+    flex: 1,
+    gap: 3,
+  },
+  name: {
+    fontFamily: FontFamily.bold,
+    fontSize: 15,
+    fontWeight: FontWeight.bold,
+    letterSpacing: -0.2,
+  },
+  label: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    letterSpacing: 0.1,
+  },
+  right: {
+    alignItems: 'flex-end',
+    gap: 4,
+    flexShrink: 0,
+  },
   value: {
     fontFamily: FontFamily.bold,
     fontSize: 20,
     fontWeight: FontWeight.bold,
-    color: '#1C1C1E',
     letterSpacing: -0.5,
-    lineHeight: 24,
   },
-  valueLabel: {
-    fontFamily: FontFamily.regular,
-    fontSize: 9,
-    color: '#9E9E9E',
-    textAlign: 'center',
-    letterSpacing: 0.1,
-  },
+});
 
-  divider: {
-    width: '80%',
-    height: 1,
-    backgroundColor: '#F0F0F5',
-    marginVertical: 6,
+// ─── Chevron icon ─────────────────────────────────────────────────────────────
+const ch = StyleSheet.create({
+  wrap: { width: 12, height: 14, alignItems: 'center', justifyContent: 'center' },
+  top: {
+    position: 'absolute',
+    width: 8, height: 2, borderRadius: 1,
+    top: 3, left: 2,
+    transform: [{ rotate: '45deg' }],
   },
-
-  name: {
-    fontFamily: FontFamily.bold,
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-    color: '#3A3A3C',
-    textAlign: 'center',
-    letterSpacing: 0.1,
+  bot: {
+    position: 'absolute',
+    width: 8, height: 2, borderRadius: 1,
+    bottom: 3, left: 2,
+    transform: [{ rotate: '-45deg' }],
   },
 });

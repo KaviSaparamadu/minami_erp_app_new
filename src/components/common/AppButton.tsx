@@ -46,22 +46,17 @@ export function AppButton({
 const styles = StyleSheet.create({
   button: {
     backgroundColor: Colors.buttonBg,
-    borderRadius: 14,
+    borderRadius: 1,
     paddingVertical: 15,
     paddingHorizontal: Spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.14,
-    shadowRadius: 8,
-    elevation: 4,
   },
   buttonPressed: {
     backgroundColor: Colors.buttonBgPressed,
     transform: [{ scale: 0.98 }],
-    shadowOpacity: 0.07,
+    opacity: 0.88,
   },
   buttonDisabled: {
     opacity: 0.45,

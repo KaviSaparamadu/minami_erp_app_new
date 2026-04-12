@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  findNodeHandle,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -23,6 +24,9 @@ import {
 } from '../../constants/locationData';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { Country, Human } from '../../types/hr';
+
+// Shared scroll ref — lets every nested Field auto-scroll without prop drilling
+const ModalScrollCtx = createContext<React.RefObject<ScrollView> | null>(null);
 
 export type ModalMode = 'create' | 'edit' | 'view';
 
@@ -116,10 +120,31 @@ function Dropdown({ label, value, options, onChange, disabled, placeholder, requ
 interface FProps { label:string; value:string; onChangeText?:(t:string)=>void; placeholder?:string; keyboardType?:'default'|'email-address'|'phone-pad'|'numeric'; autoCapitalize?:'none'|'words'|'sentences'|'characters'; editable?:boolean; required?:boolean; hint?:string; }
 function Field({ label, value, onChangeText, placeholder, keyboardType, autoCapitalize, editable=true, required, hint }: FProps) {
   const [focused, setFocused] = useState(false);
+  const wrapRef   = useRef<View>(null);
+  const scrollCtx = useContext(ModalScrollCtx);
+
+  function scrollToField() {
+    if (!scrollCtx?.current || !wrapRef.current) return;
+    const node = findNodeHandle(scrollCtx.current);
+    if (!node) return;
+    wrapRef.current.measureLayout(
+      node,
+      (_x, y) => { scrollCtx.current?.scrollTo({ y: Math.max(0, y - 80), animated: true }); },
+      () => {},
+    );
+  }
+
   return (
-    <View style={fi.wrapper}>
+    <View ref={wrapRef} style={fi.wrapper}>
       <Text style={[fi.label, focused && fi.labelFoc]}>{label}{required && <Text style={fi.req}> *</Text>}</Text>
-      <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={Colors.placeholder} keyboardType={keyboardType??'default'} autoCapitalize={autoCapitalize??'sentences'} editable={editable} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} style={[fi.input, focused && fi.inputFoc, !editable && fi.inputRO]} />
+      <View>
+        <TextInput value={value} onChangeText={onChangeText} placeholder="" keyboardType={keyboardType??'default'} autoCapitalize={autoCapitalize??'sentences'} editable={editable} onFocus={()=>{ setFocused(true); setTimeout(scrollToField, 300); }} onBlur={()=>setFocused(false)} style={[fi.input, focused && fi.inputFoc, !editable && fi.inputRO]} />
+        {!value && !focused && !!placeholder && (
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Text style={fi.ph}>{placeholder}</Text>
+          </View>
+        )}
+      </View>
       {hint && <Text style={fi.hint}>{hint}</Text>}
     </View>
   );
@@ -129,6 +154,19 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, autoCapi
 function SurnameTagInput({ values, onChange, disabled }: { values: string[]; onChange:(v:string[])=>void; disabled?:boolean }) {
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
+  const wrapRef   = useRef<View>(null);
+  const scrollCtx = useContext(ModalScrollCtx);
+
+  function scrollToField() {
+    if (!scrollCtx?.current || !wrapRef.current) return;
+    const node = findNodeHandle(scrollCtx.current);
+    if (!node) return;
+    wrapRef.current.measureLayout(
+      node,
+      (_x, y) => { scrollCtx.current?.scrollTo({ y: Math.max(0, y - 80), animated: true }); },
+      () => {},
+    );
+  }
 
   function addTag() {
     const t = draft.trim();
@@ -140,7 +178,7 @@ function SurnameTagInput({ values, onChange, disabled }: { values: string[]; onC
   }
 
   return (
-    <View style={tag.wrapper}>
+    <View ref={wrapRef} style={tag.wrapper}>
       <Text style={[tag.label, focused && tag.labelFoc]}>Surname <Text style={tag.req}>*</Text></Text>
       <View style={[tag.box, focused && tag.boxFoc]}>
         {values.map((v,i)=>(
@@ -159,7 +197,7 @@ function SurnameTagInput({ values, onChange, disabled }: { values: string[]; onC
             onChangeText={setDraft}
             onSubmitEditing={addTag}
             onBlur={()=>{ addTag(); setFocused(false); }}
-            onFocus={()=>setFocused(true)}
+            onFocus={()=>{ setFocused(true); setTimeout(scrollToField, 300); }}
             placeholder={values.length===0?'Type & press Enter to add':'Add another…'}
             placeholderTextColor={Colors.placeholder}
             autoCapitalize="words"
@@ -376,7 +414,7 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
 
   return (
     <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+      <KeyboardAvoidingView style={{flex:1}} behavior="padding" keyboardVerticalOffset={Platform.OS==='android'?24:0}>
         <View style={s.container}>
 
           {/* ── Header ── */}
@@ -416,7 +454,8 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
           </View>
 
           {/* ── Form ── */}
-          <ScrollView ref={scrollRef} contentContainerStyle={s.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ModalScrollCtx.Provider value={scrollRef}>
+          <ScrollView ref={scrollRef} contentContainerStyle={s.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets={Platform.OS==='ios'}>
 
             {/* ════════════ STEP 1 ════════════ */}
             {step===1 && <>
@@ -466,6 +505,7 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
 
             <View style={{height:24}}/>
           </ScrollView>
+          </ModalScrollCtx.Provider>
 
           {/* ── Footer nav ── */}
           <View style={s.footer}>
@@ -563,24 +603,25 @@ const sec = StyleSheet.create({
 
 const fi = StyleSheet.create({
   wrapper: { marginBottom:Spacing.lg },
-  label: { fontFamily:FontFamily.medium, fontSize:FontSize.xs, color:Colors.placeholder, marginBottom:5 },
+  label: { fontFamily:FontFamily.medium, fontSize:FontSize.xs, color:Colors.primaryText, marginBottom:5 },
   labelFoc: { color:Colors.primaryText },
   req: { color:Colors.primaryHighlight },
   input: { fontFamily:FontFamily.regular, fontSize:FontSize.md, color:Colors.primaryText, paddingVertical:8, borderBottomWidth:1.5, borderBottomColor:'#D0D0D0', paddingHorizontal:0 },
   inputFoc: { borderBottomColor:Colors.primaryText },
   inputRO: { color:Colors.placeholder, borderBottomColor:'#EAEAEA' },
   hint: { fontFamily:FontFamily.regular, fontSize:9, color:Colors.placeholder, marginTop:3 },
+  ph: { fontFamily:FontFamily.regular, fontSize:FontSize.xs, color:Colors.placeholder, paddingTop:8 },
 });
 
 const dd = StyleSheet.create({
   wrapper: { marginBottom:Spacing.lg, zIndex:10 },
-  label: { fontFamily:FontFamily.medium, fontSize:FontSize.xs, color:Colors.placeholder, marginBottom:5 },
+  label: { fontFamily:FontFamily.medium, fontSize:FontSize.xs, color:Colors.primaryText, marginBottom:5 },
   req: { color:Colors.primaryHighlight },
   trigger: { flexDirection:'row', alignItems:'center', paddingVertical:8, borderBottomWidth:1.5, borderBottomColor:'#D0D0D0' },
   open: { borderBottomColor:Colors.primaryText },
   disabled: { opacity:0.55 },
   value: { flex:1, fontFamily:FontFamily.regular, fontSize:FontSize.md, color:Colors.primaryText },
-  placeholder: { color:Colors.placeholder },
+  placeholder: { color:Colors.placeholder, fontSize:FontSize.xs },
   chevWrap: { width:18, height:10, alignItems:'center', justifyContent:'center' },
   chevUp: { transform:[{rotate:'180deg'}] },
   cL: { position:'absolute', left:0, width:9, height:2, backgroundColor:Colors.placeholder, borderRadius:1, transform:[{rotate:'35deg'},{translateY:-1}] },
@@ -597,7 +638,7 @@ const dd = StyleSheet.create({
 
 const tag = StyleSheet.create({
   wrapper: { marginBottom:Spacing.lg },
-  label: { fontFamily:FontFamily.medium, fontSize:FontSize.xs, color:Colors.placeholder, marginBottom:5 },
+  label: { fontFamily:FontFamily.medium, fontSize:FontSize.xs, color:Colors.primaryText, marginBottom:5 },
   labelFoc: { color:Colors.primaryText },
   req: { color:Colors.primaryHighlight },
   box: { flexDirection:'row', flexWrap:'wrap', gap:6, paddingVertical:6, borderBottomWidth:1.5, borderBottomColor:'#D0D0D0', alignItems:'center', minHeight:40 },

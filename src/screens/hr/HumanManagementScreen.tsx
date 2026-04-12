@@ -259,10 +259,10 @@ export function HumanManagementScreen() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const DARK   = '#1C1C1E';
 const LIGHT  = '#FFFFFF';
-const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#0891B2', '#059669', '#D97706', '#475569'];
+const AVATAR_COLORS = ['#595959'];
 
 const styles = StyleSheet.create({
-  safe:  { flex: 1, backgroundColor: LIGHT },
+  safe:  { flex: 1, backgroundColor: '#1C1C1E' },
   sheet: { flex: 1, backgroundColor: LIGHT },
   fab: { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 10, elevation: 10 },
   fabPressed: { transform: [{ scale: 0.93 }], opacity: 0.88 },
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
 const ft = StyleSheet.create({
   wrap: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm, gap: 8 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#E5E5EA' },
-  btnActive: { backgroundColor: '#1C1C1E', borderColor: '#1C1C1E' },
+  btnActive: { backgroundColor: '#595959', borderColor: '#595959' },
   label: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder },
   labelActive: { color: '#FFFFFF', fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
   badge: { backgroundColor: '#F0F0F5', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },

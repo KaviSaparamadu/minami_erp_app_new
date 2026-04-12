@@ -5,48 +5,49 @@ import type { ModuleIconType } from '../../constants/modules';
 interface ModuleIconProps {
   type: ModuleIconType;
   size?: number;   // diameter — defaults to 52
+  color?: string;
 }
 
-const W = '#1C1C1E';
+const DEFAULT_ICON_COLOR = '#1C1C1E';
 
-function HRIcon() {
+function HRIcon({ color }: { color: string }) {
   return (
     <View style={icon.person}>
-      <View style={icon.personHead} />
-      <View style={icon.personBody} />
+      <View style={[icon.personHead, { backgroundColor: color }]} />
+      <View style={[icon.personBody, { backgroundColor: color }]} />
     </View>
   );
 }
 
-function EmployeeIcon() {
+function EmployeeIcon({ color }: { color: string }) {
   return (
     <View style={icon.empWrap}>
-      <View style={icon.empHead} />
-      <View style={icon.empBody} />
-      <View style={icon.empCard} />
-      <View style={icon.empLine} />
+      <View style={[icon.empHead, { backgroundColor: color }]} />
+      <View style={[icon.empBody, { backgroundColor: color }]} />
+      <View style={[icon.empCard, { borderColor: color }]} />
+      <View style={[icon.empLine, { backgroundColor: color }]} />
     </View>
   );
 }
 
-function SystemAdminIcon() {
+function SystemAdminIcon({ color }: { color: string }) {
   return (
     <View style={icon.gearWrap}>
-      <View style={icon.gearRing} />
-      <View style={icon.gearInner} />
-      <View style={[icon.tooth, icon.toothT]} />
-      <View style={[icon.tooth, icon.toothB]} />
-      <View style={[icon.toothH, icon.toothL]} />
-      <View style={[icon.toothH, icon.toothR]} />
+      <View style={[icon.gearRing, { borderColor: color }]} />
+      <View style={[icon.gearInner, { backgroundColor: color }]} />
+      <View style={[icon.tooth, icon.toothT, { backgroundColor: color }]} />
+      <View style={[icon.tooth, icon.toothB, { backgroundColor: color }]} />
+      <View style={[icon.toothH, icon.toothL, { backgroundColor: color }]} />
+      <View style={[icon.toothH, icon.toothR, { backgroundColor: color }]} />
     </View>
   );
 }
 
-export function ModuleIcon({ type, size = 52 }: ModuleIconProps) {
+export function ModuleIcon({ type, size = 52, color = DEFAULT_ICON_COLOR }: ModuleIconProps) {
   const map: Record<ModuleIconType, React.ReactElement> = {
-    hr:             <HRIcon />,
-    employee:       <EmployeeIcon />,
-    'system-admin': <SystemAdminIcon />,
+    hr:             <HRIcon color={color} />,
+    employee:       <EmployeeIcon color={color} />,
+    'system-admin': <SystemAdminIcon color={color} />,
   };
   return (
     <View style={[
@@ -65,40 +66,33 @@ export function ModuleIcon({ type, size = 52 }: ModuleIconProps) {
 
 const styles = StyleSheet.create({
   circle: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
   },
 });
 
 const icon = StyleSheet.create({
   empWrap:  { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  empHead:  { position: 'absolute', top: 0, width: 9, height: 9, borderRadius: 5, backgroundColor: W },
-  empBody:  { position: 'absolute', top: 10, width: 14, height: 8, borderTopLeftRadius: 7, borderTopRightRadius: 7, backgroundColor: W },
-  empCard:  { position: 'absolute', bottom: 0, right: 0, width: 9, height: 7, borderRadius: 2, borderWidth: 1.5, borderColor: W },
-  empLine:  { position: 'absolute', bottom: 3, right: 1.5, width: 6, height: 1.5, borderRadius: 1, backgroundColor: W },
+  empHead:  { position: 'absolute', top: 0, width: 9, height: 9, borderRadius: 5, backgroundColor: DEFAULT_ICON_COLOR },
+  empBody:  { position: 'absolute', top: 10, width: 14, height: 8, borderTopLeftRadius: 7, borderTopRightRadius: 7, backgroundColor: DEFAULT_ICON_COLOR },
+  empCard:  { position: 'absolute', bottom: 0, right: 0, width: 9, height: 7, borderRadius: 2, borderWidth: 1.5, borderColor: DEFAULT_ICON_COLOR },
+  empLine:  { position: 'absolute', bottom: 3, right: 1.5, width: 6, height: 1.5, borderRadius: 1, backgroundColor: DEFAULT_ICON_COLOR },
 
   person: { alignItems: 'center', gap: 3 },
-  personHead: { width: 10, height: 10, borderRadius: 5, backgroundColor: W },
+  personHead: { width: 10, height: 10, borderRadius: 5, backgroundColor: DEFAULT_ICON_COLOR },
   personBody: {
     width: 16, height: 8,
     borderTopLeftRadius: 8, borderTopRightRadius: 8,
-    backgroundColor: W,
+    backgroundColor: DEFAULT_ICON_COLOR,
   },
 
   // Gear / cog
   gearWrap:  { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  gearRing:  { position: 'absolute', width: 20, height: 20, borderRadius: 10, borderWidth: 2.5, borderColor: W },
-  gearInner: { position: 'absolute', width: 8,  height: 8,  borderRadius: 4,  backgroundColor: W },
-  tooth:     { position: 'absolute', width: 4, height: 7, borderRadius: 2, backgroundColor: W },
-  toothH:    { position: 'absolute', width: 7, height: 4, borderRadius: 2, backgroundColor: W },
+  gearRing:  { position: 'absolute', width: 20, height: 20, borderRadius: 10, borderWidth: 2.5, borderColor: DEFAULT_ICON_COLOR },
+  gearInner: { position: 'absolute', width: 8,  height: 8,  borderRadius: 4,  backgroundColor: DEFAULT_ICON_COLOR },
+  tooth:     { position: 'absolute', width: 4, height: 7, borderRadius: 2, backgroundColor: DEFAULT_ICON_COLOR },
+  toothH:    { position: 'absolute', width: 7, height: 4, borderRadius: 2, backgroundColor: DEFAULT_ICON_COLOR },
   toothT:    { top: -1 },
   toothB:    { bottom: -1 },
   toothL:    { left: -1 },

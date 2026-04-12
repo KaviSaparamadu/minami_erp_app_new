@@ -189,15 +189,11 @@ export function HRScreen() {
 
 const LIGHT_BG = '#FFFFFF';
 
-// Unique accent tint per sub-module card (no pink line)
-const CARD_TINTS = [
-  '#EEF2FF',   // indigo — Human Management
-  '#F0FDF4',   // emerald — Employee Management
-  '#F5F3FF',   // violet — User Management
-];
+// Uniform pink tint for all sub-module cards
+const CARD_TINTS = ['rgba(233,30,99,0.07)'];
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: LIGHT_BG },
+  safe: { flex: 1, backgroundColor: '#1C1C1E' },
 
   sheet: {
     flex: 1,
@@ -303,7 +299,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderTopWidth: 2,
     borderRightWidth: 2,
-    borderColor: '#ADADB8',
+    borderColor: '#595959',
     transform: [{ rotate: '45deg' }, { translateX: -2 }],
   },
 });

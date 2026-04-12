@@ -3,61 +3,57 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors, FontFamily, FontWeight, Spacing } from '../../constants/theme';
 import { MODULES } from '../../constants/modules';
 import { ModuleIcon } from './ModuleIcon';
-import type { AppModule, ModuleIconType } from '../../constants/modules';
-
-// ─── Soft tints matching ModuleCard ──────────────────────────────────────────
-const MODULE_TINT: Record<ModuleIconType, string> = {
-  'hr':           '#EEF2FF',
-  'employee':     '#F0FDF4',
-  'system-admin': '#F8FAFC',
-};
+import type { AppModule } from '../../constants/modules';
+import { useTheme } from '../../context/ThemeContext';
 
 interface QuickAccessRowProps {
   onPress?: (module: AppModule) => void;
 }
 
 export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
+  const { theme } = useTheme();
+
   return (
     <View style={styles.wrapper}>
 
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Quick Access</Text>
-        <Text style={styles.seeAll}>See all</Text>
+        <View>
+          <Text style={[styles.title, { color: theme.text }]}>Quick Access</Text>
+          <Text style={[styles.subtitle, { color: theme.textSub }]}>Jump into your top modules</Text>
+        </View>
+        <Text style={[styles.seeAll, { color: theme.accent }]}>See all</Text>
       </View>
 
-      {/* Cards */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scroll}>
 
-        {MODULES.map(m => {
-          const tint = MODULE_TINT[m.iconType] ?? '#F5F5F7';
-          return (
-            <Pressable
-              key={m.id}
-              style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-              onPress={() => onPress?.(m)}
-              accessibilityRole="button"
-              accessibilityLabel={m.name}>
+        {MODULES.map(m => (
+          <Pressable
+            key={m.id}
+            style={({ pressed }) => [
+              styles.card,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              pressed && styles.cardPressed,
+            ]}
+            onPress={() => onPress?.(m)}
+            accessibilityRole="button"
+            accessibilityLabel={m.name}>
 
-              {/* Icon */}
-              <View style={[styles.iconWrap, { backgroundColor: tint }]}>
-                <ModuleIcon type={m.iconType} size={24} />
-              </View>
+            <View style={[styles.iconWrap, { backgroundColor: theme.iconBg }]}>
+              <ModuleIcon type={m.iconType} size={22} color={theme.accent} />
+            </View>
+            <Text style={[styles.name, { color: theme.textSub }]} numberOfLines={2}>
+              {m.name}
+            </Text>
 
-              {/* Name */}
-              <Text style={styles.name} numberOfLines={2}>{m.name}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{m.value}</Text>
+            </View>
 
-              {/* Value badge */}
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{m.value}</Text>
-              </View>
-
-            </Pressable>
-          );
-        })}
+          </Pressable>
+        ))}
 
       </ScrollView>
     </View>
@@ -66,7 +62,7 @@ export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.md,
     paddingBottom: 4,
   },
 
@@ -74,67 +70,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: 10,
   },
   title: {
     fontFamily: FontFamily.bold,
     fontSize: 15,
     fontWeight: FontWeight.bold,
-    color: '#1C1C1E',
-    letterSpacing: 0.1,
+    letterSpacing: 0.3,
+  },
+  subtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    marginTop: 3,
+    letterSpacing: 0.2,
   },
   seeAll: {
     fontFamily: FontFamily.medium,
     fontSize: 12,
-    color: Colors.primaryHighlight,
     fontWeight: FontWeight.medium,
   },
 
-  scroll: {
-    gap: 10,
-    paddingBottom: 4,
-  },
+  scroll: { gap: 8, paddingBottom: 2 },
 
   card: {
-    width: 80,
-    backgroundColor: '#FFFFFF',
+    width: 88,
     borderRadius: 18,
     paddingVertical: 12,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    gap: 6,
-    // Clean shadow, no border stripe
-    shadowColor: '#1C1C1E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    gap: 8,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  cardPressed: {
-    transform: [{ scale: 0.93 }],
-    opacity: 0.82,
-  },
+  cardPressed: { transform: [{ scale: 0.93 }], opacity: 0.82 },
 
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 38, height: 38, borderRadius: 11,
+    alignItems: 'center', justifyContent: 'center',
   },
 
   name: {
     fontFamily: FontFamily.medium,
     fontSize: 10,
     fontWeight: FontWeight.medium,
-    color: '#3A3A3C',
     textAlign: 'center',
     lineHeight: 13,
   },
 
   badge: {
-    backgroundColor: '#F0F0F5',
-    borderRadius: 8,
+    backgroundColor: 'rgba(233,30,99,0.12)',
+    borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
@@ -142,6 +131,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: 10,
     fontWeight: FontWeight.bold,
-    color: '#1C1C1E',
+    color: Colors.primaryHighlight,
   },
 });

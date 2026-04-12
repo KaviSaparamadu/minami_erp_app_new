@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import { useNavigation } from '../../context/NavigationContext';
+import { useTheme } from '../../context/ThemeContext';
 import type { ScreenName } from '../../context/NavigationContext';
 
 // ─── Sub-module data ──────────────────────────────────────────────────────────
@@ -119,6 +120,13 @@ const SUBMODULE_SCREENS: Record<string, ScreenName> = {
   '10': 'DistributionBusinessSettings',
 };
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 // ─── Icons (white shapes on pink bg) ─────────────────────────────────────────
 function EmployeeSettingsIcon() {
   return (
@@ -225,7 +233,9 @@ const ICONS = [
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function SystemAdminScreen() {
   const { navigate } = useNavigation();
+  const { theme } = useTheme();
   const [search, setSearch] = useState('');
+  const moduleCount = SA_SUBMODULES.length;
 
   function handlePress(id: string) {
     const screen = SUBMODULE_SCREENS[id];
@@ -240,29 +250,37 @@ export function SystemAdminScreen() {
       );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
 
-      <PageHeader title="System Admin" showBack={true} />
+      <View style={[styles.band, { backgroundColor: theme.headerBg }]}> 
+        <PageHeader title="System Admin" showBack={true} />
+        <View style={styles.bandContent}>
+          <Text style={[styles.bandTitle, { color: theme.text }]}>System Admin</Text>
+          <Text style={[styles.bandSub, { color: theme.textSub }]}>Configure system-wide settings and access core modules.</Text>
+        </View>
+      </View>
 
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { backgroundColor: theme.surface }]}> 
 
         {/* Search bar */}
-        <View style={sb.wrap}>
+        <View style={[sb.wrap, { borderBottomColor: theme.border }]}> 
           <View style={sb.iconWrap}>
-            <View style={sb.glass} /><View style={sb.handle} />
+            <View style={[sb.glass, { borderColor: theme.textMuted }]} />
+            <View style={[sb.handle, { backgroundColor: theme.textMuted }]} />
           </View>
           <TextInput
             value={search}
             onChangeText={setSearch}
             placeholder="Search settings…"
-            placeholderTextColor={Colors.placeholder}
-            style={sb.input}
+            placeholderTextColor={theme.textMuted}
+            style={[sb.input, { color: theme.text }]}
             autoCapitalize="none"
             returnKeyType="search"
           />
           {search.length > 0 && (
-            <Pressable onPress={() => setSearch('')} style={sb.clearBtn} hitSlop={8}>
-              <View style={sb.clearX1} /><View style={sb.clearX2} />
+            <Pressable onPress={() => setSearch('')} style={[sb.clearBtn, { backgroundColor: theme.textMuted }]} hitSlop={8}>
+              <View style={[sb.clearX1, { backgroundColor: theme.surface }]} />
+              <View style={[sb.clearX2, { backgroundColor: theme.surface }]} />
             </Pressable>
           )}
         </View>
@@ -277,34 +295,30 @@ export function SystemAdminScreen() {
             return (
               <Pressable
                 key={mod.id}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                style={({ pressed }) => [styles.card, pressed && styles.cardPressed, { backgroundColor: theme.surface }]}
                 onPress={() => handlePress(mod.id)}
                 accessibilityRole="button"
                 accessibilityLabel={mod.name}>
 
-                {/* Icon with unique tint — no pink border */}
-                <View style={[styles.iconArea, { backgroundColor: tint }]}>
+                <View style={[styles.iconArea, { backgroundColor: tint }]}> 
                   <IconComp />
                 </View>
 
-                {/* Content */}
                 <View style={styles.content}>
-                  <Text style={styles.cardTitle}>{mod.name}</Text>
-                  <Text style={styles.cardDesc} numberOfLines={2}>{mod.description}</Text>
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>{mod.name}</Text>
+                  <Text style={[styles.cardDesc, { color: theme.textSub }]} numberOfLines={2}>{mod.description}</Text>
                   <View style={styles.chipRow}>
-                    <View style={styles.chip}>
-                      <View style={styles.chipDot} />
-                      <Text style={styles.chipCount}>{mod.count}</Text>
-                      <Text style={styles.chipLabel}> {mod.countLabel}</Text>
+                    <View style={[styles.chip, { backgroundColor: theme.bg }]}> 
+                      <View style={[styles.chipDot, { backgroundColor: theme.accent }]} />
+                      <Text style={[styles.chipCount, { color: theme.text }]}>{mod.count}</Text>
+                      <Text style={[styles.chipLabel, { color: theme.textMuted }]}> {mod.countLabel}</Text>
                     </View>
                   </View>
                 </View>
 
-                {/* Arrow */}
-                <View style={styles.arrowWrap}>
-                  <View style={styles.arrowHead} />
+                <View style={[styles.arrowWrap, { backgroundColor: theme.bg }]}> 
+                  <View style={[styles.arrowHead, { borderColor: theme.textMuted }]} />
                 </View>
-
               </Pressable>
             );
           })}
@@ -319,25 +333,40 @@ export function SystemAdminScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const LIGHT_BG = '#FFFFFF';
 
-// 10 unique card tints — no pink borders
-const CARD_TINTS = [
-  '#EEF2FF',   // indigo   — Employee Settings
-  '#F0F9FF',   // sky      — Item Settings
-  '#F0FDF4',   // emerald  — Supplier Settings
-  '#FFF7ED',   // orange   — Stores
-  '#FFFBEB',   // amber    — Finance
-  '#F5F3FF',   // violet   — Finance Institutes
-  '#FFF1F2',   // rose     — Security Post
-  '#F0FDFA',   // teal     — Vehicle Settings
-  '#FDF4FF',   // purple   — Service Offered
-  '#ECFDF5',   // green    — Distribution
-];
+// Uniform pink tint for all cards
+const CARD_TINTS = ['rgba(233,30,99,0.07)'];
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: LIGHT_BG },
+  safe: { flex: 1 },
+
+  band: {
+    paddingBottom: 20,
+  },
+  bandContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 8,
+    paddingBottom: 18,
+  },
+  bandTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 22,
+    fontWeight: FontWeight.bold,
+    letterSpacing: -0.4,
+    marginBottom: 8,
+  },
+  bandSub: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 20,
+  },
 
   sheet: {
-    flex: 1, backgroundColor: LIGHT_BG,
+    flex: 1,
+    backgroundColor: LIGHT_BG,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -28,
+    overflow: 'hidden',
   },
   scroll: {
     paddingHorizontal: Spacing.lg,
@@ -389,7 +418,7 @@ const styles = StyleSheet.create({
   arrowWrap: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#F5F5F7', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   arrowHead: {
     width: 8, height: 8,
-    borderTopWidth: 2, borderRightWidth: 2, borderColor: '#ADADB8',
+    borderTopWidth: 2, borderRightWidth: 2, borderColor: '#595959',
     transform: [{ rotate: '45deg' }, { translateX: -2 }],
   },
 });

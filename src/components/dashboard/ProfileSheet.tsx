@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import type { AuthUser } from '../../types/auth';
 
 interface ProfileSheetProps {
@@ -17,7 +18,10 @@ interface ProfileSheetProps {
 }
 
 export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetProps) {
+  const { theme, toggleTheme } = useTheme();
   const initial = user.fullName.charAt(0).toUpperCase();
+  const modeLabel = theme.isDark ? 'Dark mode enabled' : 'Light mode enabled';
+  const buttonLabel = theme.isDark ? 'Switch to Light' : 'Switch to Dark';
 
   function handleLogout() {
     onClose();
@@ -77,6 +81,21 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
 
         {/* ── Divider ── */}
         <View style={styles.divider} />
+
+        {/* ── Theme setting ── */}
+        <View style={styles.settingRow}>
+          <View style={styles.settingText}>
+            <Text style={styles.settingTitle}>Theme</Text>
+            <Text style={styles.settingSubtitle}>{modeLabel}</Text>
+          </View>
+          <Pressable
+            onPress={toggleTheme}
+            style={({ pressed }) => [styles.settingBtn, pressed && styles.settingBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle theme">
+            <Text style={styles.settingBtnLabel}>{buttonLabel}</Text>
+          </Pressable>
+        </View>
 
         {/* ── Actions ── */}
         <View style={styles.actions}>
@@ -278,6 +297,44 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.xl,
     marginBottom: Spacing.lg,
+  },
+
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+  },
+  settingText: { flex: 1, gap: 4 },
+  settingTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: '#FFFFFF',
+  },
+  settingSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.xs,
+    color: 'rgba(255,255,255,0.55)',
+  },
+  settingBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  settingBtnPressed: {
+    opacity: 0.8,
+  },
+  settingBtnLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium,
+    color: '#FFFFFF',
   },
 
   // ── Actions ───────────────────────────────

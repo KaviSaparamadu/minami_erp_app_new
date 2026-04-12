@@ -210,16 +210,11 @@ export function UserManagementScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const LIGHT_BG = '#FFFFFF';
 
-// Unique tint per card — no pink left border
-const CARD_TINTS = [
-  '#EFF6FF',   // sky blue — Create System Users
-  '#FFFBEB',   // amber    — Assign User Permission
-  '#F0FDFA',   // teal     — Create User Role
-  '#FDF4FF',   // purple   — Assign Role Permission
-];
+// Uniform pink tint for all cards
+const CARD_TINTS = ['rgba(233,30,99,0.07)'];
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: LIGHT_BG },
+  safe: { flex: 1, backgroundColor: '#1C1C1E' },
 
   sheet: {
     flex: 1,
@@ -323,7 +318,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderTopWidth: 2,
     borderRightWidth: 2,
-    borderColor: '#ADADB8',
+    borderColor: '#595959',
     transform: [{ rotate: '45deg' }, { translateX: -2 }],
   },
 });

@@ -1,8 +1,10 @@
-import React from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthContext';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
+import { BottomNavBar } from './components/common/BottomNavBar';
+import { ThemeProvider } from './context/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { DashboardScreen } from './screens/dashboard/DashboardScreen';
@@ -28,8 +30,53 @@ import {
   DistributionBusinessSettingsScreen,
 } from './screens/system-admin/SettingsScreens';
 
+// ─── Animated 3-dot page loader ───────────────────────────────────────────────
+function PageLoader() {
+  const d0 = useRef(new Animated.Value(0)).current;
+  const d1 = useRef(new Animated.Value(0)).current;
+  const d2 = useRef(new Animated.Value(0)).current;
+  const dots = [d0, d1, d2];
+
+  useEffect(() => {
+    const anim = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 280, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0, duration: 280, useNativeDriver: true }),
+          Animated.delay(560 - delay),
+        ]),
+      );
+
+    const anims = dots.map((d, i) => anim(d, i * 140));
+    Animated.parallel(anims).start();
+    return () => anims.forEach(a => a.stop());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <View style={loader.wrap}>
+      {dots.map((dot, i) => (
+        <Animated.View
+          key={i}
+          style={[
+            loader.dot,
+            {
+              opacity: dot.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }),
+              transform: [{
+                translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }),
+              }],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
 function AppNavigator() {
-  const { currentScreen, navigating } = useNavigation();
+  const { currentScreen, navigating, stack } = useNavigation();
+  const isTopLevel = stack.length === 1;
 
   const screen = (() => {
     switch (currentScreen) {
@@ -62,12 +109,13 @@ function AppNavigator() {
     <View style={styles.root}>
       {screen}
 
+      {/* ── Bottom nav (top-level screens only) ── */}
+      {isTopLevel && <BottomNavBar />}
+
       {/* ── Page transition loader overlay ── */}
       {navigating && (
         <View style={styles.overlay}>
-          <View style={styles.loaderCard}>
-            <ActivityIndicator size="large" color="#1C1C1E" />
-          </View>
+          <PageLoader />
         </View>
       )}
     </View>
@@ -89,9 +137,11 @@ function App() {
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor="#1C1C1E" />
       <AuthProvider>
-        <NavigationProvider>
-          <RootScreen />
-        </NavigationProvider>
+        <ThemeProvider>
+          <NavigationProvider>
+            <RootScreen />
+          </NavigationProvider>
+        </ThemeProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
@@ -105,22 +155,23 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.38)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
   },
-  loaderCard: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+});
+
+const loader = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 10,
+    gap: 10,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
   },
 });

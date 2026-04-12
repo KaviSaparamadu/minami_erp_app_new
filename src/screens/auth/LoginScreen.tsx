@@ -112,12 +112,14 @@ export function LoginScreen() {
               </Text>
             )}
 
-            <AppButton
-              label="Sign In"
-              onPress={validateAndSubmit}
-              loading={isLoading}
-              disabled={isLoading}
-            />
+            <View style={styles.buttonRow}>
+              <AppButton
+                label="Sign In"
+                onPress={validateAndSubmit}
+                loading={isLoading}
+                disabled={isLoading}
+              />
+            </View>
           </View>
 
           {/* ── Row 3: Spacer ── */}
@@ -154,11 +156,13 @@ const styles = StyleSheet.create({
     height: 60,
   },
 
-  // ── Grid row 2: form 
+  // ── Grid row 2: form
   formSection: {
     flex: 1,
     justifyContent: 'center',
-    gap: 0,
+  },
+  buttonRow: {
+    marginTop: Spacing.md,
   },
   subtitle: {
     fontFamily: FontFamily.regular,
