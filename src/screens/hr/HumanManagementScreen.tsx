@@ -122,9 +122,6 @@ function EmptyState({ filter, onAdd }: { filter: Filter; onAdd(): void }) {
       </View>
       <Text style={es.title}>{filter === 'All' ? 'No humans yet' : `No ${filter} records`}</Text>
       <Text style={es.sub}>Tap + to add your first record</Text>
-      <Pressable onPress={onAdd} style={({ pressed }) => [es.btn, pressed && { opacity: 0.85 }]}>
-        <Text style={es.btnTxt}>+ Create Human</Text>
-      </Pressable>
     </View>
   );
 }

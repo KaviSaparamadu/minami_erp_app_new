@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export function BrandLogo() {
+  const { colors } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+
   return (
     <View style={styles.wrapper}>
       {/* Outer glow ring */}
-      <View style={styles.ring}>
+      <View style={[styles.ring, dynamicStyles.ring]}>
         {/* Icon card */}
-        <View style={styles.card}>
+        <View style={[styles.card, dynamicStyles.card]}>
           {/* Top accent bar */}
           <View style={styles.accentBar} />
 
@@ -32,6 +36,17 @@ export function BrandLogo() {
 
 const CARD_SIZE = 92;
 
+function createDynamicStyles(colors: any) {
+  return StyleSheet.create({
+    ring: {
+      backgroundColor: colors.background,
+    },
+    card: {
+      backgroundColor: colors.buttonBg,
+    },
+  });
+}
+
 const styles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
@@ -45,19 +60,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryHighlight,
     alignItems: 'center',
     justifyContent: 'center',
-    // Subtle outer shadow
     shadowColor: Colors.primaryHighlight,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 8,
-    backgroundColor: Colors.background,
   },
   card: {
     width: CARD_SIZE,
     height: CARD_SIZE,
     borderRadius: 22,
-    backgroundColor: Colors.buttonBg,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

@@ -13,6 +13,8 @@ interface NavigationContextValue {
   goBack: () => void;
   canGoBack: boolean;
   navigating: boolean;
+  stack: ScreenName[];
+  navigateTo: (screen: ScreenName) => void;
 }
 
 const NavigationContext = createContext<NavigationContextValue | undefined>(undefined);
@@ -39,11 +41,22 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }, NAV_DELAY);
   }, []);
 
+  const navigateTo = useCallback((screen: ScreenName) => {
+    setNavigating(true);
+    setTimeout(() => {
+      setStack(prev => {
+        const idx = prev.indexOf(screen);
+        return idx >= 0 ? prev.slice(0, idx + 1) : prev;
+      });
+      setNavigating(false);
+    }, NAV_DELAY);
+  }, []);
+
   const currentScreen = stack[stack.length - 1];
   const canGoBack = stack.length > 1;
 
   return (
-    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating }}>
+    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating, stack, navigateTo }}>
       {children}
     </NavigationContext.Provider>
   );

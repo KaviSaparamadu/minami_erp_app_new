@@ -4,13 +4,14 @@ import { StyleSheet, View } from 'react-native';
 interface EyeIconProps {
   visible: boolean;
   color?: string;
+  backgroundColor?: string;
 }
 
 /**
  * Visibility / visibility-off icon built from pure RN Views.
  * Matches the Material Design visibility icon shape.
  */
-export function EyeIcon({ visible, color = '#A0A0A0' }: EyeIconProps) {
+export function EyeIcon({ visible, color = '#A0A0A0', backgroundColor = '#FFFFFF' }: EyeIconProps) {
   return (
     <View style={styles.container}>
       {/* ── Eye outline (lens / almond shape) ── */}
@@ -25,9 +26,9 @@ export function EyeIcon({ visible, color = '#A0A0A0' }: EyeIconProps) {
       {/* ── Slash for visibility-off ── */}
       {!visible && (
         <>
-          {/* White background bar to "cut" through the eye */}
+          {/* Background bar to "cut" through the eye */}
           <View
-            style={[styles.slashBg]}
+            style={[styles.slashBg, { backgroundColor }]}
             pointerEvents="none"
           />
           {/* Colored slash line on top */}
@@ -78,12 +79,11 @@ const styles = StyleSheet.create({
     marginRight: 0.5,
   },
 
-  // White bar slightly wider than the slash — gives a "cut-through" look
+  // Bar slightly wider than the slash — gives a "cut-through" look
   slashBg: {
     position: 'absolute',
     width: 24,
     height: 3,
-    backgroundColor: '#FFFFFF',
     transform: [{ rotate: '-38deg' }],
   },
 

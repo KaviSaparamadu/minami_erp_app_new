@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   FlatList,
   ScrollView,
@@ -16,9 +16,7 @@ import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigation } from '../../context/NavigationContext';
-
-const DARK_BG  = '#1C1C1E';
-const LIGHT_BG = '#F2F2F7';
+import { useTheme } from '../../hooks/useTheme';
 const H_PAD    = Spacing.lg;
 const GAP      = 6;
 const NUM_COLS = 3;
@@ -36,9 +34,9 @@ function getDateString() {
   });
 }
 
-function WelcomeBand({ fullName }: { fullName: string }) {
+function WelcomeBand({ fullName, dynamicWelcome }: { fullName: string; dynamicWelcome: any }) {
   return (
-    <View style={welcome.card}>
+    <View style={[welcome.card, dynamicWelcome.card]}>
       {/* Ghost ring decorations */}
       <View style={welcome.ringLg} />
       <View style={welcome.ringSm} />
@@ -70,7 +68,10 @@ export function DashboardScreen() {
   const { user } = useAuth();
   const { navigate } = useNavigation();
   const { width } = useWindowDimensions();
+  const { colors, isDarkMode } = useTheme();
   const cardWidth = (width - H_PAD * 2 - GAP) / NUM_COLS;
+
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   function handleModulePress(module: AppModule) {
     if (module.id === '4') {
@@ -79,16 +80,16 @@ export function DashboardScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safe, dynamicStyles.safe]} edges={['top', 'left', 'right']}>
 
       {/* Dark top band */}
-      <View style={styles.darkBand}>
+      <View style={[styles.darkBand, dynamicStyles.darkBand]}>
         <PageHeader title="GPIT · ERP" showBack={true} />
-        <WelcomeBand fullName={user!.fullName} />
+        <WelcomeBand fullName={user!.fullName} dynamicWelcome={dynamicStyles.welcome} />
       </View>
 
       {/* Light sheet — slides up over dark band */}
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, dynamicStyles.sheet]}>
         <FlatList
           data={MODULES}
           keyExtractor={item => item.id}
@@ -103,7 +104,7 @@ export function DashboardScreen() {
           ListHeaderComponent={
             <>
               <QuickAccessRow onPress={handleModulePress} />
-              <SectionDivider count={MODULES.length} />
+              <SectionDivider count={MODULES.length} dynamicDivider={dynamicStyles.divider} />
             </>
           }
         />
@@ -113,34 +114,66 @@ export function DashboardScreen() {
   );
 }
 
-function SectionDivider({ count }: { count: number }) {
+function SectionDivider({ count, dynamicDivider }: { count: number; dynamicDivider: any }) {
   return (
     <View style={divider.row}>
-      <View style={divider.line} />
-      <View style={divider.pill}>
-        <Text style={divider.pillText}>All Modules</Text>
+      <View style={[divider.line, dynamicDivider.line]} />
+      <View style={[divider.pill, dynamicDivider.pill]}>
+        <Text style={[divider.pillText, dynamicDivider.pillText]}>All Modules</Text>
         <View style={divider.badge}>
           <Text style={divider.badgeText}>{count}</Text>
         </View>
       </View>
-      <View style={divider.line} />
+      <View style={[divider.line, dynamicDivider.line]} />
     </View>
   );
 }
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
+function createDynamicStyles(colors: any, isDarkMode: boolean) {
+  const sheetBg = isDarkMode ? '#2C2C2E' : '#F2F2F7';
+
+  return {
+    safe: {
+      backgroundColor: colors.background,
+    },
+    darkBand: {
+      backgroundColor: '#1C1C1E',
+    },
+    sheet: {
+      backgroundColor: sheetBg,
+    },
+    welcome: {
+      card: {
+        borderColor: isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)',
+        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
+      },
+    },
+    divider: StyleSheet.create({
+      line: {
+        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E2E2E8',
+      },
+      pill: {
+        backgroundColor: isDarkMode ? '#404040' : '#FFFFFF',
+        borderColor: isDarkMode ? '#595959' : '#ECECF0',
+      },
+      pillText: {
+        color: isDarkMode ? '#FFFFFF' : colors.primaryText,
+      },
+    }),
+  };
+}
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: DARK_BG },
+  safe: { flex: 1 },
 
   darkBand: {
-    backgroundColor: DARK_BG,
     paddingBottom: 32,
   },
 
   sheet: {
     flex: 1,
-    backgroundColor: LIGHT_BG,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     marginTop: -28,

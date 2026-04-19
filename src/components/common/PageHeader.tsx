@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import { useNavigation } from '../../context/NavigationContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
 import { ProfileSheet } from '../dashboard/ProfileSheet';
 
 interface PageHeaderProps {
@@ -11,76 +12,102 @@ interface PageHeaderProps {
   transparent?: boolean; // removes dark background (for coloured parent headers)
 }
 
-function BackArrow() {
+interface BackArrowProps {
+  color: string;
+}
+
+function BackArrow({ color }: BackArrowProps) {
   return (
-    <View style={arrow.wrap}>
-      <View style={arrow.stem} />
-      <View style={arrow.head} />
+    <View style={arrowWrap.wrap}>
+      <View style={[arrowWrap.stem, { backgroundColor: color }]} />
+      <View style={[arrowWrap.head, { borderColor: color }]} />
     </View>
   );
 }
 
-function BellIcon() {
-  return (
-    <View style={bell.wrap}>
-      <View style={bell.top} />
-      <View style={bell.body} />
-      <View style={bell.clapper} />
-      <View style={bell.dot} />
-    </View>
-  );
-}
+
+const SCREEN_LABELS: Record<string, string> = {
+  Dashboard: 'Dashboard',
+  HR: 'Human Resources',
+  HumanManagement: 'Human Management',
+  EmployeeManagement: 'Employee Management',
+  UserManagement: 'User Management',
+  CreateSystemUsers: 'Create System Users',
+  AssignUserPermission: 'Assign User Permission',
+  CreateUserRole: 'Create User Role',
+  AssignUserRolePermission: 'Assign User Role Permission',
+};
 
 export function PageHeader({ title, showBack = true, transparent = false }: PageHeaderProps) {
-  const { goBack } = useNavigation();
+  const { goBack, stack, navigateTo } = useNavigation();
   const { user, logout } = useAuth();
+  const { colors } = useTheme();
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const initial = user?.fullName.charAt(0).toUpperCase() ?? '?';
+  const breadcrumbs = stack.length > 1 ? stack : [];
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   return (
     <>
-      <View style={[styles.header, transparent && styles.headerTransparent]}>
+      <View style={[styles.header, transparent && styles.headerTransparent, { backgroundColor: colors.background }]}>
 
         {/* ── Left: back arrow or spacer ── */}
         {showBack ? (
           <Pressable
             onPress={goBack}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+            style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
             accessibilityLabel="Go back"
             accessibilityRole="button"
             hitSlop={14}>
-            <BackArrow />
+            <BackArrow color={colors.primaryText} />
           </Pressable>
         ) : (
-          <View style={styles.iconBtn} />
+          <View style={[styles.iconBtn, dynamicStyles.iconBtn]} />
         )}
 
-        {/* ── Center: page title ── */}
+        {/* ── Center: page title + breadcrumbs ── */}
         <View style={styles.titleWrap}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={[styles.title, dynamicStyles.title]} numberOfLines={1}>{title}</Text>
+          {breadcrumbs.length > 0 && (
+            <View style={styles.breadcrumbContainer}>
+              {breadcrumbs.map((screen, idx) => {
+                const isLast = idx === breadcrumbs.length - 1;
+                return (
+                  <Pressable
+                    key={screen}
+                    onPress={() => navigateTo(screen)}
+                    style={({ pressed }) => [
+                      styles.breadcrumbItem,
+                      isLast && styles.breadcrumbActive,
+                      pressed && styles.breadcrumbPressed,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.breadcrumbText,
+                        dynamicStyles.breadcrumbText,
+                        isLast && [styles.breadcrumbTextActive, dynamicStyles.breadcrumbTextActive],
+                      ]}>
+                      {SCREEN_LABELS[screen] || screen}
+                    </Text>
+                    {!isLast && <Text style={[styles.separator, dynamicStyles.separator]}> / </Text>}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
 
-        {/* ── Right: bell + avatar ── */}
-        <View style={styles.rightRow}>
-          <Pressable
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
-            accessibilityLabel="Notifications"
-            accessibilityRole="button"
-            hitSlop={14}>
-            <BellIcon />
-          </Pressable>
-
-          <Pressable
-            onPress={() => setSheetVisible(true)}
-            style={({ pressed }) => [styles.avatar, pressed && styles.avatarPressed]}
-            accessibilityLabel="Profile"
-            accessibilityRole="button"
-            hitSlop={8}>
-            <Text style={styles.avatarText}>{initial}</Text>
-            <View style={styles.onlineDot} />
-          </Pressable>
-        </View>
+        {/* ── Right: avatar ── */}
+        <Pressable
+          onPress={() => setSheetVisible(true)}
+          style={({ pressed }) => [styles.avatar, pressed && styles.avatarPressed]}
+          accessibilityLabel="Profile"
+          accessibilityRole="button"
+          hitSlop={8}>
+          <Text style={[styles.avatarText, dynamicStyles.avatarText]}>{initial}</Text>
+          <View style={[styles.onlineDot, { borderColor: colors.background }]} />
+        </Pressable>
 
       </View>
 
@@ -95,6 +122,34 @@ export function PageHeader({ title, showBack = true, transparent = false }: Page
 }
 
 const DARK = '#1C1C1E';
+
+function createDynamicStyles(colors: any) {
+  const isDark = colors.background !== '#FFFFFF';
+  return StyleSheet.create({
+    title: {
+      color: colors.primaryText,
+    },
+    breadcrumbText: {
+      color: colors.placeholder,
+    },
+    breadcrumbTextActive: {
+      color: colors.primaryHighlight,
+    },
+    separator: {
+      color: colors.placeholder,
+    },
+    avatarText: {
+      color: isDark ? '#FFFFFF' : '#FFFFFF',
+    },
+    iconBtn: {
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    },
+    iconBtnPressed: {
+      backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)',
+    },
+  });
+}
 
 const styles = StyleSheet.create({
   header: {
@@ -122,21 +177,48 @@ const styles = StyleSheet.create({
 
   titleWrap: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    paddingHorizontal: Spacing.md,
   },
   title: {
     fontFamily: FontFamily.bold,
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
     letterSpacing: 0.4,
   },
-
-  rightRow: {
+  breadcrumbContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    marginTop: 4,
+    gap: 0,
   },
+  breadcrumbItem: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  breadcrumbPressed: {
+    opacity: 0.7,
+  },
+  breadcrumbActive: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.primaryHighlight,
+    paddingBottom: 1,
+  },
+  breadcrumbText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 9,
+    paddingHorizontal: 3,
+  },
+  breadcrumbTextActive: {
+    fontFamily: FontFamily.bold,
+    fontWeight: FontWeight.bold,
+  },
+  separator: {
+    fontSize: 9,
+  },
+
   avatar: {
     width: 36,
     height: 36,
@@ -155,7 +237,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
   },
   onlineDot: {
     position: 'absolute',
@@ -169,7 +250,7 @@ const styles = StyleSheet.create({
 });
 
 // Back arrow — left-pointing chevron
-const arrow = StyleSheet.create({
+const arrowWrap = StyleSheet.create({
   wrap: {
     width: 16,
     height: 16,
@@ -180,7 +261,6 @@ const arrow = StyleSheet.create({
     position: 'absolute',
     width: 10,
     height: 2,
-    backgroundColor: '#FFFFFF',
     borderRadius: 1,
   },
   head: {
@@ -190,39 +270,7 @@ const arrow = StyleSheet.create({
     height: 7,
     borderTopWidth: 2,
     borderLeftWidth: 2,
-    borderColor: '#FFFFFF',
     transform: [{ rotate: '-45deg' }, { translateX: 2 }],
   },
 });
 
-const bell = StyleSheet.create({
-  wrap: { width: 18, height: 19, alignItems: 'center' },
-  top: {
-    width: 7, height: 7,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-    borderBottomWidth: 0,
-    marginBottom: -1,
-  },
-  body: {
-    width: 14, height: 9,
-    borderTopLeftRadius: 7, borderTopRightRadius: 7,
-    backgroundColor: '#FFFFFF',
-  },
-  clapper: {
-    width: 5, height: 3,
-    borderBottomLeftRadius: 3, borderBottomRightRadius: 3,
-    backgroundColor: '#FFFFFF',
-    marginTop: -1,
-  },
-  dot: {
-    position: 'absolute',
-    top: -1, right: 1,
-    width: 6, height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primaryHighlight,
-    borderWidth: 1,
-    borderColor: DARK,
-  },
-});

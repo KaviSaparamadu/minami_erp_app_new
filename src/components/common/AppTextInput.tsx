@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -7,13 +7,13 @@ import {
   View,
 } from 'react-native';
 import {
-  Colors,
   FontFamily,
   FontSize,
   FontWeight,
   Spacing,
 } from '../../constants/theme';
 import { EyeIcon } from './EyeIcon';
+import { useTheme } from '../../hooks/useTheme';
 
 interface AppTextInputProps {
   label: string;
@@ -38,33 +38,36 @@ export function AppTextInput({
   error,
   autoComplete = 'off',
 }: AppTextInputProps) {
+  const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   const lineColor = error
-    ? Colors.error
+    ? colors.error
     : isFocused
-    ? Colors.borderFocus   // dark gray on focus
-    : Colors.border;       // gray by default
+    ? colors.borderFocus
+    : colors.border;
 
   return (
     <View style={styles.wrapper}>
       <Text
         style={[
           styles.label,
-          isFocused && styles.labelFocused,
-          !!error && styles.labelError,
+          dynamicStyles.label,
+          isFocused && dynamicStyles.labelFocused,
+          !!error && dynamicStyles.labelError,
         ]}>
         {label}
       </Text>
 
-      <View style={[styles.inputRow, { borderBottomColor: lineColor }]}>
+      <View style={[styles.inputRow, dynamicStyles.inputRow, { borderBottomColor: lineColor }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, dynamicStyles.input]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={Colors.placeholder}
+          placeholderTextColor={colors.placeholder}
           secureTextEntry={secureTextEntry && !isRevealed}
           autoCapitalize={autoCapitalize}
           keyboardType={keyboardType}
@@ -82,15 +85,36 @@ export function AppTextInput({
             hitSlop={8}>
             <EyeIcon
               visible={isRevealed}
-              color={isFocused ? Colors.borderFocus : Colors.placeholder}
+              color={isFocused ? colors.borderFocus : colors.placeholder}
+              backgroundColor={colors.inputBg}
             />
           </Pressable>
         )}
       </View>
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {!!error && <Text style={[styles.error, { color: colors.error }]}>{error}</Text>}
     </View>
   );
+}
+
+function createDynamicStyles(colors: any) {
+  return StyleSheet.create({
+    label: {
+      color: colors.placeholder,
+    },
+    labelFocused: {
+      color: colors.primaryText,
+    },
+    labelError: {
+      color: colors.error,
+    },
+    inputRow: {
+      backgroundColor: colors.inputBg,
+    },
+    input: {
+      color: colors.primaryText,
+    },
+  });
 }
 
 const styles = StyleSheet.create({
@@ -101,14 +125,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.medium,
-    color: Colors.placeholder,       // gray — inactive
     marginBottom: Spacing.xs,
-  },
-  labelFocused: {
-    color: Colors.primaryText,       // dark gray — focused
-  },
-  labelError: {
-    color: Colors.error,
   },
   inputRow: {
     flexDirection: 'row',
@@ -119,8 +136,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: FontFamily.regular,
-    fontSize: FontSize.md,           // 12px
-    color: Colors.primaryText,
+    fontSize: FontSize.md,
     paddingVertical: 0,
   },
   eyeButton: {
@@ -132,6 +148,5 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     fontFamily: FontFamily.regular,
     fontSize: FontSize.xs,
-    color: Colors.error,
   },
 });

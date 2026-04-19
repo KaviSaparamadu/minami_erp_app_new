@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
 import { ModuleIcon } from './ModuleIcon';
+import { useTheme } from '../../hooks/useTheme';
 
 interface ModuleCardProps {
   module: AppModule;
@@ -11,25 +12,28 @@ interface ModuleCardProps {
 }
 
 export function ModuleCard({ module, width, onPress }: ModuleCardProps) {
+  const { colors, isDarkMode } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, { width }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, dynamicStyles.card, { width }, pressed && styles.pressed]}
       onPress={() => onPress?.(module)}
       accessibilityRole="button"
       accessibilityLabel={`${module.name} module`}>
 
       {/* Icon area */}
-      <View style={styles.top}>
+      <View style={[styles.top, dynamicStyles.top]}>
         <ModuleIcon type={module.iconType} size={36} />
       </View>
 
       {/* Info area */}
-      <View style={styles.bottom}>
-        <Text style={styles.name} numberOfLines={1}>{module.name}</Text>
-        <Text style={styles.value} numberOfLines={1}>{module.value}</Text>
+      <View style={[styles.bottom, dynamicStyles.bottom]}>
+        <Text style={[styles.name, dynamicStyles.name]} numberOfLines={1}>{module.name}</Text>
+        <Text style={[styles.value, dynamicStyles.value]} numberOfLines={1}>{module.value}</Text>
         <View style={styles.labelRow}>
           <View style={styles.dot} />
-          <Text style={styles.label} numberOfLines={1}>{module.valueLabel}</Text>
+          <Text style={[styles.label, dynamicStyles.label]} numberOfLines={1}>{module.valueLabel}</Text>
         </View>
       </View>
 
@@ -37,9 +41,31 @@ export function ModuleCard({ module, width, onPress }: ModuleCardProps) {
   );
 }
 
+function createDynamicStyles(colors: any, isDarkMode: boolean) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
+    },
+    top: {
+      backgroundColor: isDarkMode ? '#3A3A3C' : '#F5F5F7',
+    },
+    bottom: {
+      borderTopColor: isDarkMode ? '#404040' : '#F0F0F0',
+    },
+    name: {
+      color: colors.primaryText,
+    },
+    value: {
+      color: colors.primaryText,
+    },
+    label: {
+      color: colors.placeholder,
+    },
+  });
+}
+
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginBottom: Spacing.sm,
     overflow: 'hidden',
@@ -54,7 +80,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   top: {
-    backgroundColor: '#F5F5F7',
     paddingVertical: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -65,13 +90,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
   },
   name: {
     fontFamily: FontFamily.bold,
     fontSize: 9,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
     textAlign: 'center',
     letterSpacing: 0.2,
   },
@@ -79,7 +102,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,       // dark gray — no pink
     marginTop: 3,
     letterSpacing: -0.3,
   },
@@ -97,6 +119,5 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: FontFamily.regular,
     fontSize: 8,
-    color: Colors.placeholder,
   },
 });

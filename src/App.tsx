@@ -1,9 +1,12 @@
-import React from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ActivityIndicator, StatusBar, StyleSheet, View, Animated } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthContext';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { useAuth } from './hooks/useAuth';
+import { useTheme } from './hooks/useTheme';
+import { Footer } from './components/common/Footer';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { DashboardScreen } from './screens/dashboard/DashboardScreen';
 import { HRScreen } from './screens/hr/HRScreen';
@@ -14,6 +17,48 @@ import { CreateSystemUsersScreen } from './screens/user/CreateSystemUsersScreen'
 import { AssignUserPermissionScreen } from './screens/user/AssignUserPermissionScreen';
 import { CreateUserRoleScreen } from './screens/user/CreateUserRoleScreen';
 import { AssignUserRolePermissionScreen } from './screens/user/AssignUserRolePermissionScreen';
+
+function DottedLoader() {
+  const DOT_SIZE = 8;
+  const RADIUS = 16;
+  const dots = Array.from({ length: 8 });
+  const animValues = dots.map(() => new Animated.Value(0));
+
+  useEffect(() => {
+    animValues.forEach((anim, idx) => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(idx * 75),
+          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0, duration: 300, useNativeDriver: true }),
+        ])
+      ).start();
+    });
+  }, []);
+
+  return (
+    <View style={styles.dotContainer}>
+      {dots.map((_, idx) => {
+        const angle = (idx / dots.length) * Math.PI * 2;
+        const x = Math.cos(angle) * RADIUS;
+        const y = Math.sin(angle) * RADIUS;
+
+        return (
+          <Animated.View
+            key={idx}
+            style={[
+              styles.dot,
+              {
+                transform: [{ translateX: x }, { translateY: y }],
+                opacity: animValues[idx].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
+              },
+            ]}
+          />
+        );
+      })}
+    </View>
+  );
+}
 
 function AppNavigator() {
   const { currentScreen, navigating } = useNavigation();
@@ -36,13 +81,12 @@ function AppNavigator() {
   return (
     <View style={styles.root}>
       {screen}
+      <Footer />
 
       {/* ── Page transition loader overlay ── */}
       {navigating && (
         <View style={styles.overlay}>
-          <View style={styles.loaderCard}>
-            <ActivityIndicator size="large" color="#E91E63" />
-          </View>
+          <DottedLoader />
         </View>
       )}
     </View>
@@ -59,15 +103,30 @@ function RootScreen() {
   return <AppNavigator />;
 }
 
-function App() {
+function AppWithTheme() {
+  const { isDarkMode } = useTheme();
+
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#1C1C1E" />
+      <StatusBar
+        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        backgroundColor={isDarkMode ? '#1C1C1E' : '#FFFFFF'}
+      />
       <AuthProvider>
         <NavigationProvider>
           <RootScreen />
         </NavigationProvider>
       </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppWithTheme />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -85,17 +144,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 9999,
   },
-  loaderCard: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+  dotContainer: {
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 10,
+  },
+  dot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E91E63',
   },
 });

@@ -1,23 +1,27 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { FontFamily, FontSize, FontWeight, Spacing, Colors } from '../../constants/theme';
 import { MODULES } from '../../constants/modules';
 import { ModuleIcon } from './ModuleIcon';
 import type { AppModule } from '../../constants/modules';
+import { useTheme } from '../../hooks/useTheme';
 
 interface QuickAccessRowProps {
   onPress?: (module: AppModule) => void;
 }
 
 export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
+  const { colors } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.titleRow}>
         <View style={styles.titleLeft}>
           <View style={styles.titleAccent} />
-          <Text style={styles.title}>Quick Access</Text>
+          <Text style={[styles.title, dynamicStyles.title]}>Quick Access</Text>
         </View>
-        <Text style={styles.seeAll}>See all</Text>
+        <Text style={[styles.seeAll, dynamicStyles.seeAll]}>See all</Text>
       </View>
 
       <ScrollView
@@ -27,7 +31,7 @@ export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
         {MODULES.map(m => (
           <Pressable
             key={m.id}
-            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+            style={({ pressed }) => [styles.card, dynamicStyles.card, pressed && styles.cardPressed]}
             onPress={() => onPress?.(m)}
             accessibilityRole="button"
             accessibilityLabel={m.name}>
@@ -36,11 +40,11 @@ export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
             <ModuleIcon type={m.iconType} size={32} />
 
             {/* Name */}
-            <Text style={styles.name} numberOfLines={1}>{m.name}</Text>
+            <Text style={[styles.name, dynamicStyles.name]} numberOfLines={1}>{m.name}</Text>
 
             {/* Value pill */}
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>{m.value}</Text>
+            <View style={[styles.pill, { backgroundColor: colors.background === '#1C1C1E' ? '#3A3A3C' : '#F0F0F0', borderColor: colors.background === '#1C1C1E' ? '#505050' : '#E5E5E5' }]}>
+              <Text style={[styles.pillText, { color: colors.primaryText }]}>{m.value}</Text>
             </View>
 
           </Pressable>
@@ -48,6 +52,25 @@ export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
       </ScrollView>
     </View>
   );
+}
+
+function createDynamicStyles(colors: any) {
+  const isDark = colors.background === '#1C1C1E';
+  return StyleSheet.create({
+    title: {
+      color: colors.primaryText,
+    },
+    seeAll: {
+      color: colors.placeholder,
+    },
+    card: {
+      backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF',
+      borderColor: isDark ? '#404040' : '#EFEFEF',
+    },
+    name: {
+      color: colors.primaryText,
+    },
+  });
 }
 
 const styles = StyleSheet.create({
@@ -76,12 +99,10 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
   },
   seeAll: {
     fontFamily: FontFamily.medium,
     fontSize: FontSize.xs,
-    color: Colors.placeholder,
     fontWeight: FontWeight.medium,
   },
 
@@ -92,7 +113,6 @@ const styles = StyleSheet.create({
 
   card: {
     width: 76,
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xs,
@@ -115,22 +135,18 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     fontSize: 9,
     fontWeight: FontWeight.medium,
-    color: Colors.primaryText,
     textAlign: 'center',
   },
 
   pill: {
-    backgroundColor: '#F0F0F0',
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
   },
   pillText: {
     fontFamily: FontFamily.bold,
     fontSize: 8,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
   },
 });

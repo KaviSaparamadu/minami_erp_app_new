@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
 } from 'react-native';
-import { BorderRadius, Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { BorderRadius, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface AppButtonProps {
   label: string;
@@ -20,7 +21,9 @@ export function AppButton({
   loading = false,
   disabled = false,
 }: AppButtonProps) {
+  const { colors } = useTheme();
   const isDisabled = disabled || loading;
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   return (
     <Pressable
@@ -28,24 +31,38 @@ export function AppButton({
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.button,
-        pressed && styles.buttonPressed,
+        dynamicStyles.button,
+        pressed && dynamicStyles.buttonPressed,
         isDisabled && styles.buttonDisabled,
       ]}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}>
       {loading ? (
-        <ActivityIndicator color={Colors.buttonText} size="small" />
+        <ActivityIndicator color={colors.buttonText} size="small" />
       ) : (
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, dynamicStyles.label]}>{label}</Text>
       )}
     </Pressable>
   );
 }
 
+function createDynamicStyles(colors: any) {
+  return StyleSheet.create({
+    button: {
+      backgroundColor: colors.buttonBg,
+    },
+    buttonPressed: {
+      backgroundColor: colors.buttonBgPressed,
+    },
+    label: {
+      color: colors.buttonText,
+    },
+  });
+}
+
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: Colors.buttonBg,
     borderRadius: BorderRadius.sm,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
@@ -53,15 +70,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
   },
-  buttonPressed: {
-    backgroundColor: Colors.buttonBgPressed,
-  },
   buttonDisabled: {
     opacity: 0.5,
   },
   label: {
     fontFamily: FontFamily.medium,
-    color: Colors.buttonText,
     fontSize: FontSize.md,
     fontWeight: FontWeight.medium,
     letterSpacing: 0.5,

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FontFamily, FontSize, FontWeight, Spacing, Colors } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 import type { AuthUser } from '../../types/auth';
 import { ProfileSheet } from './ProfileSheet';
 
@@ -9,49 +10,55 @@ interface DashboardHeaderProps {
   onBack: () => void;
 }
 
-function LogoutIcon() {
+interface IconProps {
+  color: string;
+}
+
+function LogoutIcon({ color }: IconProps) {
   return (
-    <View style={icon.wrap}>
-      <View style={icon.arc} />
-      <View style={icon.bar} />
+    <View style={iconBase.wrap}>
+      <View style={[iconBase.arc, { borderColor: color, borderBottomColor: 'transparent' }]} />
+      <View style={[iconBase.bar, { backgroundColor: color }]} />
     </View>
   );
 }
 
-function BellIcon() {
+function BellIcon({ color }: IconProps) {
   return (
-    <View style={bell.wrap}>
-      <View style={bell.top} />
-      <View style={bell.body} />
-      <View style={bell.clapper} />
-      <View style={bell.dot} />
+    <View style={bellBase.wrap}>
+      <View style={[bellBase.top, { borderColor: color }]} />
+      <View style={[bellBase.body, { backgroundColor: color }]} />
+      <View style={[bellBase.clapper, { backgroundColor: color }]} />
+      <View style={bellBase.dot} />
     </View>
   );
 }
 
 export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
+  const { colors } = useTheme();
   const [sheetVisible, setSheetVisible] = useState(false);
   const initial = user.fullName.charAt(0).toUpperCase();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   return (
     <>
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
 
         {/* ── Left: direct logout ── */}
         <Pressable
           onPress={onBack}
-          style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+          style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
           accessibilityLabel="Log out"
           accessibilityRole="button"
           hitSlop={14}>
-          <LogoutIcon />
+          <LogoutIcon color={colors.primaryText} />
         </Pressable>
 
         {/* ── Center: brand ── */}
         <View style={styles.brand}>
-          <Text style={styles.brandG}>G</Text>
+          <Text style={[styles.brandG, { color: colors.primaryText }]}>G</Text>
           <Text style={styles.brandPink}>P</Text>
-          <Text style={styles.brandRest}>IT</Text>
+          <Text style={[styles.brandRest, { color: colors.primaryText }]}>IT</Text>
           <View style={styles.brandPill}>
             <Text style={styles.brandPillText}>ERP</Text>
           </View>
@@ -60,11 +67,11 @@ export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
         {/* ── Right: bell + avatar ── */}
         <View style={styles.rightRow}>
           <Pressable
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+            style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
             accessibilityLabel="Notifications"
             accessibilityRole="button"
             hitSlop={14}>
-            <BellIcon />
+            <BellIcon color={colors.primaryText} />
           </Pressable>
 
           {/* Profile avatar — opens sheet */}
@@ -74,8 +81,8 @@ export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
             accessibilityLabel="Profile"
             accessibilityRole="button"
             hitSlop={8}>
-            <Text style={styles.avatarText}>{initial}</Text>
-            <View style={styles.onlineDot} />
+            <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>{initial}</Text>
+            <View style={[styles.onlineDot, { borderColor: colors.background }]} />
           </Pressable>
         </View>
 
@@ -93,6 +100,19 @@ export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
 }
 
 const DARK = '#1C1C1E';
+
+function createDynamicStyles(colors: any) {
+  const isDark = colors.background !== '#FFFFFF';
+  return StyleSheet.create({
+    iconBtn: {
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    },
+    iconBtnPressed: {
+      backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+    },
+  });
+}
 
 const styles = StyleSheet.create({
   header: {
@@ -126,7 +146,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
     letterSpacing: 1,
   },
   brandPink: {
@@ -140,7 +159,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
     letterSpacing: 1,
     marginRight: 6,
   },
@@ -183,7 +201,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
   },
   onlineDot: {
     position: 'absolute',
@@ -198,45 +215,39 @@ const styles = StyleSheet.create({
   },
 });
 
-const icon = StyleSheet.create({
+const iconBase = StyleSheet.create({
   wrap: { width: 18, height: 18, alignItems: 'center', justifyContent: 'center' },
   arc: {
     width: 14, height: 14,
     borderRadius: 7,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-    borderBottomColor: 'transparent',
     transform: [{ rotate: '45deg' }],
     position: 'absolute',
   },
   bar: {
     width: 2, height: 7,
-    backgroundColor: '#FFFFFF',
     borderRadius: 1,
     position: 'absolute',
     top: 0,
   },
 });
 
-const bell = StyleSheet.create({
+const bellBase = StyleSheet.create({
   wrap: { width: 18, height: 19, alignItems: 'center' },
   top: {
     width: 7, height: 7,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
     borderBottomWidth: 0,
     marginBottom: -1,
   },
   body: {
     width: 14, height: 9,
     borderTopLeftRadius: 7, borderTopRightRadius: 7,
-    backgroundColor: '#FFFFFF',
   },
   clapper: {
     width: 5, height: 3,
     borderBottomLeftRadius: 3, borderBottomRightRadius: 3,
-    backgroundColor: '#FFFFFF',
     marginTop: -1,
   },
   dot: {

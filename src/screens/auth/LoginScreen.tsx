@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -15,18 +15,21 @@ import {
   Colors,
   FontFamily,
   FontSize,
-  FontWeight,
   Spacing,
 } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
 
 export function LoginScreen() {
   const { login, isLoading, error, clearError } = useAuth();
+  const { colors } = useTheme();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   useEffect(() => {
     if (error) {
@@ -66,7 +69,7 @@ export function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={[styles.safe, dynamicStyles.safe]} edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -106,7 +109,7 @@ export function LoginScreen() {
             />
 
             {!!error && (
-              <Text style={styles.apiError} accessibilityRole="alert">
+              <Text style={[styles.apiError, { color: colors.error }]} accessibilityRole="alert">
                 {error}
               </Text>
             )}
@@ -128,10 +131,17 @@ export function LoginScreen() {
   );
 } 
 
+function createDynamicStyles(colors: any) {
+  return StyleSheet.create({
+    safe: {
+      backgroundColor: colors.background,
+    },
+  });
+}
+
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   flex: {
     flex: 1,
@@ -162,13 +172,11 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: FontFamily.regular,
     fontSize: FontSize.md,
-    color: Colors.placeholder,
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
   apiError: {
     fontSize: FontSize.sm,
-    color: Colors.error,
     marginBottom: Spacing.md,
     textAlign: 'center',
   },

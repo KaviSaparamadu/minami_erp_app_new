@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   Pressable,
   StyleSheet,
   Text,
   View,
+  Alert,
 } from 'react-native';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { AuthUser } from '../../types/auth';
@@ -18,10 +19,29 @@ interface ProfileSheetProps {
 
 export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetProps) {
   const initial = user.fullName.charAt(0).toUpperCase();
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
 
   function handleLogout() {
     onClose();
     setTimeout(onLogout, 220);
+  }
+
+  function handleAddPhoto() {
+    Alert.alert(
+      'Add Profile Photo',
+      'Choose a source for your profile photo',
+      [
+        { text: 'Camera', onPress: () => {
+          Alert.alert('Coming Soon', 'Camera feature will be available soon');
+          setShowPhotoOptions(false);
+        }},
+        { text: 'Gallery', onPress: () => {
+          Alert.alert('Coming Soon', 'Gallery feature will be available soon');
+          setShowPhotoOptions(false);
+        }},
+        { text: 'Cancel', style: 'cancel', onPress: () => setShowPhotoOptions(false) },
+      ]
+    );
   }
 
   return (
@@ -48,6 +68,17 @@ export function ProfileSheet({ visible, user, onClose, onLogout }: ProfileSheetP
             <View style={styles.avatar}>
               <Text style={styles.avatarInitial}>{initial}</Text>
             </View>
+            {/* Camera button */}
+            <Pressable
+              onPress={handleAddPhoto}
+              style={({ pressed }) => [
+                styles.cameraButton,
+                pressed && styles.cameraButtonPressed,
+              ]}
+              accessibilityLabel="Add profile photo"
+              accessibilityRole="button">
+              <CameraIcon />
+            </Pressable>
           </View>
           {/* Online badge */}
           <View style={styles.onlineBadge}>
@@ -122,6 +153,16 @@ function PowerIcon() {
   );
 }
 
+function CameraIcon() {
+  return (
+    <View style={cam.wrap}>
+      <View style={cam.body} />
+      <View style={cam.lens} />
+      <View style={cam.flash} />
+    </View>
+  );
+}
+
 const DARK   = '#1C1C1E';
 const DARK2  = '#2C2C2E';
 const DARK3  = '#3A3A3C';
@@ -172,6 +213,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
+    position: 'relative',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryHighlight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: DARK,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+  },
+  cameraButtonPressed: {
+    transform: [{ scale: 0.92 }],
+    opacity: 0.85,
   },
   avatar: {
     width: 68,
@@ -363,5 +427,39 @@ const pw = StyleSheet.create({
     width: 2, height: 6,
     backgroundColor: '#FFFFFF',
     borderRadius: 1,
+  },
+});
+
+const cam = StyleSheet.create({
+  wrap: {
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  body: {
+    position: 'absolute',
+    width: 13,
+    height: 10,
+    borderRadius: 2,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  lens: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  flash: {
+    position: 'absolute',
+    top: 1.5,
+    right: 2,
+    width: 2.5,
+    height: 2.5,
+    borderRadius: 1,
+    backgroundColor: '#FFFFFF',
   },
 });
