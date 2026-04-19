@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import type { ScreenName } from '../../context/NavigationContext';
 
@@ -91,6 +92,8 @@ const SUBMODULE_SCREENS: Record<string, ScreenName> = {
 
 export function HRScreen() {
   const { navigate } = useNavigation();
+  const { colors, isDarkMode } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   function handleSubModulePress(id: string) {
     const screen = SUBMODULE_SCREENS[id];
@@ -98,21 +101,21 @@ export function HRScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safe, dynamicStyles.safe]} edges={['top', 'left', 'right']}>
 
       {/* Dark top band with PageHeader */}
-      <View style={styles.darkBand}>
+      <View style={[styles.darkBand, dynamicStyles.darkBand]}>
         <PageHeader title="HR" showBack={true} />
 
         {/* Section label */}
         <View style={styles.bandContent}>
-          <Text style={styles.bandTitle}>Human Resources</Text>
-          <Text style={styles.bandSub}>Select a module to manage</Text>
+          <Text style={[styles.bandTitle, dynamicStyles.bandTitle]}>Human Resources</Text>
+          <Text style={[styles.bandSub, dynamicStyles.bandSub]}>Select a module to manage</Text>
         </View>
       </View>
 
       {/* Light sheet */}
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, dynamicStyles.sheet]}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}>
@@ -166,11 +169,32 @@ export function HRScreen() {
 const DARK = '#1C1C1E';
 const LIGHT_BG = '#F2F2F7';
 
+function createDynamicStyles(colors: any, isDarkMode: boolean) {
+  const sheetBg = isDarkMode ? '#2C2C2E' : '#F2F2F7';
+
+  return StyleSheet.create({
+    safe: {
+      backgroundColor: colors.background,
+    },
+    darkBand: {
+      backgroundColor: DARK,
+    },
+    sheet: {
+      backgroundColor: sheetBg,
+    },
+    bandTitle: {
+      color: '#FFFFFF',
+    },
+    bandSub: {
+      color: 'rgba(255,255,255,0.4)',
+    },
+  });
+}
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: DARK },
+  safe: { flex: 1 },
 
   darkBand: {
-    backgroundColor: DARK,
     paddingBottom: 32,
   },
 
@@ -182,19 +206,16 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.xl,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
     letterSpacing: 0.2,
   },
   bandSub: {
     fontFamily: FontFamily.regular,
     fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.4)',
     marginTop: 3,
   },
 
   sheet: {
     flex: 1,
-    backgroundColor: LIGHT_BG,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     marginTop: -28,

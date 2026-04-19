@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -9,8 +9,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import type { ScreenName } from '../../context/NavigationContext';
+
+// ─── Dynamic styles ─────────────────────────────────────────────────────────
+function createDynamicStyles(colors: any) {
+  return StyleSheet.create({
+    cardTitle: { color: colors.primaryText },
+    cardDesc: { color: colors.placeholder },
+    chipCount: { color: colors.primaryText },
+    chipLabel: { color: colors.placeholder },
+  });
+}
 
 // ─── Sub-module data ──────────────────────────────────────────────────────────
 interface UMSubModule {
@@ -113,6 +124,8 @@ const ICONS = [UserPlusIcon, KeyIcon, BadgeIcon, ShieldIcon];
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function UserManagementScreen() {
   const { navigate } = useNavigation();
+  const { colors } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   function handlePress(id: string) {
     const screen = SUBMODULE_SCREENS[id];
@@ -154,15 +167,15 @@ export function UserManagementScreen() {
 
                 {/* Content */}
                 <View style={styles.content}>
-                  <Text style={styles.cardTitle}>{mod.name}</Text>
-                  <Text style={styles.cardDesc} numberOfLines={2}>{mod.description}</Text>
+                  <Text style={[styles.cardTitle, dynamicStyles.cardTitle]}>{mod.name}</Text>
+                  <Text style={[styles.cardDesc, dynamicStyles.cardDesc]} numberOfLines={2}>{mod.description}</Text>
 
                   {/* Count chip */}
                   <View style={styles.chipRow}>
                     <View style={styles.chip}>
                       <View style={styles.chipDot} />
-                      <Text style={styles.chipCount}>{mod.count}</Text>
-                      <Text style={styles.chipLabel}>{mod.countLabel}</Text>
+                      <Text style={[styles.chipCount, dynamicStyles.chipCount]}>{mod.count}</Text>
+                      <Text style={[styles.chipLabel, dynamicStyles.chipLabel]}>{mod.countLabel}</Text>
                     </View>
                   </View>
                 </View>
@@ -267,13 +280,11 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
     letterSpacing: 0.1,
   },
   cardDesc: {
     fontFamily: FontFamily.regular,
     fontSize: FontSize.xs,
-    color: Colors.placeholder,
     lineHeight: 15,
   },
 
@@ -302,12 +313,10 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
   },
   chipLabel: {
     fontFamily: FontFamily.regular,
     fontSize: FontSize.xs,
-    color: Colors.placeholder,
   },
 
   arrowWrap: {

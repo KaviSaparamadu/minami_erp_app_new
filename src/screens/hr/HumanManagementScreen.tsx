@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Alert,
   FlatList,
@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
 import { HumanFormModal, ModalMode } from '../../components/hr/HumanFormModal';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 import type { Country, Human } from '../../types/hr';
 
 let nextId = 1;
@@ -19,6 +20,29 @@ const genId = () => String(nextId++);
 
 type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
+const AVATAR_COLORS = ['#E91E63', '#9C27B0', '#3F51B5', '#009688', '#FF5722', '#607D8B'];
+
+function createDynamicStyles(colors: any) {
+  return StyleSheet.create({
+    txt: { color: colors.placeholder },
+    idxText: { color: colors.placeholder },
+    nameText: { color: colors.primaryText },
+    metaText: { color: colors.primaryText },
+    metaSub: { color: colors.placeholder },
+    label: { color: colors.placeholder },
+    badgeText: { color: colors.placeholder },
+    headerTxt: { color: colors.placeholder },
+    searchIcon: { borderColor: colors.placeholder, backgroundColor: colors.placeholder },
+    searchInput: { color: colors.primaryText },
+    clearIcon: { backgroundColor: colors.placeholder },
+    noResultsTitle: { color: colors.primaryText },
+    noResultsSub: { color: colors.placeholder },
+    noResultsQuery: { color: colors.primaryText },
+    noResultsBtn: { borderColor: colors.primaryText, color: colors.primaryText },
+    emptyTitle: { color: colors.primaryText },
+    emptySub: { color: colors.placeholder },
+  });
+}
 
 // ─── Icon components ─────────────────────────────────────────────────────────
 function EyeIcon()  { return <View style={ai.wrap}><View style={ai.eyeOval}/><View style={ai.eyeDot}/></View>; }
@@ -27,6 +51,9 @@ function TrashIcon(){ return <View style={ai.wrap}><View style={ai.lidBar}/><Vie
 
 // ─── Filter toggle ────────────────────────────────────────────────────────────
 function FilterToggle({ active, counts, onChange }: { active: Filter; counts: Record<Filter, number>; onChange: (f: Filter) => void }) {
+  const { colors } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+
   return (
     <View style={ft.wrap}>
       {FILTERS.map(f => (
@@ -34,9 +61,9 @@ function FilterToggle({ active, counts, onChange }: { active: Filter; counts: Re
           key={f}
           onPress={() => onChange(f)}
           style={[ft.btn, active === f && ft.btnActive]}>
-          <Text style={[ft.label, active === f && ft.labelActive]}>{f}</Text>
+          <Text style={[ft.label, active === f && ft.labelActive, !active || active !== f ? dynamicStyles.label : undefined]}>{f}</Text>
           <View style={[ft.badge, active === f && ft.badgeActive]}>
-            <Text style={[ft.badgeText, active === f && ft.badgeTextActive]}>{counts[f]}</Text>
+            <Text style={[ft.badgeText, active === f && ft.badgeTextActive, !active || active !== f ? dynamicStyles.badgeText : undefined]}>{counts[f]}</Text>
           </View>
         </Pressable>
       ))}
@@ -46,6 +73,8 @@ function FilterToggle({ active, counts, onChange }: { active: Filter; counts: Re
 
 // ─── Table row ───────────────────────────────────────────────────────────────
 function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; index: number; onView(): void; onEdit(): void; onDelete(): void }) {
+  const { colors } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
   const initial = human.fullName.charAt(0).toUpperCase();
   const isEven  = index % 2 === 0;
   const isSL    = human.country === 'Sri Lanka';
@@ -53,7 +82,7 @@ function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; in
   return (
     <View style={[tr.row, isEven && tr.rowEven]}>
       {/* # */}
-      <View style={tr.colIdx}><Text style={tr.idxText}>{index + 1}</Text></View>
+      <View style={tr.colIdx}><Text style={[tr.idxText, dynamicStyles.idxText]}>{index + 1}</Text></View>
 
       {/* Avatar + name */}
       <View style={tr.colName}>
@@ -61,7 +90,7 @@ function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; in
           <Text style={tr.avatarTxt}>{initial}</Text>
         </View>
         <View style={tr.nameBlock}>
-          <Text style={tr.nameText} numberOfLines={1}>
+          <Text style={[tr.nameText, dynamicStyles.nameText]} numberOfLines={1}>
             {human.title ? `${human.title} ` : ''}{human.fullName}
           </Text>
           <View style={[tr.countryBadge, isSL ? tr.badgeSL : tr.badgeJP]}>
@@ -74,10 +103,10 @@ function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; in
 
       {/* DOB / Prefecture */}
       <View style={tr.colMeta}>
-        <Text style={tr.metaText} numberOfLines={1}>
+        <Text style={[tr.metaText, dynamicStyles.metaText]} numberOfLines={1}>
           {isSL ? (human.dateOfBirth ?? '—') : (human.prefecture ?? '—')}
         </Text>
-        <Text style={tr.metaSub} numberOfLines={1}>
+        <Text style={[tr.metaSub, dynamicStyles.metaSub]} numberOfLines={1}>
           {isSL ? (human.gender ?? '') : (human.city ?? '')}
         </Text>
       </View>
@@ -94,6 +123,9 @@ function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; in
 
 // ─── No search results ────────────────────────────────────────────────────────
 function NoResults({ query, onClear }: { query: string; onClear(): void }) {
+  const { colors } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+
   return (
     <View style={nr.wrap}>
       {/* Magnifier icon */}
@@ -103,10 +135,10 @@ function NoResults({ query, onClear }: { query: string; onClear(): void }) {
         <View style={nr.cross1} />
         <View style={nr.cross2} />
       </View>
-      <Text style={nr.title}>No results found</Text>
-      <Text style={nr.sub}>Nothing matched <Text style={nr.query}>"{query}"</Text></Text>
-      <Pressable onPress={onClear} style={({ pressed }) => [nr.btn, pressed && { opacity: 0.8 }]}>
-        <Text style={nr.btnTxt}>Clear search</Text>
+      <Text style={[nr.title, dynamicStyles.noResultsTitle]}>No results found</Text>
+      <Text style={[nr.sub, dynamicStyles.noResultsSub]}>Nothing matched <Text style={[nr.query, dynamicStyles.noResultsQuery]}>"{query}"</Text></Text>
+      <Pressable onPress={onClear} style={({ pressed }) => [nr.btn, { borderColor: colors.primaryText }, pressed && { opacity: 0.8 }]}>
+        <Text style={[nr.btnTxt, dynamicStyles.noResultsBtn]}>Clear search</Text>
       </Pressable>
     </View>
   );
@@ -114,20 +146,25 @@ function NoResults({ query, onClear }: { query: string; onClear(): void }) {
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyState({ filter, onAdd }: { filter: Filter; onAdd(): void }) {
+  const { colors } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+
   return (
     <View style={es.wrap}>
       <View style={es.iconCircle}>
         <View style={es.head}/><View style={es.body}/>
         <View style={es.plusH}/><View style={es.plusV}/>
       </View>
-      <Text style={es.title}>{filter === 'All' ? 'No humans yet' : `No ${filter} records`}</Text>
-      <Text style={es.sub}>Tap + to add your first record</Text>
+      <Text style={[es.title, dynamicStyles.emptyTitle]}>{filter === 'All' ? 'No humans yet' : `No ${filter} records`}</Text>
+      <Text style={[es.sub, dynamicStyles.emptySub]}>Tap + to add your first record</Text>
     </View>
   );
 }
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 export function HumanManagementScreen() {
+  const { colors } = useTheme();
+  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
   const [humans,       setHumans]       = useState<Human[]>([]);
   const [filter,       setFilter]       = useState<Filter>('All');
   const [searchQuery,  setSearchQuery]  = useState('');
@@ -199,23 +236,23 @@ export function HumanManagementScreen() {
           <View style={sb.wrap}>
             {/* Search icon */}
             <View style={sb.iconWrap}>
-              <View style={sb.glass} />
-              <View style={sb.handle} />
+              <View style={[sb.glass, { borderColor: colors.placeholder }]} />
+              <View style={[sb.handle, { backgroundColor: colors.placeholder }]} />
             </View>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search by name, NIC, location…"
-              placeholderTextColor={Colors.placeholder}
-              style={sb.input}
+              placeholderTextColor={colors.placeholder}
+              style={[sb.input, { color: colors.primaryText }]}
               autoCapitalize="none"
               clearButtonMode="while-editing"
               returnKeyType="search"
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery('')} style={sb.clearBtn} hitSlop={8}>
-                <View style={sb.clearX1} />
-                <View style={sb.clearX2} />
+                <View style={[sb.clearX1, { backgroundColor: colors.placeholder }]} />
+                <View style={[sb.clearX2, { backgroundColor: colors.placeholder }]} />
               </Pressable>
             )}
           </View>
@@ -224,10 +261,10 @@ export function HumanManagementScreen() {
         {/* Table header (shown when there are records) */}
         {filtered.length > 0 && (
           <View style={th.row}>
-            <View style={th.colIdx}><Text style={th.txt}>#</Text></View>
-            <View style={th.colName}><Text style={th.txt}>Name · Country</Text></View>
-            <View style={th.colMeta}><Text style={th.txt}>{filter === 'Japan' ? 'Prefecture' : 'DOB / Gender'}</Text></View>
-            <View style={th.colActions}><Text style={[th.txt, { textAlign: 'center' }]}>Actions</Text></View>
+            <View style={th.colIdx}><Text style={[th.txt, dynamicStyles.headerTxt]}>#</Text></View>
+            <View style={th.colName}><Text style={[th.txt, dynamicStyles.headerTxt]}>Name · Country</Text></View>
+            <View style={th.colMeta}><Text style={[th.txt, dynamicStyles.headerTxt]}>{filter === 'Japan' ? 'Prefecture' : 'DOB / Gender'}</Text></View>
+            <View style={th.colActions}><Text style={[th.txt, dynamicStyles.headerTxt, { textAlign: 'center' }]}>Actions</Text></View>
           </View>
         )}
 
@@ -277,7 +314,6 @@ export function HumanManagementScreen() {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const DARK   = '#1C1C1E';
 const LIGHT  = '#F2F2F7';
-const AVATAR_COLORS = ['#E91E63', '#9C27B0', '#3F51B5', '#009688', '#FF5722', '#607D8B'];
 
 const styles = StyleSheet.create({
   safe:     { flex: 1, backgroundColor: DARK },
@@ -301,17 +337,17 @@ const ft = StyleSheet.create({
   wrap: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm, gap: 8 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#E5E5EA' },
   btnActive: { backgroundColor: DARK, borderColor: DARK },
-  label: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder },
+  label: { fontFamily: FontFamily.medium, fontSize: FontSize.xs },
   labelActive: { color: '#FFF', fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
   badge: { backgroundColor: '#F0F0F5', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
   badgeActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
-  badgeText: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, color: Colors.placeholder },
+  badgeText: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold },
   badgeTextActive: { color: '#FFF' },
 });
 
 const th = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 8, backgroundColor: '#FFF', borderBottomWidth: 1.5, borderBottomColor: '#E8E8F0' },
-  txt: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, color: Colors.placeholder, textTransform: 'uppercase', letterSpacing: 0.6 },
+  txt: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, textTransform: 'uppercase', letterSpacing: 0.6 },
   colIdx:    { width: 28 },
   colName:   { flex: 1 },
   colMeta:   { width: 80 },
@@ -326,11 +362,11 @@ const tr = StyleSheet.create({
   colMeta: { width: 80 },
   colActions: { width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
 
-  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder },
+  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs },
   avatar:  { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   avatarTxt: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: FontWeight.bold, color: '#FFF' },
   nameBlock: { flex: 1, gap: 2 },
-  nameText: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.primaryText },
+  nameText: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: FontWeight.medium },
   countryBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   badgeSL: { backgroundColor: 'rgba(233,30,99,0.1)' },
   badgeJP: { backgroundColor: 'rgba(63,81,181,0.1)' },
@@ -338,8 +374,8 @@ const tr = StyleSheet.create({
   countryTxtSL: { color: Colors.primaryHighlight },
   countryTxtJP: { color: '#3F51B5' },
 
-  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: FontWeight.medium, color: Colors.primaryText },
-  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder, marginTop: 1 },
+  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: FontWeight.medium },
+  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, marginTop: 1 },
 
   btn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   btnView:   { backgroundColor: 'rgba(63,81,181,0.1)' },
@@ -354,8 +390,8 @@ const es = StyleSheet.create({
   body: { position: 'absolute', bottom: 14, width: 28, height: 16, borderTopLeftRadius: 14, borderTopRightRadius: 14, backgroundColor: 'rgba(233,30,99,0.3)' },
   plusH: { position: 'absolute', bottom: 10, right: 8, width: 14, height: 3, borderRadius: 1.5, backgroundColor: Colors.primaryHighlight },
   plusV: { position: 'absolute', bottom: 4, right: 14, width: 3, height: 14, borderRadius: 1.5, backgroundColor: Colors.primaryHighlight },
-  title: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.primaryText },
-  sub:   { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.placeholder, textAlign: 'center', lineHeight: 18 },
+  title: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  sub:   { fontFamily: FontFamily.regular, fontSize: FontSize.sm, textAlign: 'center', lineHeight: 18 },
   btn:   { marginTop: Spacing.sm, backgroundColor: Colors.primaryHighlight, borderRadius: 12, paddingHorizontal: Spacing.xl, paddingVertical: 12 },
   btnTxt:{ fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: '#FFF' },
 });
@@ -377,13 +413,11 @@ const sb = StyleSheet.create({
     width: 11, height: 11,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: Colors.placeholder,
     position: 'absolute', top: 0, left: 0,
   },
   handle: {
     position: 'absolute', bottom: 0, right: 0,
     width: 5, height: 1.5,
-    backgroundColor: Colors.placeholder,
     borderRadius: 1,
     transform: [{ rotate: '45deg' }],
   },
@@ -391,7 +425,6 @@ const sb = StyleSheet.create({
     flex: 1,
     fontFamily: FontFamily.regular,
     fontSize: FontSize.sm,
-    color: Colors.primaryText,
     paddingVertical: 0,
   },
   clearBtn: {
@@ -401,8 +434,8 @@ const sb = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clearX1: { position: 'absolute', width: 9, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  clearX2: { position: 'absolute', width: 9, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  clearX1: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  clearX2: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
 });
 
 const nr = StyleSheet.create({
@@ -412,11 +445,11 @@ const nr = StyleSheet.create({
   handle: { position: 'absolute', bottom: 11, right: 10, width: 11, height: 2.5, backgroundColor: '#C0C0CC', borderRadius: 1.5, transform: [{ rotate: '45deg' }] },
   cross1: { position: 'absolute', top: 12, left: 22, width: 10, height: 2, backgroundColor: '#D32F2F', borderRadius: 1, transform: [{ rotate: '45deg' }] },
   cross2: { position: 'absolute', top: 12, left: 22, width: 10, height: 2, backgroundColor: '#D32F2F', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  title: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.primaryText },
-  sub: { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.placeholder, textAlign: 'center' },
-  query: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: Colors.primaryText },
-  btn: { marginTop: 4, paddingHorizontal: Spacing.lg, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.primaryText, backgroundColor: '#FFF' },
-  btnTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, color: Colors.primaryText },
+  title: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  sub: { fontFamily: FontFamily.regular, fontSize: FontSize.sm, textAlign: 'center' },
+  query: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
+  btn: { marginTop: 4, paddingHorizontal: Spacing.lg, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, backgroundColor: '#FFF' },
+  btnTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm },
 });
 
 const ai = StyleSheet.create({

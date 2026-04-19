@@ -42,7 +42,7 @@ export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
 
   return (
     <>
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
 
         {/* ── Left: direct logout ── */}
         <Pressable
@@ -51,14 +51,14 @@ export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
           accessibilityLabel="Log out"
           accessibilityRole="button"
           hitSlop={14}>
-          <LogoutIcon color={colors.primaryText} />
+          <LogoutIcon color="#FFFFFF" />
         </Pressable>
 
         {/* ── Center: brand ── */}
         <View style={styles.brand}>
-          <Text style={[styles.brandG, { color: colors.primaryText }]}>G</Text>
+          <Text style={[styles.brandG, { color: '#FFFFFF' }]}>G</Text>
           <Text style={styles.brandPink}>P</Text>
-          <Text style={[styles.brandRest, { color: colors.primaryText }]}>IT</Text>
+          <Text style={[styles.brandRest, { color: '#FFFFFF' }]}>IT</Text>
           <View style={styles.brandPill}>
             <Text style={styles.brandPillText}>ERP</Text>
           </View>
@@ -71,7 +71,7 @@ export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
             accessibilityLabel="Notifications"
             accessibilityRole="button"
             hitSlop={14}>
-            <BellIcon color={colors.primaryText} />
+            <BellIcon color="#FFFFFF" />
           </Pressable>
 
           {/* Profile avatar — opens sheet */}

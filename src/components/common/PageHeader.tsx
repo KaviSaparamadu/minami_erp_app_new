@@ -50,7 +50,7 @@ export function PageHeader({ title, showBack = true, transparent = false }: Page
 
   return (
     <>
-      <View style={[styles.header, transparent && styles.headerTransparent, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, transparent && styles.headerTransparent]}>
 
         {/* ── Left: back arrow or spacer ── */}
         {showBack ? (
@@ -127,19 +127,19 @@ function createDynamicStyles(colors: any) {
   const isDark = colors.background !== '#FFFFFF';
   return StyleSheet.create({
     title: {
-      color: colors.primaryText,
+      color: '#FFFFFF',
     },
     breadcrumbText: {
-      color: colors.placeholder,
+      color: 'rgba(255,255,255,0.6)',
     },
     breadcrumbTextActive: {
       color: colors.primaryHighlight,
     },
     separator: {
-      color: colors.placeholder,
+      color: 'rgba(255,255,255,0.3)',
     },
     avatarText: {
-      color: isDark ? '#FFFFFF' : '#FFFFFF',
+      color: '#FFFFFF',
     },
     iconBtn: {
       backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',

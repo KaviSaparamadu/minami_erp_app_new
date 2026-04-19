@@ -285,7 +285,7 @@ export function Footer() {
           <ScrollView
             contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
             showsVerticalScrollIndicator={false}>
-            <View style={[styles.handle, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
+            <View style={[styles.handle, dynamicStyles.handle]} />
 
             {/* Avatar Section */}
             <View style={styles.avatarSection}>
@@ -319,16 +319,16 @@ export function Footer() {
                 )}
               </View>
 
-              <Text style={styles.fullName}>{user?.fullName}</Text>
+              <Text style={[styles.fullName, dynamicStyles.profileFullName]}>{user?.fullName}</Text>
               <View style={styles.statusChip}>
                 <View style={styles.statusDot} />
-                <Text style={styles.statusText}>Active</Text>
+                <Text style={[styles.statusText, dynamicStyles.profileStatusText]}>Active</Text>
               </View>
             </View>
 
             {/* Photo Options */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Upload Photo</Text>
+              <Text style={[styles.sectionTitle, dynamicStyles.profileSectionTitle]}>Upload Photo</Text>
               <View style={styles.optionsRow}>
                 <Pressable
                   onPress={handleOpenCamera}
@@ -339,7 +339,7 @@ export function Footer() {
                   <View style={styles.photoIcon}>
                     <CameraIcon />
                   </View>
-                  <Text style={styles.photoLabel}>Camera</Text>
+                  <Text style={[styles.photoLabel, dynamicStyles.profilePhotoLabel]}>Camera</Text>
                 </Pressable>
 
                 <Pressable
@@ -351,24 +351,24 @@ export function Footer() {
                   <View style={styles.photoIcon}>
                     <GalleryIcon iconColor={iconColor} />
                   </View>
-                  <Text style={styles.photoLabel}>Gallery</Text>
+                  <Text style={[styles.photoLabel, dynamicStyles.profilePhotoLabel]}>Gallery</Text>
                 </Pressable>
               </View>
             </View>
 
             {/* User Info */}
-            <View style={styles.infoSection}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Username</Text>
-                <Text style={styles.infoValue}>{user?.username}</Text>
+            <View style={[styles.infoSection, dynamicStyles.profileInfoSection]}>
+              <View style={[styles.infoRow, dynamicStyles.profileInfoRow]}>
+                <Text style={[styles.infoLabel, dynamicStyles.profileInfoLabel]}>Username</Text>
+                <Text style={[styles.infoValue, dynamicStyles.profileInfoValue]}>{user?.username}</Text>
               </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Role</Text>
-                <Text style={styles.infoValue}>{user?.role}</Text>
+              <View style={[styles.infoRow, dynamicStyles.profileInfoRow]}>
+                <Text style={[styles.infoLabel, dynamicStyles.profileInfoLabel]}>Role</Text>
+                <Text style={[styles.infoValue, dynamicStyles.profileInfoValue]}>{user?.role}</Text>
               </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Access</Text>
-                <Text style={[styles.infoValue, styles.accessValue]}>Full</Text>
+              <View style={[styles.infoRow, dynamicStyles.profileInfoRow]}>
+                <Text style={[styles.infoLabel, dynamicStyles.profileInfoLabel]}>Access</Text>
+                <Text style={[styles.infoValue, styles.accessValue, dynamicStyles.profileInfoValue]}>Full</Text>
               </View>
             </View>
 
@@ -380,7 +380,7 @@ export function Footer() {
                 pressed && styles.logoutButtonPressed,
               ]}>
               <SignOutIcon />
-              <Text style={styles.logoutText}>Sign Out</Text>
+              <Text style={[styles.logoutText, dynamicStyles.profileLogoutText]}>Sign Out</Text>
             </Pressable>
 
             {/* Close Button */}
@@ -390,7 +390,7 @@ export function Footer() {
                 styles.closeButton,
                 pressed && styles.closeButtonPressed,
               ]}>
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={[styles.closeText, dynamicStyles.profileCloseText]}>Close</Text>
             </Pressable>
 
             <View style={{ height: 20 }} />
@@ -419,76 +419,76 @@ export function Footer() {
           <ScrollView
             contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
             showsVerticalScrollIndicator={false}>
-            <View style={[styles.handle, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
+            <View style={[styles.handle, dynamicStyles.handle]} />
 
             {/* Settings Header */}
             <View style={settingsStyles.header}>
-              <Text style={settingsStyles.title}>Settings</Text>
+              <Text style={[settingsStyles.title, dynamicStyles.settingsTitle]}>Settings</Text>
             </View>
 
             {/* Theme Section */}
             <View style={settingsStyles.section}>
-              <Text style={settingsStyles.sectionTitle}>Appearance</Text>
+              <Text style={[settingsStyles.sectionTitle, dynamicStyles.settingsSectionTitle]}>Appearance</Text>
 
-              <View style={settingsStyles.settingRow}>
+              <View style={[settingsStyles.settingRow, dynamicStyles.settingsRow]}>
                 <View style={settingsStyles.settingInfo}>
-                  <Text style={settingsStyles.settingLabel}>Dark Mode</Text>
-                  <Text style={settingsStyles.settingSub}>Change app theme</Text>
+                  <Text style={[settingsStyles.settingLabel, dynamicStyles.settingsLabel]}>Dark Mode</Text>
+                  <Text style={[settingsStyles.settingSub, dynamicStyles.settingsSub]}>Change app theme</Text>
                 </View>
                 <Pressable
                   onPress={toggleTheme}
-                  style={[settingsStyles.toggle, isDarkMode && settingsStyles.toggleActive]}>
-                  <View style={[settingsStyles.toggleDot, isDarkMode && settingsStyles.toggleDotActive]} />
+                  style={[settingsStyles.toggle, isDarkMode && settingsStyles.toggleActive, dynamicStyles.settingsToggleBg]}>
+                  <View style={[settingsStyles.toggleDot, isDarkMode && settingsStyles.toggleDotActive, dynamicStyles.toggleDotBg]} />
                 </Pressable>
               </View>
 
-              <View style={settingsStyles.settingRow}>
+              <View style={[settingsStyles.settingRow, dynamicStyles.settingsRow]}>
                 <View style={settingsStyles.settingInfo}>
-                  <Text style={settingsStyles.settingLabel}>Notifications</Text>
-                  <Text style={settingsStyles.settingSub}>Receive app notifications</Text>
+                  <Text style={[settingsStyles.settingLabel, dynamicStyles.settingsLabel]}>Notifications</Text>
+                  <Text style={[settingsStyles.settingSub, dynamicStyles.settingsSub]}>Receive app notifications</Text>
                 </View>
                 <Pressable
                   onPress={() => setNotifications(!notifications)}
-                  style={[settingsStyles.toggle, notifications && settingsStyles.toggleActive]}>
-                  <View style={[settingsStyles.toggleDot, notifications && settingsStyles.toggleDotActive]} />
+                  style={[settingsStyles.toggle, notifications && settingsStyles.toggleActive, dynamicStyles.settingsToggleBg]}>
+                  <View style={[settingsStyles.toggleDot, notifications && settingsStyles.toggleDotActive, dynamicStyles.toggleDotBg]} />
                 </Pressable>
               </View>
             </View>
 
             {/* Updates Section */}
             <View style={settingsStyles.section}>
-              <Text style={settingsStyles.sectionTitle}>Updates</Text>
+              <Text style={[settingsStyles.sectionTitle, dynamicStyles.settingsSectionTitle]}>Updates</Text>
 
-              <View style={settingsStyles.settingRow}>
+              <View style={[settingsStyles.settingRow, dynamicStyles.settingsRow]}>
                 <View style={settingsStyles.settingInfo}>
-                  <Text style={settingsStyles.settingLabel}>Auto Update</Text>
-                  <Text style={settingsStyles.settingSub}>Update app automatically</Text>
+                  <Text style={[settingsStyles.settingLabel, dynamicStyles.settingsLabel]}>Auto Update</Text>
+                  <Text style={[settingsStyles.settingSub, dynamicStyles.settingsSub]}>Update app automatically</Text>
                 </View>
                 <Pressable
                   onPress={() => setAutoUpdate(!autoUpdate)}
-                  style={[settingsStyles.toggle, autoUpdate && settingsStyles.toggleActive]}>
-                  <View style={[settingsStyles.toggleDot, autoUpdate && settingsStyles.toggleDotActive]} />
+                  style={[settingsStyles.toggle, autoUpdate && settingsStyles.toggleActive, dynamicStyles.settingsToggleBg]}>
+                  <View style={[settingsStyles.toggleDot, autoUpdate && settingsStyles.toggleDotActive, dynamicStyles.toggleDotBg]} />
                 </Pressable>
               </View>
 
               <Pressable
-                style={({ pressed }) => [settingsStyles.actionButton, pressed && settingsStyles.buttonPressed]}>
-                <Text style={settingsStyles.actionButtonText}>Check for Updates</Text>
+                style={({ pressed }) => [settingsStyles.actionButton, pressed && settingsStyles.buttonPressed, dynamicStyles.settingsActionButton]}>
+                <Text style={[settingsStyles.actionButtonText, dynamicStyles.settingsActionButtonText]}>Check for Updates</Text>
               </Pressable>
             </View>
 
             {/* About Section */}
             <View style={settingsStyles.section}>
-              <Text style={settingsStyles.sectionTitle}>About</Text>
+              <Text style={[settingsStyles.sectionTitle, dynamicStyles.settingsSectionTitle]}>About</Text>
 
               <View style={settingsStyles.infoRow}>
-                <Text style={settingsStyles.infoLabel}>App Version</Text>
-                <Text style={settingsStyles.infoValue}>1.0.0</Text>
+                <Text style={[settingsStyles.infoLabel, dynamicStyles.settingsInfoLabel]}>App Version</Text>
+                <Text style={[settingsStyles.infoValue, dynamicStyles.settingsInfoValue]}>1.0.0</Text>
               </View>
 
               <View style={settingsStyles.infoRow}>
-                <Text style={settingsStyles.infoLabel}>Build</Text>
-                <Text style={settingsStyles.infoValue}>001</Text>
+                <Text style={[settingsStyles.infoLabel, dynamicStyles.settingsInfoLabel]}>Build</Text>
+                <Text style={[settingsStyles.infoValue, dynamicStyles.settingsInfoValue]}>001</Text>
               </View>
             </View>
 
@@ -499,7 +499,7 @@ export function Footer() {
                 styles.closeButton,
                 pressed && styles.closeButtonPressed,
               ]}>
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={[styles.closeText, dynamicStyles.profileCloseText]}>Close</Text>
             </Pressable>
 
             <View style={{ height: 20 }} />
@@ -511,6 +511,14 @@ export function Footer() {
 }
 
 function createDynamicFooterStyles(colors: any, isDarkMode: boolean) {
+  const textColor = isDarkMode ? '#FFFFFF' : '#000000';
+  const mutedTextColor = isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+  const lightMutedTextColor = isDarkMode ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const borderColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const bgLight = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+  const bgLighter = isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
+  const handleBg = isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
+
   return StyleSheet.create({
     footer: {
       backgroundColor: colors.background,
@@ -521,6 +529,87 @@ function createDynamicFooterStyles(colors: any, isDarkMode: boolean) {
     },
     backdrop: {
       backgroundColor: isDarkMode ? '#1C1C1E' : '#F2F2F7',
+    },
+    handle: {
+      backgroundColor: handleBg,
+    },
+    // Profile Modal Styles
+    profileFullName: {
+      color: textColor,
+    },
+    profileStatusText: {
+      color: textColor,
+    },
+    profileSectionTitle: {
+      color: textColor,
+    },
+    profilePhotoLabel: {
+      color: textColor,
+    },
+    profileInfoLabel: {
+      color: mutedTextColor,
+    },
+    profileInfoValue: {
+      color: textColor,
+    },
+    profileLogoutText: {
+      color: '#FFFFFF',
+    },
+    profileCloseText: {
+      color: mutedTextColor,
+    },
+    profilePhotoOption: {
+      backgroundColor: bgLight,
+      borderColor: borderColor,
+    },
+    profileInfoSection: {
+      backgroundColor: bgLight,
+      borderColor: borderColor,
+    },
+    profileInfoRow: {
+      borderBottomColor: borderColor,
+    },
+    // Settings Modal Styles
+    settingsTitle: {
+      color: textColor,
+    },
+    settingsSectionTitle: {
+      color: mutedTextColor,
+    },
+    settingsLabel: {
+      color: textColor,
+    },
+    settingsSub: {
+      color: lightMutedTextColor,
+    },
+    settingsRow: {
+      backgroundColor: bgLight,
+      borderColor: borderColor,
+    },
+    settingsToggleBg: {
+      backgroundColor: bgLight,
+      borderColor: borderColor,
+    },
+    settingsActionButton: {
+      backgroundColor: isDarkMode ? 'rgba(233,30,99,0.2)' : 'rgba(233,30,99,0.15)',
+      borderColor: Colors.primaryHighlight,
+    },
+    settingsActionButtonText: {
+      color: Colors.primaryHighlight,
+    },
+    settingsInfoLabel: {
+      color: lightMutedTextColor,
+    },
+    settingsInfoValue: {
+      color: textColor,
+    },
+    // Toggle styles
+    toggleDotBg: {
+      backgroundColor: isDarkMode ? '#FFFFFF' : '#1C1C1E',
+    },
+    // Action button background
+    actionButtonBg: {
+      backgroundColor: isDarkMode ? 'rgba(233,30,99,0.2)' : 'rgba(233,30,99,0.15)',
     },
   });
 }
@@ -594,7 +683,6 @@ const styles = StyleSheet.create({
     width: 38,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.15)',
     marginTop: 12,
     marginBottom: 20,
   },
@@ -659,7 +747,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.xl,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
     marginBottom: Spacing.xs,
   },
   statusChip: {
@@ -691,7 +778,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: 'rgba(255,255,255,0.7)',
     marginBottom: Spacing.md,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -705,9 +791,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.lg,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   photoOptionPressed: {
     backgroundColor: 'rgba(233,30,99,0.2)',
@@ -720,13 +804,10 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
   },
   infoSection: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.xl,
@@ -737,18 +818,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   infoLabel: {
     fontFamily: FontFamily.regular,
     fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.4)',
   },
   infoValue: {
     fontFamily: FontFamily.bold,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: 'rgba(255,255,255,0.8)',
     textTransform: 'capitalize',
   },
   accessValue: {
@@ -774,7 +852,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
   },
   closeButton: {
     paddingVertical: 12,
@@ -786,7 +863,6 @@ const styles = StyleSheet.create({
   closeText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.35)',
   },
 });
 
@@ -975,7 +1051,6 @@ const settingsStyles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.xl,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
   },
   section: {
     marginBottom: Spacing.xl,
@@ -984,7 +1059,6 @@ const settingsStyles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: 'rgba(255,255,255,0.7)',
     marginBottom: Spacing.md,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -996,12 +1070,10 @@ const settingsStyles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
     marginHorizontal: Spacing.lg,
     marginVertical: Spacing.sm,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   settingInfo: {
     flex: 1,
@@ -1010,24 +1082,20 @@ const settingsStyles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
   },
   settingSub: {
     fontFamily: FontFamily.regular,
     fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
     marginTop: 2,
   },
   toggle: {
     width: 50,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'flex-start',
     justifyContent: 'center',
     paddingHorizontal: 2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
   toggleActive: {
     backgroundColor: Colors.primaryHighlight,
@@ -1037,7 +1105,6 @@ const settingsStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
   },
   toggleDotActive: {
     alignSelf: 'flex-end',
@@ -1045,7 +1112,6 @@ const settingsStyles = StyleSheet.create({
   actionButton: {
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: 'rgba(233,30,99,0.2)',
     borderRadius: 10,
     marginHorizontal: Spacing.lg,
     marginVertical: Spacing.sm,
@@ -1072,13 +1138,11 @@ const settingsStyles = StyleSheet.create({
   infoLabel: {
     fontFamily: FontFamily.regular,
     fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.4)',
   },
   infoValue: {
     fontFamily: FontFamily.bold,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
-    color: 'rgba(255,255,255,0.8)',
   },
 });
 
