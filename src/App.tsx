@@ -7,6 +7,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { Footer } from './components/common/Footer';
+import { Sidebar } from './components/layout/Sidebar';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { DashboardScreen } from './screens/dashboard/DashboardScreen';
 import { HRScreen } from './screens/hr/HRScreen';
@@ -61,7 +62,7 @@ function DottedLoader() {
 }
 
 function AppNavigator() {
-  const { currentScreen, navigating } = useNavigation();
+  const { currentScreen, navigating, sidebarOpen, closeSidebar } = useNavigation();
 
   const screen = (() => {
     switch (currentScreen) {
@@ -82,6 +83,9 @@ function AppNavigator() {
     <View style={styles.root}>
       {screen}
       <Footer />
+
+      {/* ── Sidebar drawer ── */}
+      <Sidebar visible={sidebarOpen} onClose={closeSidebar} />
 
       {/* ── Page transition loader overlay ── */}
       {navigating && (

@@ -7,9 +7,10 @@ import { useTheme } from '../../hooks/useTheme';
 import { ProfileSheet } from '../dashboard/ProfileSheet';
 
 interface PageHeaderProps {
-  title: string;
+  title?: string;
   showBack?: boolean;   // true on sub-screens; false on Dashboard
   transparent?: boolean; // removes dark background (for coloured parent headers)
+  showBrand?: boolean; // shows brand logo instead of title (for Dashboard)
 }
 
 interface BackArrowProps {
@@ -21,6 +22,29 @@ function BackArrow({ color }: BackArrowProps) {
     <View style={arrowWrap.wrap}>
       <View style={[arrowWrap.stem, { backgroundColor: color }]} />
       <View style={[arrowWrap.head, { borderColor: color }]} />
+    </View>
+  );
+}
+
+function MenuIcon({ color }: { color: string }) {
+  return (
+    <View style={menuIcon.wrap}>
+      <View style={[menuIcon.bar, { backgroundColor: color }]} />
+      <View style={[menuIcon.bar, { backgroundColor: color }]} />
+      <View style={[menuIcon.bar, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
+function BrandLogo() {
+  return (
+    <View style={brandStyles.brand}>
+      <Text style={[brandStyles.brandG, { color: '#FFFFFF' }]}>G</Text>
+      <Text style={brandStyles.brandPink}>P</Text>
+      <Text style={[brandStyles.brandRest, { color: '#FFFFFF' }]}>IT</Text>
+      <View style={brandStyles.brandPill}>
+        <Text style={brandStyles.brandPillText}>ERP</Text>
+      </View>
     </View>
   );
 }
@@ -38,86 +62,96 @@ const SCREEN_LABELS: Record<string, string> = {
   AssignUserRolePermission: 'Assign User Role Permission',
 };
 
-export function PageHeader({ title, showBack = true, transparent = false }: PageHeaderProps) {
-  const { goBack, stack, navigateTo } = useNavigation();
+export function PageHeader({ title = '', showBack = true, transparent = false, showBrand = false }: PageHeaderProps) {
+  const { goBack, stack, navigateTo, openSidebar } = useNavigation();
   const { user, logout } = useAuth();
   const { colors } = useTheme();
-  const [sheetVisible, setSheetVisible] = useState(false);
-
-  const initial = user?.fullName.charAt(0).toUpperCase() ?? '?';
+  const [showProfile, setShowProfile] = useState(false);
   const breadcrumbs = stack.length > 1 ? stack : [];
   const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   return (
-    <>
-      <View style={[styles.header, transparent && styles.headerTransparent]}>
+    <View style={[styles.header, transparent && styles.headerTransparent, dynamicStyles.header]}>
+      {/* ── Left: menu ── */}
+      <Pressable
+        onPress={openSidebar}
+        style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
+        accessibilityLabel="Open menu"
+        accessibilityRole="button"
+        hitSlop={10}>
+        <MenuIcon color="#FFFFFF" />
+      </Pressable>
 
-        {/* ── Left: back arrow or spacer ── */}
-        {showBack ? (
-          <Pressable
-            onPress={goBack}
-            style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-            hitSlop={14}>
-            <BackArrow color={colors.primaryText} />
-          </Pressable>
-        ) : (
-          <View style={[styles.iconBtn, dynamicStyles.iconBtn]} />
-        )}
-
-        {/* ── Center: page title + breadcrumbs ── */}
-        <View style={styles.titleWrap}>
-          <Text style={[styles.title, dynamicStyles.title]} numberOfLines={1}>{title}</Text>
-          {breadcrumbs.length > 0 && (
-            <View style={styles.breadcrumbContainer}>
-              {breadcrumbs.map((screen, idx) => {
-                const isLast = idx === breadcrumbs.length - 1;
-                return (
-                  <Pressable
-                    key={screen}
-                    onPress={() => navigateTo(screen)}
-                    style={({ pressed }) => [
-                      styles.breadcrumbItem,
-                      isLast && styles.breadcrumbActive,
-                      pressed && styles.breadcrumbPressed,
-                    ]}>
-                    <Text
-                      style={[
-                        styles.breadcrumbText,
-                        dynamicStyles.breadcrumbText,
-                        isLast && [styles.breadcrumbTextActive, dynamicStyles.breadcrumbTextActive],
-                      ]}>
-                      {SCREEN_LABELS[screen] || screen}
-                    </Text>
-                    {!isLast && <Text style={[styles.separator, dynamicStyles.separator]}> / </Text>}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View>
-
-        {/* ── Right: avatar ── */}
+      {/* ── Back arrow (optional) ── */}
+      {showBack && (
         <Pressable
-          onPress={() => setSheetVisible(true)}
-          style={({ pressed }) => [styles.avatar, pressed && styles.avatarPressed]}
-          accessibilityLabel="Profile"
+          onPress={goBack}
+          style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
+          accessibilityLabel="Go back"
           accessibilityRole="button"
-          hitSlop={8}>
-          <Text style={[styles.avatarText, dynamicStyles.avatarText]}>{initial}</Text>
-          <View style={[styles.onlineDot, { borderColor: colors.background }]} />
+          hitSlop={14}>
+          <BackArrow color="#FFFFFF" />
         </Pressable>
+      )}
 
+      {/* ── Center: brand logo or page title + breadcrumbs ── */}
+      <View style={styles.titleWrap}>
+        {showBrand ? (
+          <BrandLogo />
+        ) : (
+          <>
+            <Text style={[styles.title, dynamicStyles.title]} numberOfLines={1}>{title}</Text>
+            {breadcrumbs.length > 0 && (
+              <View style={styles.breadcrumbContainer}>
+                {breadcrumbs.map((screen, idx) => {
+                  const isLast = idx === breadcrumbs.length - 1;
+                  return (
+                    <Pressable
+                      key={screen}
+                      onPress={() => navigateTo(screen)}
+                      style={({ pressed }) => [
+                        styles.breadcrumbItem,
+                        isLast && styles.breadcrumbActive,
+                        pressed && styles.breadcrumbPressed,
+                      ]}>
+                      <Text
+                        style={[
+                          styles.breadcrumbText,
+                          dynamicStyles.breadcrumbText,
+                          isLast && [styles.breadcrumbTextActive, dynamicStyles.breadcrumbTextActive],
+                        ]}>
+                        {SCREEN_LABELS[screen] || screen}
+                      </Text>
+                      {!isLast && <Text style={[styles.separator, dynamicStyles.separator]}> / </Text>}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
       </View>
 
-      <ProfileSheet
-        visible={sheetVisible}
-        user={user!}
-        onClose={() => setSheetVisible(false)}
-        onLogout={logout}
-      />
-    </>
+      {/* ── Right: user avatar ── */}
+      <Pressable
+        onPress={() => setShowProfile(true)}
+        style={({ pressed }) => [styles.avatar, dynamicStyles.avatar, pressed && styles.avatarPressed]}
+        accessibilityLabel="Open profile"
+        accessibilityRole="button"
+        hitSlop={10}>
+        <Text style={[styles.avatarText, dynamicStyles.avatarText]}>{user?.fullName?.charAt(0).toUpperCase() || 'U'}</Text>
+        <View style={styles.onlineDot} />
+      </Pressable>
+
+      {user && (
+        <ProfileSheet
+          visible={showProfile}
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onLogout={logout}
+        />
+      )}
+    </View>
   );
 }
 
@@ -126,6 +160,14 @@ const DARK = '#1C1C1E';
 function createDynamicStyles(colors: any) {
   const isDark = colors.background !== '#FFFFFF';
   return StyleSheet.create({
+    header: {
+      backgroundColor: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%)',
+      shadowColor: Colors.primaryHighlight,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      elevation: 8,
+    },
     title: {
       color: '#FFFFFF',
     },
@@ -138,16 +180,21 @@ function createDynamicStyles(colors: any) {
     separator: {
       color: 'rgba(255,255,255,0.3)',
     },
+    iconBtn: {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderColor: 'rgba(255,255,255,0.25)',
+    },
+    iconBtnPressed: {
+      backgroundColor: 'rgba(255,255,255,0.25)',
+    },
+    avatar: {
+      backgroundColor: Colors.primaryHighlight,
+      borderColor: 'rgba(233,30,99,0.35)',
+    },
     avatarText: {
       color: '#FFFFFF',
     },
-    iconBtn: {
-      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-    },
-    iconBtnPressed: {
-      backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)',
-    },
+
   });
 }
 
@@ -156,34 +203,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: DARK,
-    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    gap: Spacing.md,
+    minHeight: 64,
   },
   headerTransparent: {
     backgroundColor: 'transparent',
   },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  iconBtnPressed: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  iconBtnPressed: { backgroundColor: 'rgba(255,255,255,0.2)' },
 
   titleWrap: {
     flex: 1,
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
   },
+
   title: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.lg,
+    fontSize: FontSize.xl,
     fontWeight: FontWeight.bold,
+    textAlign: 'center',
     letterSpacing: 0.4,
   },
   breadcrumbContainer: {
@@ -220,14 +273,19 @@ const styles = StyleSheet.create({
   },
 
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: Colors.primaryHighlight,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(233,30,99,0.35)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    shadowColor: Colors.primaryHighlight,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 5,
   },
   avatarPressed: {
     opacity: 0.75,
@@ -246,6 +304,70 @@ const styles = StyleSheet.create({
     backgroundColor: '#30D158',
     borderWidth: 1.5,
     borderColor: DARK,
+  },
+});
+
+const brandStyles = StyleSheet.create({
+  brand: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
+  },
+  brandG: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1.2,
+  },
+  brandPink: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: Colors.primaryHighlight,
+    letterSpacing: 1.2,
+  },
+  brandRest: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1.2,
+    marginRight: 8,
+  },
+  brandPill: {
+    backgroundColor: 'rgba(233,30,99,0.25)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1.5,
+    borderColor: 'rgba(233,30,99,0.4)',
+    shadowColor: Colors.primaryHighlight,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  brandPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: Colors.primaryHighlight,
+    letterSpacing: 0.8,
+  },
+});
+
+// Hamburger menu — three horizontal bars
+const menuIcon = StyleSheet.create({
+  wrap: {
+    width: 16,
+    height: 14,
+    justifyContent: 'space-between',
+  },
+  bar: {
+    width: '100%',
+    height: 2,
+    borderRadius: 1,
   },
 });
 

@@ -1,8 +1,12 @@
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FontFamily, FontSize, FontWeight, Spacing, Colors } from '../../constants/theme';
+
+// Simple clean sans-serif: Helvetica Neue on iOS, Roboto light on Android.
+const QA_FONT = Platform.select({ ios: 'Helvetica Neue', android: 'sans-serif-light', default: undefined });
 import { MODULES } from '../../constants/modules';
-import { ModuleIcon } from './ModuleIcon';
+import { UIIcon } from '../common/UIIcon';
+import { MODULE_ICON_MAP } from './ModuleIcon';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -10,73 +14,120 @@ interface QuickAccessRowProps {
   onPress?: (module: AppModule) => void;
 }
 
+const ITEM_WIDTH = 64;
+const ITEM_GAP = Spacing.md;
+const STEP = (ITEM_WIDTH + ITEM_GAP) * 3;
+
 export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
-  const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+  const { colors, isDarkMode } = useTheme();
+  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+  const scrollRef = useRef<ScrollView>(null);
+  const offsetRef = useRef(0);
+  const contentWidthRef = useRef(0);
+  const layoutWidthRef = useRef(0);
+
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(true);
+
+  function scrollTo(x: number) {
+    const max = Math.max(0, contentWidthRef.current - layoutWidthRef.current);
+    const clamped = Math.max(0, Math.min(max, x));
+    scrollRef.current?.scrollTo({ x: clamped, animated: true });
+  }
+
+  function updateArrows(x: number) {
+    const max = Math.max(0, contentWidthRef.current - layoutWidthRef.current);
+    setCanLeft(x > 2);
+    setCanRight(x < max - 2);
+  }
+
+  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    offsetRef.current = e.nativeEvent.contentOffset.x;
+    updateArrows(offsetRef.current);
+  }
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.titleRow}>
         <View style={styles.titleLeft}>
           <View style={styles.titleAccent} />
-          <Text style={[styles.title, dynamicStyles.title]}>Quick Access</Text>
+          <Text style={[styles.title, dyn.title]}>Quick Access</Text>
         </View>
-        <Text style={[styles.seeAll, dynamicStyles.seeAll]}>See all</Text>
+        <Text style={[styles.seeAll, dyn.seeAll]}>See all</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}>
-        {MODULES.map(m => (
-          <Pressable
-            key={m.id}
-            style={({ pressed }) => [styles.card, dynamicStyles.card, pressed && styles.cardPressed]}
-            onPress={() => onPress?.(m)}
-            accessibilityRole="button"
-            accessibilityLabel={m.name}>
+      <View style={styles.rowWithArrows}>
+        <ArrowButton direction="left" disabled={!canLeft} onPress={() => scrollTo(offsetRef.current - STEP)} />
 
-            {/* Icon row */}
-            <ModuleIcon type={m.iconType} size={32} />
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scroll}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          onContentSizeChange={(w) => {
+            contentWidthRef.current = w;
+            updateArrows(offsetRef.current);
+          }}
+          onLayout={(e) => {
+            layoutWidthRef.current = e.nativeEvent.layout.width;
+            updateArrows(offsetRef.current);
+          }}>
+          {MODULES.map(m => (
+            <Pressable
+              key={m.id}
+              style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
+              onPress={() => onPress?.(m)}
+              accessibilityRole="button"
+              accessibilityLabel={m.name}>
+              <View style={styles.circle}>
+                <UIIcon name={MODULE_ICON_MAP[m.iconType] ?? 'clipboard'} color={Colors.primaryHighlight} size={18} />
+              </View>
+              <Text style={[styles.name, dyn.name]} numberOfLines={1}>{m.name}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
 
-            {/* Name */}
-            <Text style={[styles.name, dynamicStyles.name]} numberOfLines={1}>{m.name}</Text>
-
-            {/* Value pill */}
-            <View style={[styles.pill, { backgroundColor: colors.background === '#1C1C1E' ? '#3A3A3C' : '#F0F0F0', borderColor: colors.background === '#1C1C1E' ? '#505050' : '#E5E5E5' }]}>
-              <Text style={[styles.pillText, { color: colors.primaryText }]}>{m.value}</Text>
-            </View>
-
-          </Pressable>
-        ))}
-      </ScrollView>
+        <ArrowButton direction="right" disabled={!canRight} onPress={() => scrollTo(offsetRef.current + STEP)} />
+      </View>
     </View>
   );
 }
 
-function createDynamicStyles(colors: any) {
-  const isDark = colors.background === '#1C1C1E';
+function ArrowButton({ direction, disabled, onPress }: { direction: 'left' | 'right'; disabled: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={direction === 'left' ? 'Scroll left' : 'Scroll right'}
+      style={({ pressed }) => [styles.arrowBtn, disabled && styles.arrowDisabled, pressed && styles.arrowPressed]}>
+      <View
+        style={[
+          styles.chevron,
+          {
+            borderTopColor: disabled ? '#D0D0D6' : Colors.primaryHighlight,
+            borderRightColor: disabled ? '#D0D0D6' : Colors.primaryHighlight,
+            transform: [{ rotate: direction === 'left' ? '-135deg' : '45deg' }],
+          },
+        ]}
+      />
+    </Pressable>
+  );
+}
+
+function createDynamicStyles(colors: any, _isDarkMode: boolean) {
   return StyleSheet.create({
-    title: {
-      color: colors.primaryText,
-    },
-    seeAll: {
-      color: colors.placeholder,
-    },
-    card: {
-      backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF',
-      borderColor: isDark ? '#404040' : '#EFEFEF',
-    },
-    name: {
-      color: colors.primaryText,
-    },
+    title:  { color: colors.primaryText },
+    seeAll: { color: colors.placeholder },
+    name:   { color: colors.primaryText },
   });
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    paddingTop: Spacing.lg,
-  },
+  wrapper: { paddingTop: Spacing.lg },
 
   titleRow: {
     flexDirection: 'row',
@@ -84,69 +135,58 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
-  titleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
+  titleLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   titleAccent: {
-    width: 3,
-    height: 14,
-    borderRadius: 2,
+    width: 3, height: 14, borderRadius: 2,
     backgroundColor: Colors.primaryHighlight,
   },
   title: {
-    fontFamily: FontFamily.bold,
+    fontFamily: QA_FONT,
     fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontWeight: '700',
+    letterSpacing: 0,
   },
   seeAll: {
-    fontFamily: FontFamily.medium,
+    fontFamily: QA_FONT,
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
+    fontWeight: '400',
+    letterSpacing: 0,
   },
 
-  scroll: {
-    gap: Spacing.sm,
-    paddingBottom: 4,
-  },
-
-  card: {
-    width: 76,
-    borderRadius: 16,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
+  rowWithArrows: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardPressed: {
-    transform: [{ scale: 0.94 }],
-    opacity: 0.85,
+    gap: 4,
   },
 
+  scroll: { gap: ITEM_GAP, paddingBottom: 4, paddingHorizontal: 4 },
+
+  item: { alignItems: 'center', gap: 6, width: ITEM_WIDTH },
+  itemPressed: { transform: [{ scale: 0.94 }], opacity: 0.8 },
+  circle: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(233,30,99,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   name: {
-    fontFamily: FontFamily.medium,
-    fontSize: 9,
-    fontWeight: FontWeight.medium,
+    fontFamily: QA_FONT,
+    fontSize: 10,
+    fontWeight: '400',
+    letterSpacing: 0,
     textAlign: 'center',
   },
 
-  pill: {
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderWidth: 1,
+  arrowBtn: {
+    width: 28, height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  pillText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 8,
-    fontWeight: FontWeight.bold,
+  arrowDisabled: { opacity: 0.35 },
+  arrowPressed: { opacity: 0.55, transform: [{ scale: 0.9 }] },
+  chevron: {
+    width: 8, height: 8,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
   },
 });

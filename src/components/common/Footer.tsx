@@ -12,6 +12,7 @@ import {
   PanResponderGestureState,
   Alert,
 } from 'react-native';
+import { UIIcon } from './UIIcon';
 import { useNavigation } from '../../context/NavigationContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -37,11 +38,23 @@ function BellIcon({ active, iconColor }: { active: boolean; iconColor: string })
 }
 
 function GearIcon({ active, iconColor }: { active: boolean; iconColor: string }) {
+  const teeth = Array.from({ length: 8 });
   return (
-    <View style={[icon.base, active && icon.active]}>
-      <View style={[icon.gearCenter, { backgroundColor: iconColor }, active && icon.activeColor]} />
-      <View style={[icon.gearT1, { backgroundColor: iconColor }, active && icon.activeColor]} />
-      <View style={[icon.gearT3, { backgroundColor: iconColor }, active && icon.activeColor]} />
+    <View style={[icon.gearBase, active && icon.active]}>
+      {/* Teeth arranged radially */}
+      {teeth.map((_, i) => (
+        <View
+          key={i}
+          style={[
+            icon.gearTooth,
+            { backgroundColor: iconColor, transform: [{ rotate: `${i * 45}deg` }, { translateY: -8 }] },
+          ]}
+        />
+      ))}
+      {/* Outer ring */}
+      <View style={[icon.gearRing, { borderColor: iconColor }]} />
+      {/* Center hole */}
+      <View style={[icon.gearHole, { borderColor: iconColor }]} />
     </View>
   );
 }
@@ -236,43 +249,47 @@ export function Footer() {
 
   return (
     <>
-      <View style={[styles.footer, dynamicStyles.footer]}>
-        <Pressable
-          onPress={handleHomePress}
-          style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
-          hitSlop={8}>
-          <HomeIcon active={currentScreen === 'Dashboard'} iconColor={iconColor} />
-          <Text style={[styles.label, dynamicStyles.label, currentScreen === 'Dashboard' && styles.labelActive]}>Home</Text>
-        </Pressable>
+      <View style={styles.footerWrap}>
+        <View style={[styles.footer, dynamicStyles.footer]}>
+          {/* Notifications — left */}
+          <Pressable
+            onPress={() => {}}
+            style={({ pressed }) => [styles.tab, pressed && styles.itemPressed]}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications">
+            <UIIcon name="bell" size={20} color="#FFFFFF" />
+            <Text style={styles.labelDark} numberOfLines={1}>Notifications</Text>
+          </Pressable>
 
-        <Pressable
-          style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
-          hitSlop={8}>
-          <BellIcon active={false} iconColor={iconColor} />
-          <Text style={[styles.label, dynamicStyles.label]}>Notify</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setSettingsModalVisible(true)}
-          style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
-          hitSlop={8}>
-          <GearIcon active={false} iconColor={iconColor} />
-          <Text style={[styles.label, dynamicStyles.label]}>Settings</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={handleProfilePress}
-          style={({ pressed }) => [styles.profileItem, pressed && styles.itemPressed]}
-          hitSlop={8}>
-          {profilePhoto ? (
-            <Image source={{ uri: profilePhoto }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initial}</Text>
+          {/* Home — center raised glow button */}
+          <Pressable
+            onPress={handleHomePress}
+            style={({ pressed }) => [styles.homeTab, pressed && styles.itemPressed]}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Home">
+            <View style={styles.homeGlowOuter}>
+              <View style={styles.homeGlowMid}>
+                <View style={styles.homeGlowInner}>
+                  <UIIcon name="home" size={18} color="#FFFFFF" />
+                </View>
+              </View>
             </View>
-          )}
-          <Text style={[styles.label, dynamicStyles.label]}>Profile</Text>
-        </Pressable>
+            <Text style={styles.homeLabel} numberOfLines={1}>Home</Text>
+          </Pressable>
+
+          {/* Settings — right */}
+          <Pressable
+            onPress={() => setSettingsModalVisible(true)}
+            style={({ pressed }) => [styles.tab, pressed && styles.itemPressed]}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Settings">
+            <UIIcon name="gear" size={20} color="#FFFFFF" />
+            <Text style={styles.labelDark} numberOfLines={1}>Settings</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Profile Modal */}
@@ -521,8 +538,8 @@ function createDynamicFooterStyles(colors: any, isDarkMode: boolean) {
 
   return StyleSheet.create({
     footer: {
-      backgroundColor: colors.background,
-      borderTopColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E5EA',
+      backgroundColor: '#1C1C1E',
+      borderColor: 'rgba(255,255,255,0.06)',
     },
     label: {
       color: isDarkMode ? 'rgba(255,255,255,0.6)' : '#888',
@@ -615,16 +632,92 @@ function createDynamicFooterStyles(colors: any, isDarkMode: boolean) {
 }
 
 const styles = StyleSheet.create({
+  footerWrap: {
+    paddingHorizontal: 14,
+    paddingBottom: 2,
+    paddingTop: 2,
+  },
   footer: {
     flexDirection: 'row',
-    borderTopWidth: 0.5,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    elevation: 5,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderRadius: 32,
+    paddingVertical: 4,
+    paddingHorizontal: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    gap: 2,
+  },
+  homeTab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    marginTop: -10,
+  },
+  homeGlowOuter: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(233,30,99,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeGlowMid: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(233,30,99,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeGlowInner: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#2A2A2C',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primaryHighlight,
+    shadowColor: Colors.primaryHighlight,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  labelDark: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    letterSpacing: 0.2,
+    color: 'rgba(255,255,255,0.75)',
+  },
+  homeLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.2,
+    color: '#FFFFFF',
+  },
+  tabInner: {
+    width: 44,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabInnerActive: {
+    backgroundColor: 'rgba(233,30,99,0.12)',
   },
   item: {
     flex: 1,
@@ -642,6 +735,7 @@ const styles = StyleSheet.create({
   },
   itemPressed: {
     opacity: 0.6,
+    transform: [{ scale: 0.96 }],
   },
   avatar: {
     width: 20,
@@ -663,8 +757,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   label: {
-    fontFamily: FontFamily.regular,
-    fontSize: 9,
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    letterSpacing: 0.2,
   },
   labelActive: {
     fontFamily: FontFamily.bold,
@@ -925,25 +1020,33 @@ const icon = StyleSheet.create({
     height: 3,
     borderRadius: 1.5,
   },
-  gearCenter: {
+  gearBase: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gearTooth: {
+    position: 'absolute',
     width: 3,
     height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#1C1C1E',
+    borderRadius: 0.5,
   },
-  gearT1: {
+  gearRing: {
     position: 'absolute',
-    top: -3,
-    width: 2,
-    height: 2,
-    backgroundColor: '#1C1C1E',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
   },
-  gearT3: {
+  gearHole: {
     position: 'absolute',
-    bottom: -3,
-    width: 2,
-    height: 2,
-    backgroundColor: '#1C1C1E',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    borderWidth: 1.25,
+    backgroundColor: 'transparent',
   },
 });
 

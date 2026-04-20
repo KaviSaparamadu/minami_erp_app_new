@@ -15,6 +15,9 @@ interface NavigationContextValue {
   navigating: boolean;
   stack: ScreenName[];
   navigateTo: (screen: ScreenName) => void;
+  sidebarOpen: boolean;
+  openSidebar: () => void;
+  closeSidebar: () => void;
 }
 
 const NavigationContext = createContext<NavigationContextValue | undefined>(undefined);
@@ -22,8 +25,12 @@ const NavigationContext = createContext<NavigationContextValue | undefined>(unde
 const NAV_DELAY = 500; // ms — page transition loader duration
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
-  const [stack,      setStack]      = useState<ScreenName[]>(['Dashboard']);
-  const [navigating, setNavigating] = useState(false);
+  const [stack,       setStack]       = useState<ScreenName[]>(['Dashboard']);
+  const [navigating,  setNavigating]  = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   const navigate = useCallback((screen: ScreenName) => {
     setNavigating(true);
@@ -56,7 +63,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const canGoBack = stack.length > 1;
 
   return (
-    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating, stack, navigateTo }}>
+    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating, stack, navigateTo, sidebarOpen, openSidebar, closeSidebar }}>
       {children}
     </NavigationContext.Provider>
   );

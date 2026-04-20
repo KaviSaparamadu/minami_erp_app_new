@@ -1,0 +1,101 @@
+{
+  "modules": [
+    {
+      "id": "human-resources",
+      "name": "Human Resources",
+      "icon": "hr",
+      "screen": "HR",
+      "children": [
+        {
+          "id": "hr-human",
+          "name": "Human Management",
+          "icon": "human",
+          "screen": "HumanManagement"
+        },
+        {
+          "id": "hr-employee",
+          "name": "Employee Management",
+          "icon": "employee",
+          "screen": "EmployeeManagement"
+        },
+        {
+          "id": "hr-user",
+          "name": "User Management",
+          "icon": "user",
+          "screen": "UserManagement",
+          "children": [
+            {
+              "id": "hr-user-create",
+              "name": "Create System Users",
+              "icon": "user-plus",
+              "screen": "CreateSystemUsers"
+            },
+            {
+              "id": "hr-user-permission",
+              "name": "Assign User Permission",
+              "icon": "user-key",
+              "screen": "AssignUserPermission"
+            },
+            {
+              "id": "hr-user-role",
+              "name": "Create User Role",
+              "icon": "user-role",
+              "screen": "CreateUserRole"
+            },
+            {
+              "id": "hr-user-role-permission",
+              "name": "Assign Role Permission",
+              "icon": "user-role-key",
+              "screen": "AssignUserRolePermission"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "system-admin",
+      "name": "System Admin",
+      "icon": "admin"
+    },
+    {
+      "id": "finance",
+      "name": "Finance",
+      "icon": "finance"
+    },
+    {
+      "id": "procurement",
+      "name": "Procurement",
+      "icon": "procurement"
+    },
+    {
+      "id": "operation",
+      "name": "Operation",
+      "icon": "operation"
+    },
+    {
+      "id": "marketing-communication",
+      "name": "Marketing & Communication",
+      "icon": "marketing"
+    },
+    {
+      "id": "security-petrol",
+      "name": "Security & Petrol",
+      "icon": "security"
+    },
+    {
+      "id": "location",
+      "name": "Location",
+      "icon": "location"
+    },
+    {
+      "id": "customer-care",
+      "name": "Customer Care",
+      "icon": "customer"
+    },
+    {
+      "id": "enterprise-management",
+      "name": "Enterprise Management",
+      "icon": "enterprise"
+    }
+  ]
+}

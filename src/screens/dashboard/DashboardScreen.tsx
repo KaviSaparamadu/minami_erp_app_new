@@ -1,68 +1,33 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   FlatList,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
+  TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { UIIcon } from '../../components/common/UIIcon';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
+import { DashboardView } from '../../components/dashboard/DashboardView';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigation } from '../../context/NavigationContext';
 import { useTheme } from '../../hooks/useTheme';
+
 const H_PAD    = Spacing.lg;
 const GAP      = 6;
 const NUM_COLS = 3;
 
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good Morning ☀️';
-  if (h < 18) return 'Good Afternoon 👋';
-  return 'Good Evening 🌙';
-}
-
-function getDateString() {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
-}
-
-function WelcomeBand({ fullName, dynamicWelcome }: { fullName: string; dynamicWelcome: any }) {
-  return (
-    <View style={[welcome.card, dynamicWelcome.card]}>
-      {/* Ghost ring decorations */}
-      <View style={welcome.ringLg} />
-      <View style={welcome.ringSm} />
-
-      {/* Text */}
-      <View style={welcome.textBlock}>
-        <Text style={welcome.greeting}>{getGreeting()}</Text>
-        <Text style={welcome.name} numberOfLines={1}>{fullName}</Text>
-        <Text style={welcome.date}>{getDateString()}</Text>
-      </View>
-
-      {/* Stat chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={welcome.chipsContent}>
-        {MODULES.map(m => (
-          <View key={m.id} style={welcome.chip}>
-            <Text style={welcome.chipValue}>{m.value}</Text>
-            <Text style={welcome.chipLabel}>{m.name}</Text>
-          </View>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
+type Tab = 'modules' | 'dashboard';
 
 export function DashboardScreen() {
   const { user } = useAuth();
@@ -71,253 +36,225 @@ export function DashboardScreen() {
   const { colors, isDarkMode } = useTheme();
   const cardWidth = (width - H_PAD * 2 - GAP) / NUM_COLS;
 
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+  const [tab, setTab] = useState<Tab>('dashboard');
+  const [search, setSearch] = useState('');
+
+  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   function handleModulePress(module: AppModule) {
-    if (module.id === '4') {
-      navigate('HR');
-    }
+    if (module.screen) navigate(module.screen);
   }
 
-  return (
-    <SafeAreaView style={[styles.safe, dynamicStyles.safe]} edges={['top', 'left', 'right']}>
+  const filteredModules = MODULES.filter(m =>
+    m.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
-      {/* Dark top band */}
-      <View style={[styles.darkBand, dynamicStyles.darkBand]}>
-        <PageHeader title="GPIT · ERP" showBack={true} />
-        <WelcomeBand fullName={user!.fullName} dynamicWelcome={dynamicStyles.welcome} />
+  const fullName = user?.fullName ?? 'Administrator';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
+  return (
+    <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
+      <PageHeader showBack={false} showBrand={true} />
+
+      <View style={[styles.welcomeCard, dyn.welcomeCard]}>
+        <View style={styles.welcomeAccent} />
+        <View style={styles.welcomeText}>
+          <Text style={[styles.welcomeGreeting, dyn.welcomeGreeting]}>{greeting},</Text>
+          <Text style={[styles.welcomeName, dyn.welcomeName]} numberOfLines={1}>Welcome, {fullName}</Text>
+        </View>
+        <View style={styles.welcomeBadge}>
+          <UIIcon name="user" size={20} color={Colors.primaryHighlight} />
+        </View>
       </View>
 
-      {/* Light sheet — slides up over dark band */}
-      <View style={[styles.sheet, dynamicStyles.sheet]}>
+      <View style={styles.quickWrap}>
+        <QuickAccessRow onPress={handleModulePress} />
+      </View>
+
+      <View style={[styles.searchBar, dyn.searchBar]}>
+        <UIIcon name="search" size={16} color="#8E8E93" />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search modules..."
+          placeholderTextColor={isDarkMode ? '#8E8E93' : '#8E8E93'}
+          style={[styles.searchInput, dyn.searchInput]}
+        />
+      </View>
+
+      <View style={[styles.tabsRow, dyn.tabsBorder]}>
+        <TabButton
+          label="Dashboard"
+          active={tab === 'dashboard'}
+          onPress={() => setTab('dashboard')}
+          dyn={dyn}
+        />
+        <TabButton
+          label="Modules"
+          active={tab === 'modules'}
+          onPress={() => setTab('modules')}
+          dyn={dyn}
+        />
+      </View>
+
+      {tab === 'modules' ? (
         <FlatList
-          data={MODULES}
+          key="modules-list"
+          data={filteredModules}
           keyExtractor={item => item.id}
           numColumns={NUM_COLS}
-          key={`cols-${NUM_COLS}`}
           columnWrapperStyle={styles.row}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }: { item: AppModule }) => (
             <ModuleCard module={item} width={cardWidth} onPress={handleModulePress} />
           )}
-          ListHeaderComponent={
-            <>
-              <QuickAccessRow onPress={handleModulePress} />
-              <SectionDivider count={MODULES.length} dynamicDivider={dynamicStyles.divider} />
-            </>
-          }
         />
-      </View>
-
+      ) : (
+        <ScrollView
+          key="dashboard-scroll"
+          contentContainerStyle={styles.dashboardScroll}
+          showsVerticalScrollIndicator={false}>
+          <DashboardView />
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
-function SectionDivider({ count, dynamicDivider }: { count: number; dynamicDivider: any }) {
+function TabButton({ label, active, onPress, dyn }: { label: string; active: boolean; onPress: () => void; dyn: any }) {
   return (
-    <View style={divider.row}>
-      <View style={[divider.line, dynamicDivider.line]} />
-      <View style={[divider.pill, dynamicDivider.pill]}>
-        <Text style={[divider.pillText, dynamicDivider.pillText]}>All Modules</Text>
-        <View style={divider.badge}>
-          <Text style={divider.badgeText}>{count}</Text>
-        </View>
-      </View>
-      <View style={[divider.line, dynamicDivider.line]} />
-    </View>
+    <TouchableOpacity onPress={onPress} style={styles.tabBtn} activeOpacity={0.7}>
+      <Text style={[styles.tabLabel, dyn.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
+      {active && <View style={styles.tabUnderline} />}
+    </TouchableOpacity>
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────────────────
-
 function createDynamicStyles(colors: any, isDarkMode: boolean) {
-  const sheetBg = isDarkMode ? '#2C2C2E' : '#F2F2F7';
-
-  return {
-    safe: {
-      backgroundColor: colors.background,
+  return StyleSheet.create({
+    safe: { backgroundColor: colors.background },
+    searchBar: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7',
+      borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
     },
-    darkBand: {
-      backgroundColor: '#1C1C1E',
+    searchInput: { color: colors.primaryText },
+    tabsBorder: {
+      borderBottomColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
     },
-    sheet: {
-      backgroundColor: sheetBg,
+    tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
+    welcomeCard: {
+      backgroundColor: isDarkMode ? '#2A1A22' : '#FFF1F6',
+      borderColor: isDarkMode ? 'rgba(233,30,99,0.35)' : 'rgba(233,30,99,0.2)',
     },
-    welcome: {
-      card: {
-        borderColor: isDarkMode ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.05)',
-        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
-      },
-    },
-    divider: StyleSheet.create({
-      line: {
-        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E2E2E8',
-      },
-      pill: {
-        backgroundColor: isDarkMode ? '#404040' : '#FFFFFF',
-        borderColor: isDarkMode ? '#595959' : '#ECECF0',
-      },
-      pillText: {
-        color: isDarkMode ? '#FFFFFF' : colors.primaryText,
-      },
-    }),
-  };
+    welcomeGreeting: { color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#8E8E93' },
+    welcomeName: { color: colors.primaryText },
+  });
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
 
-  darkBand: {
-    paddingBottom: 32,
+  welcomeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: H_PAD,
+    marginTop: Spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+  },
+  welcomeAccent: {
+    width: 4, height: 34, borderRadius: 2,
+    backgroundColor: Colors.primaryHighlight,
+  },
+  welcomeText: { flex: 1 },
+  welcomeGreeting: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.xs,
+    letterSpacing: 0.3,
+  },
+  welcomeName: {
+    fontFamily: FontFamily.bold,
+    fontWeight: FontWeight.bold,
+    fontSize: FontSize.md,
+    marginTop: 2,
+  },
+  welcomeBadge: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(233,30,99,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
-  sheet: {
-    flex: 1,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -28,
-    overflow: 'hidden',
+  quickWrap: {
+    paddingHorizontal: H_PAD,
   },
+
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: H_PAD,
+    marginTop: Spacing.md,
+    paddingHorizontal: 12,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    paddingVertical: 0,
+  },
+
+  tabsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    marginHorizontal: H_PAD,
+    borderBottomWidth: 1,
+  },
+  tabBtn: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  tabLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.sm,
+  },
+  tabLabelActive: {
+    fontFamily: FontFamily.bold,
+    fontWeight: FontWeight.bold,
+    color: Colors.primaryHighlight,
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: -1,
+    left: 0, right: 0,
+    height: 2,
+    backgroundColor: Colors.primaryHighlight,
+    borderRadius: 2,
+  },
+
   list: {
     paddingHorizontal: H_PAD,
+    paddingTop: Spacing.md,
     paddingBottom: 40,
   },
   row: {
     gap: GAP,
     justifyContent: 'space-between',
-  },
-});
-
-// Welcome card
-const welcome = StyleSheet.create({
-  card: {
-    marginHorizontal: H_PAD,
-    marginTop: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
-    padding: Spacing.lg,
-    overflow: 'hidden',
+    marginBottom: GAP,
   },
 
-  // Ghost decorative rings
-  ringLg: {
-    position: 'absolute',
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 28,
-    borderColor: 'rgba(233,30,99,0.08)',
-    top: -45,
-    right: -30,
-  },
-  ringSm: {
-    position: 'absolute',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 14,
-    borderColor: 'rgba(233,30,99,0.06)',
-    bottom: -20,
-    left: -10,
-  },
-
-  textBlock: { marginBottom: Spacing.md },
-  greeting: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.55)',
-  },
-  name: {
-    fontFamily: FontFamily.bold,
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
-    marginTop: 2,
-    maxWidth: 220,
-  },
-  date: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.xs,
-    color: 'rgba(255,255,255,0.3)',
-    marginTop: 4,
-  },
-
-  chipsContent: { gap: Spacing.sm },
-  chip: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: Spacing.md,
-    alignItems: 'center',
-    minWidth: 70,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
-  chipValue: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
-  },
-  chipLabel: {
-    fontFamily: FontFamily.regular,
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.38)',
-    marginTop: 2,
-  },
-});
-
-// Section divider
-const divider = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E2E2E8',
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: '#ECECF0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  pillText: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-    color: Colors.primaryText,
-  },
-  badge: {
-    backgroundColor: '#3A3A3C',
-    borderRadius: 8,
-    width: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    fontWeight: FontWeight.bold,
-    color: '#FFFFFF',
+  dashboardScroll: {
+    padding: H_PAD,
+    paddingBottom: 40,
   },
 });

@@ -1,12 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FontFamily, FontSize, FontWeight, Spacing, Colors } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
-import type { AuthUser } from '../../types/auth';
-import { ProfileSheet } from './ProfileSheet';
 
 interface DashboardHeaderProps {
-  user: AuthUser;
   onBack: () => void;
 }
 
@@ -34,16 +31,13 @@ function BellIcon({ color }: IconProps) {
   );
 }
 
-export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
+export function DashboardHeader({ onBack }: DashboardHeaderProps) {
   const { colors } = useTheme();
-  const [sheetVisible, setSheetVisible] = useState(false);
-  const initial = user.fullName.charAt(0).toUpperCase();
   const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   return (
     <>
-      <View style={styles.header}>
-
+      <View style={[styles.header, dynamicStyles.header]}>
         {/* ── Left: direct logout ── */}
         <Pressable
           onPress={onBack}
@@ -64,37 +58,15 @@ export function DashboardHeader({ user, onBack }: DashboardHeaderProps) {
           </View>
         </View>
 
-        {/* ── Right: bell + avatar ── */}
-        <View style={styles.rightRow}>
-          <Pressable
-            style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
-            accessibilityLabel="Notifications"
-            accessibilityRole="button"
-            hitSlop={14}>
-            <BellIcon color="#FFFFFF" />
-          </Pressable>
-
-          {/* Profile avatar — opens sheet */}
-          <Pressable
-            onPress={() => setSheetVisible(true)}
-            style={({ pressed }) => [styles.avatar, pressed && styles.avatarPressed]}
-            accessibilityLabel="Profile"
-            accessibilityRole="button"
-            hitSlop={8}>
-            <Text style={[styles.avatarText, { color: '#FFFFFF' }]}>{initial}</Text>
-            <View style={[styles.onlineDot, { borderColor: colors.background }]} />
-          </Pressable>
-        </View>
-
+        {/* ── Right: bell icon ── */}
+        <Pressable
+          style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
+          accessibilityLabel="Notifications"
+          accessibilityRole="button"
+          hitSlop={14}>
+          <BellIcon color="#FFFFFF" />
+        </Pressable>
       </View>
-
-      {/* Profile bottom sheet */}
-      <ProfileSheet
-        visible={sheetVisible}
-        user={user}
-        onClose={() => setSheetVisible(false)}
-        onLogout={onBack}
-      />
     </>
   );
 }
@@ -104,6 +76,14 @@ const DARK = '#1C1C1E';
 function createDynamicStyles(colors: any) {
   const isDark = colors.background !== '#FFFFFF';
   return StyleSheet.create({
+    header: {
+      backgroundColor: isDark ? 'linear-gradient(135deg, #1C1C1E 0%, #2A2A2C 100%)' : 'linear-gradient(135deg, #FFFFFF 0%, #F5F5F7 100%)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 4,
+    },
     iconBtn: {
       backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
       borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
@@ -118,15 +98,18 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: DARK,
+    paddingTop: Spacing.xl,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
 
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -144,74 +127,38 @@ const styles = StyleSheet.create({
   },
   brandG: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.lg,
+    fontSize: FontSize.xl,
     fontWeight: FontWeight.bold,
     letterSpacing: 1,
   },
   brandPink: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.lg,
+    fontSize: FontSize.xl,
     fontWeight: FontWeight.bold,
     color: Colors.primaryHighlight,
     letterSpacing: 1,
   },
   brandRest: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSize.lg,
+    fontSize: FontSize.xl,
     fontWeight: FontWeight.bold,
     letterSpacing: 1,
     marginRight: 6,
   },
   brandPill: {
     backgroundColor: 'rgba(233,30,99,0.18)',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderWidth: 1,
     borderColor: 'rgba(233,30,99,0.3)',
   },
   brandPillText: {
     fontFamily: FontFamily.bold,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: FontWeight.bold,
     color: Colors.primaryHighlight,
     letterSpacing: 1,
-  },
-
-  rightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primaryHighlight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(233,30,99,0.4)',
-  },
-  avatarPressed: {
-    opacity: 0.75,
-    transform: [{ scale: 0.93 }],
-  },
-  avatarText: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-  },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: '#30D158',
-    borderWidth: 1.5,
-    borderColor: DARK,
   },
 });
 
