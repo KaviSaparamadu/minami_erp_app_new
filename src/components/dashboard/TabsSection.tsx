@@ -1,0 +1,82 @@
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
+
+type TabName = 'Dashboard' | 'Modules' | 'Submodules';
+
+interface TabsSectionProps {
+  tabs: readonly TabName[];
+  activeTab: TabName;
+  onTabChange: (tab: TabName) => void;
+  colors: any;
+  isDarkMode: boolean;
+}
+
+export function TabsSection({ tabs, activeTab, onTabChange, colors, isDarkMode }: TabsSectionProps) {
+  const borderBottomColor = isDarkMode ? '#3A3A3C' : '#E5E5EA';
+  const labelColor = isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93';
+
+  return (
+    <View style={[styles.tabsRow, { borderBottomColor }]}>
+      {tabs.map(tab => {
+        const isActive = activeTab === tab;
+        return (
+          <TouchableOpacity
+            key={tab}
+            onPress={() => onTabChange(tab)}
+            style={[styles.tabBtn, tabs.length === 3 && styles.tabBtn3Cols]}
+            activeOpacity={0.7}>
+            <Text
+              style={[
+                styles.tabLabel,
+                { color: isActive ? Colors.primaryHighlight : labelColor },
+                isActive && styles.tabLabelActive,
+              ]}>
+              {tab}
+            </Text>
+            {isActive && <View style={styles.tabUnderline} />}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    marginHorizontal: 0,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1,
+  },
+  tabBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    flex: 1,
+  },
+  tabBtn3Cols: {
+    flex: 1,
+  },
+  tabLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.sm,
+  },
+  tabLabelActive: {
+    fontFamily: FontFamily.bold,
+    fontWeight: '700',
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: -1,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: Colors.primaryHighlight,
+    borderRadius: 2,
+  },
+});

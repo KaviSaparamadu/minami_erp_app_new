@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -6,8 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { PageHeader } from '../../components/common/PageHeader';
+import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
@@ -125,6 +124,7 @@ const ICONS = [UserPlusIcon, KeyIcon, BadgeIcon, ShieldIcon];
 export function UserManagementScreen() {
   const { navigate } = useNavigation();
   const { colors } = useTheme();
+  const [tab, setTab] = useState<'dashboard' | 'modules'>('dashboard');
   const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   function handlePress(id: string) {
@@ -133,66 +133,133 @@ export function UserManagementScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-
-      {/* Dark top band */}
-      <View style={styles.darkBand}>
-        <PageHeader title="User Management" showBack={true} />
-        <View style={styles.bandContent}>
-          <Text style={styles.bandTitle}>User Management</Text>
-          <Text style={styles.bandSub}>Select a module to manage</Text>
+    <SubModuleLayout
+      title="User Management"
+      showBack={true}
+      activeTab={tab}
+      onTabChange={setTab}
+      showSubmodulesTab={true}
+    >
+      {tab === 'dashboard' ? (
+        // Dashboard view - shows stats
+        <View>
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>24</Text>
+              <Text style={styles.statLabel}>Active Users</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>7</Text>
+              <Text style={styles.statLabel}>User Roles</Text>
+            </View>
+          </View>
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>18</Text>
+              <Text style={styles.statLabel}>Permissions</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statLabel}>Assignments</Text>
+            </View>
+          </View>
         </View>
-      </View>
+      ) : tab === 'modules' ? (
+        // Modules view - shows submodules
+        <View>
+          <View style={styles.bandContent}>
+            <Text style={styles.bandTitle}>User Management</Text>
+            <Text style={styles.bandSub}>Select a module to manage</Text>
+          </View>
 
-      {/* Light sheet */}
-      <View style={styles.sheet}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}>
 
-          {UM_SUBMODULES.map((mod, idx) => {
-            const IconComp = ICONS[idx];
-            return (
-              <Pressable
-                key={mod.id}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPress={() => handlePress(mod.id)}
-                accessibilityRole="button"
-                accessibilityLabel={mod.name}>
+            {UM_SUBMODULES.map((mod, idx) => {
+              const IconComp = ICONS[idx];
+              return (
+                <Pressable
+                  key={mod.id}
+                  style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                  onPress={() => handlePress(mod.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={mod.name}>
 
-                {/* Left icon area */}
-                <View style={styles.iconArea}>
-                  <IconComp />
-                </View>
+                  {/* Left icon area */}
+                  <View style={styles.iconArea}>
+                    <IconComp />
+                  </View>
 
-                {/* Content */}
-                <View style={styles.content}>
-                  <Text style={[styles.cardTitle, dynamicStyles.cardTitle]}>{mod.name}</Text>
-                  <Text style={[styles.cardDesc, dynamicStyles.cardDesc]} numberOfLines={2}>{mod.description}</Text>
+                  {/* Content */}
+                  <View style={styles.content}>
+                    <Text style={[styles.cardTitle, dynamicStyles.cardTitle]}>{mod.name}</Text>
+                    <Text style={[styles.cardDesc, dynamicStyles.cardDesc]} numberOfLines={2}>{mod.description}</Text>
 
-                  {/* Count chip */}
-                  <View style={styles.chipRow}>
-                    <View style={styles.chip}>
-                      <View style={styles.chipDot} />
-                      <Text style={[styles.chipCount, dynamicStyles.chipCount]}>{mod.count}</Text>
-                      <Text style={[styles.chipLabel, dynamicStyles.chipLabel]}>{mod.countLabel}</Text>
+                    {/* Count chip */}
+                    <View style={styles.chipRow}>
+                      <View style={styles.chip}>
+                        <View style={styles.chipDot} />
+                        <Text style={[styles.chipCount, dynamicStyles.chipCount]}>{mod.count}</Text>
+                        <Text style={[styles.chipLabel, dynamicStyles.chipLabel]}>{mod.countLabel}</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
 
-                {/* Arrow */}
-                <View style={styles.arrowWrap}>
-                  <View style={styles.arrowHead} />
-                </View>
+                  {/* Arrow */}
+                  <View style={styles.arrowWrap}>
+                    <View style={styles.arrowHead} />
+                  </View>
 
-              </Pressable>
-            );
-          })}
+                </Pressable>
+              );
+            })}
 
-        </ScrollView>
-      </View>
+          </ScrollView>
+        </View>
+      ) : tab === 'submodules' ? (
+        // Submodules view - shows submodules in wider cards
+        <View>
+          <View style={styles.submodulesGrid}>
+            {UM_SUBMODULES.map((mod, idx) => {
+              const IconComp = ICONS[idx];
+              return (
+                <Pressable
+                  key={mod.id}
+                  style={({ pressed }) => [styles.wideCard, pressed && styles.cardPressed]}
+                  onPress={() => handlePress(mod.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={mod.name}>
 
-    </SafeAreaView>
+                  <View style={styles.iconArea}>
+                    <IconComp />
+                  </View>
+
+                  <View style={styles.content}>
+                    <Text style={[styles.cardTitle, dynamicStyles.cardTitle]}>{mod.name}</Text>
+                    <Text style={[styles.cardDesc, dynamicStyles.cardDesc]} numberOfLines={2}>{mod.description}</Text>
+
+                    <View style={styles.chipRow}>
+                      <View style={styles.chip}>
+                        <View style={styles.chipDot} />
+                        <Text style={[styles.chipCount, dynamicStyles.chipCount]}>{mod.count}</Text>
+                        <Text style={[styles.chipLabel, dynamicStyles.chipLabel]}>{mod.countLabel}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.arrowWrap}>
+                    <View style={styles.arrowHead} />
+                  </View>
+
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+    </SubModuleLayout>
   );
 }
 
@@ -206,6 +273,38 @@ const styles = StyleSheet.create({
   darkBand: {
     backgroundColor: DARK,
     paddingBottom: 32,
+  },
+
+  statsContainer: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+
+  statCard: {
+    flex: 1,
+    backgroundColor: '#F8F8FA',
+    borderRadius: 14,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+
+  statValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: Colors.primaryHighlight,
+    marginBottom: Spacing.xs,
+  },
+
+  statLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.xs,
+    color: '#999999',
+    letterSpacing: 0.3,
   },
 
   bandContent: {
@@ -239,6 +338,27 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl,
     paddingBottom: 40,
     gap: 6,
+  },
+
+  submodulesGrid: {
+    flexDirection: 'column',
+    gap: Spacing.md,
+  },
+
+  wideCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
 
   // ── Card ──────────────────────────────────────────────────────────────────

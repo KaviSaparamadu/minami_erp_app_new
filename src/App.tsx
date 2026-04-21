@@ -18,6 +18,7 @@ import { CreateSystemUsersScreen } from './screens/user/CreateSystemUsersScreen'
 import { AssignUserPermissionScreen } from './screens/user/AssignUserPermissionScreen';
 import { CreateUserRoleScreen } from './screens/user/CreateUserRoleScreen';
 import { AssignUserRolePermissionScreen } from './screens/user/AssignUserRolePermissionScreen';
+import { ModuleDetailScreen } from './screens/dashboard/ModuleDetailScreen';
 
 function DottedLoader() {
   const DOT_SIZE = 8;
@@ -62,7 +63,7 @@ function DottedLoader() {
 }
 
 function AppNavigator() {
-  const { currentScreen, navigating, sidebarOpen, closeSidebar } = useNavigation();
+  const { currentScreen, navigating, sidebarOpen, closeSidebar, params } = useNavigation();
 
   const screen = (() => {
     switch (currentScreen) {
@@ -74,6 +75,10 @@ function AppNavigator() {
       case 'AssignUserPermission':    return <AssignUserPermissionScreen />;
       case 'CreateUserRole':          return <CreateUserRoleScreen />;
       case 'AssignUserRolePermission':return <AssignUserRolePermissionScreen />;
+      case 'ModuleDetail': {
+        const moduleId = params && typeof params === 'object' && 'moduleId' in params ? params.moduleId : '';
+        return <ModuleDetailScreen moduleId={moduleId} />;
+      }
       case 'Dashboard':
       default:                        return <DashboardScreen />;
     }

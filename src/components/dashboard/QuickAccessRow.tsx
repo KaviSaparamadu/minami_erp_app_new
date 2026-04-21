@@ -14,8 +14,9 @@ interface QuickAccessRowProps {
   onPress?: (module: AppModule) => void;
 }
 
-const ITEM_WIDTH = 64;
+const ITEM_WIDTH = 56;
 const ITEM_GAP = Spacing.md;
+const MAX_ITEMS = 4;
 const STEP = (ITEM_WIDTH + ITEM_GAP) * 3;
 
 export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
@@ -82,7 +83,7 @@ export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
               accessibilityRole="button"
               accessibilityLabel={m.name}>
               <View style={styles.circle}>
-                <UIIcon name={MODULE_ICON_MAP[m.iconType] ?? 'clipboard'} color={Colors.primaryHighlight} size={18} />
+                <UIIcon name={MODULE_ICON_MAP[m.iconType] ?? 'clipboard'} color="#E91E63" size={24} />
               </View>
               <Text style={[styles.name, dyn.name]} numberOfLines={1}>{m.name}</Text>
             </Pressable>
@@ -127,7 +128,10 @@ function createDynamicStyles(colors: any, _isDarkMode: boolean) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { paddingTop: Spacing.lg },
+  wrapper: {
+    paddingTop: Spacing.lg,
+    backgroundColor: '#FFFFFF',
+  },
 
   titleRow: {
     flexDirection: 'row',
@@ -162,19 +166,25 @@ const styles = StyleSheet.create({
   scroll: { gap: ITEM_GAP, paddingBottom: 4, paddingHorizontal: 4 },
 
   item: { alignItems: 'center', gap: 6, width: ITEM_WIDTH },
-  itemPressed: { transform: [{ scale: 0.94 }], opacity: 0.8 },
+  itemPressed: { transform: [{ scale: 0.88 }], opacity: 0.7 },
   circle: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(233,30,99,0.12)',
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: '#FFD4E5',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#E91E63',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   name: {
     fontFamily: QA_FONT,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '400',
     letterSpacing: 0,
     textAlign: 'center',
+    display: 'none',
   },
 
   arrowBtn: {

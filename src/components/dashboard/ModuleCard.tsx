@@ -55,9 +55,9 @@ const styles = StyleSheet.create({
   outer: {
     borderRadius: 18,
     marginBottom: Spacing.md,
-    paddingTop: 26,
-    paddingBottom: 6,
-    paddingHorizontal: 6,
+    paddingTop: 28,
+    paddingBottom: 12,
+    paddingHorizontal: 12,
     alignItems: 'center',
   },
   pressed: {
@@ -80,11 +80,11 @@ const styles = StyleSheet.create({
   inner: {
     width: '100%',
     borderRadius: 14,
-    paddingTop: 30,
-    paddingBottom: 10,
-    paddingHorizontal: 8,
+    paddingTop: 36,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    gap: 3,
+    gap: 8,
   },
 
   name: {

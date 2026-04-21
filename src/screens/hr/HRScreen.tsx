@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -6,8 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { PageHeader } from '../../components/common/PageHeader';
+import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
@@ -93,6 +92,7 @@ const SUBMODULE_SCREENS: Record<string, ScreenName> = {
 export function HRScreen() {
   const { navigate } = useNavigation();
   const { colors, isDarkMode } = useTheme();
+  const [tab, setTab] = useState<'dashboard' | 'modules'>('dashboard');
   const dynamicStyles = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   function handleSubModulePress(id: string) {
@@ -101,24 +101,40 @@ export function HRScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safe, dynamicStyles.safe]} edges={['top', 'left', 'right']}>
-
-      {/* Dark top band with PageHeader */}
-      <View style={[styles.darkBand, dynamicStyles.darkBand]}>
-        <PageHeader title="HR" showBack={true} />
-
-        {/* Section label */}
-        <View style={styles.bandContent}>
-          <Text style={[styles.bandTitle, dynamicStyles.bandTitle]}>Human Resources</Text>
-          <Text style={[styles.bandSub, dynamicStyles.bandSub]}>Select a module to manage</Text>
+    <SubModuleLayout
+      title="HR"
+      showBack={true}
+      activeTab={tab}
+      onTabChange={setTab}
+      showSubmodulesTab={true}
+    >
+      {tab === 'dashboard' ? (
+        // Dashboard view - shows stats
+        <View>
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>3</Text>
+              <Text style={styles.statLabel}>Modules</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>32</Text>
+              <Text style={styles.statLabel}>Active Staff</Text>
+            </View>
+          </View>
         </View>
-      </View>
+      ) : tab === 'modules' ? (
+        // Modules view - shows submodule cards
+        <View>
+          {/* Section label */}
+          <View style={styles.bandContent}>
+            <Text style={[styles.bandTitle, dynamicStyles.bandTitle]}>Human Resources</Text>
+            <Text style={[styles.bandSub, dynamicStyles.bandSub]}>Select a module to manage</Text>
+          </View>
 
-      {/* Light sheet */}
-      <View style={[styles.sheet, dynamicStyles.sheet]}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={false}>
 
           {HR_SUBMODULES.map((mod, idx) => {
             const IconComp = ICONS[idx];
@@ -159,10 +175,50 @@ export function HRScreen() {
             );
           })}
 
-        </ScrollView>
-      </View>
+          </ScrollView>
+        </View>
+      ) : tab === 'submodules' ? (
+        // Submodules view - shows submodules in wider cards
+        <View>
+          <View style={styles.submodulesGrid}>
+            {HR_SUBMODULES.map((mod, idx) => {
+              const IconComp = ICONS[idx];
+              return (
+                <Pressable
+                  key={mod.id}
+                  style={({ pressed }) => [styles.wideCard, pressed && styles.cardPressed]}
+                  onPress={() => handleSubModulePress(mod.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={mod.name}>
 
-    </SafeAreaView>
+                  <View style={styles.iconArea}>
+                    <IconComp />
+                  </View>
+
+                  <View style={styles.content}>
+                    <Text style={[styles.cardTitle, dynamicStyles.cardTitle]}>{mod.name}</Text>
+                    <Text style={[styles.cardDesc, dynamicStyles.cardDesc]} numberOfLines={2}>{mod.description}</Text>
+
+                    <View style={styles.chipRow}>
+                      <View style={styles.chip}>
+                        <View style={styles.chipDot} />
+                        <Text style={[styles.chipCount, dynamicStyles.chipCount]}>{mod.count}</Text>
+                        <Text style={[styles.chipLabel, dynamicStyles.chipLabel]}>{mod.countLabel}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.arrowWrap}>
+                    <View style={styles.arrowHead} />
+                  </View>
+
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+    </SubModuleLayout>
   );
 }
 
@@ -226,6 +282,60 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl,
     paddingBottom: 40,
     gap: 6,
+  },
+
+  statsContainer: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+  },
+
+  statCard: {
+    flex: 1,
+    backgroundColor: '#F8F8FA',
+    borderRadius: 14,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+
+  statValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: Colors.primaryHighlight,
+    marginBottom: Spacing.xs,
+  },
+
+  statLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.xs,
+    color: '#999999',
+    letterSpacing: 0.3,
+  },
+
+  submodulesGrid: {
+    flexDirection: 'column',
+    gap: Spacing.md,
+  },
+
+  wideCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
 
   // ── Submodule card ──────────────────────────
