@@ -1,96 +1,77 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Alert,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
+import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
+import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
+import { ModuleCard } from '../../components/dashboard/ModuleCard';
+import { DashboardView } from '../../components/dashboard/DashboardView';
+import { UIIcon } from '../../components/common/UIIcon';
 import { HumanFormModal, ModalMode } from '../../components/hr/HumanFormModal';
-import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
+import { MODULES } from '../../constants/modules';
+import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
+import { useNavigation } from '../../context/NavigationContext';
 import type { Country, Human } from '../../types/hr';
 
 let nextId = 1;
 const genId = () => String(nextId++);
 
+const H_PAD = 6;
+const GRID_GAP = 10;
+const GRID_COLS = 3;
+
+type Tab = 'dashboard' | 'modules' | 'createHuman';
 type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
-const AVATAR_COLORS = ['#E91E63', '#9C27B0', '#3F51B5', '#009688', '#FF5722', '#607D8B'];
+const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
 
-function createDynamicStyles(colors: any) {
-  return StyleSheet.create({
-    txt: { color: colors.placeholder },
-    idxText: { color: colors.placeholder },
-    nameText: { color: colors.primaryText },
-    metaText: { color: colors.primaryText },
-    metaSub: { color: colors.placeholder },
-    label: { color: colors.placeholder },
-    badgeText: { color: colors.placeholder },
-    headerTxt: { color: colors.placeholder },
-    searchIcon: { borderColor: colors.placeholder, backgroundColor: colors.placeholder },
-    searchInput: { color: colors.primaryText },
-    clearIcon: { backgroundColor: colors.placeholder },
-    noResultsTitle: { color: colors.primaryText },
-    noResultsSub: { color: colors.placeholder },
-    noResultsQuery: { color: colors.primaryText },
-    noResultsBtn: { borderColor: colors.primaryText, color: colors.primaryText },
-    emptyTitle: { color: colors.primaryText },
-    emptySub: { color: colors.placeholder },
-  });
-}
-
-// ─── Icon components ─────────────────────────────────────────────────────────
+//  Action icons
 function EyeIcon()  { return <View style={ai.wrap}><View style={ai.eyeOval}/><View style={ai.eyeDot}/></View>; }
 function EditIcon() { return <View style={ai.wrap}><View style={ai.penBody}/><View style={ai.penLine}/></View>; }
 function TrashIcon(){ return <View style={ai.wrap}><View style={ai.lidBar}/><View style={ai.binBody}/><View style={ai.binL}/><View style={ai.binR}/></View>; }
+function RefreshIcon() { return <View style={ai.wrap}><View style={ai.refreshArrow}/></View>; }
 
-// ─── Filter toggle ────────────────────────────────────────────────────────────
-function FilterToggle({ active, counts, onChange }: { active: Filter; counts: Record<Filter, number>; onChange: (f: Filter) => void }) {
-  const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
-
+//  Tab button (Dashboard/Modules style)  
+function TabButton({ label, active, onPress, dyn, isFirst, isLast }: { label: string; active: boolean; onPress: () => void; dyn: any; isFirst?: boolean; isLast?: boolean }) {
   return (
-    <View style={ft.wrap}>
-      {FILTERS.map(f => (
-        <Pressable
-          key={f}
-          onPress={() => onChange(f)}
-          style={[ft.btn, active === f && ft.btnActive]}>
-          <Text style={[ft.label, active === f && ft.labelActive, !active || active !== f ? dynamicStyles.label : undefined]}>{f}</Text>
-          <View style={[ft.badge, active === f && ft.badgeActive]}>
-            <Text style={[ft.badgeText, active === f && ft.badgeTextActive, !active || active !== f ? dynamicStyles.badgeText : undefined]}>{counts[f]}</Text>
-          </View>
-        </Pressable>
-      ))}
-    </View>
+    <Pressable
+      onPress={onPress}
+      style={[styles.tabBtn, isFirst && styles.tabBtnFirst, isLast && styles.tabBtnLast]}>
+      <Text style={[styles.tabLabel, dyn.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
+      {active && <View style={styles.tabUnderline} />}
+    </Pressable>
   );
 }
 
-// ─── Table row ───────────────────────────────────────────────────────────────
+//  Table row 
 function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; index: number; onView(): void; onEdit(): void; onDelete(): void }) {
   const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
   const initial = human.fullName.charAt(0).toUpperCase();
   const isEven  = index % 2 === 0;
   const isSL    = human.country === 'Sri Lanka';
 
   return (
     <View style={[tr.row, isEven && tr.rowEven]}>
-      {/* # */}
-      <View style={tr.colIdx}><Text style={[tr.idxText, dynamicStyles.idxText]}>{index + 1}</Text></View>
+      <View style={tr.colIdx}><Text style={[tr.idxText, { color: colors.placeholder }]}>{index + 1}</Text></View>
 
-      {/* Avatar + name */}
       <View style={tr.colName}>
         <View style={[tr.avatar, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
           <Text style={tr.avatarTxt}>{initial}</Text>
         </View>
         <View style={tr.nameBlock}>
-          <Text style={[tr.nameText, dynamicStyles.nameText]} numberOfLines={1}>
+          <Text style={[tr.nameText, { color: colors.primaryText }]} numberOfLines={1}>
             {human.title ? `${human.title} ` : ''}{human.fullName}
           </Text>
           <View style={[tr.countryBadge, isSL ? tr.badgeSL : tr.badgeJP]}>
@@ -101,17 +82,15 @@ function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; in
         </View>
       </View>
 
-      {/* DOB / Prefecture */}
       <View style={tr.colMeta}>
-        <Text style={[tr.metaText, dynamicStyles.metaText]} numberOfLines={1}>
+        <Text style={[tr.metaText, { color: colors.primaryText }]} numberOfLines={1}>
           {isSL ? (human.dateOfBirth ?? '—') : (human.prefecture ?? '—')}
         </Text>
-        <Text style={[tr.metaSub, dynamicStyles.metaSub]} numberOfLines={1}>
+        <Text style={[tr.metaSub, { color: colors.placeholder }]} numberOfLines={1}>
           {isSL ? (human.gender ?? '') : (human.city ?? '')}
         </Text>
       </View>
 
-      {/* Actions */}
       <View style={tr.colActions}>
         <Pressable onPress={onView}   style={[tr.btn, tr.btnView]}   hitSlop={6}><EyeIcon /></Pressable>
         <Pressable onPress={onEdit}   style={[tr.btn, tr.btnEdit]}   hitSlop={6}><EditIcon /></Pressable>
@@ -121,56 +100,283 @@ function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; in
   );
 }
 
-// ─── No search results ────────────────────────────────────────────────────────
-function NoResults({ query, onClear }: { query: string; onClear(): void }) {
+//  Empty state within the table 
+function TableEmpty({ query, filter, onClear }: { query: string; filter: Filter; onClear(): void }) {
   const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
-
-  return (
-    <View style={nr.wrap}>
-      {/* Magnifier icon */}
-      <View style={nr.iconWrap}>
-        <View style={nr.glass} />
-        <View style={nr.handle} />
-        <View style={nr.cross1} />
-        <View style={nr.cross2} />
-      </View>
-      <Text style={[nr.title, dynamicStyles.noResultsTitle]}>No results found</Text>
-      <Text style={[nr.sub, dynamicStyles.noResultsSub]}>Nothing matched <Text style={[nr.query, dynamicStyles.noResultsQuery]}>"{query}"</Text></Text>
-      <Pressable onPress={onClear} style={({ pressed }) => [nr.btn, { borderColor: colors.primaryText }, pressed && { opacity: 0.8 }]}>
-        <Text style={[nr.btnTxt, dynamicStyles.noResultsBtn]}>Clear search</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-function EmptyState({ filter, onAdd }: { filter: Filter; onAdd(): void }) {
-  const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+  const isSearch = query.trim().length > 0;
 
   return (
     <View style={es.wrap}>
       <View style={es.iconCircle}>
-        <View style={es.head}/><View style={es.body}/>
-        <View style={es.plusH}/><View style={es.plusV}/>
+        <View style={es.head}/>
+        <View style={es.body}/>
       </View>
-      <Text style={[es.title, dynamicStyles.emptyTitle]}>{filter === 'All' ? 'No humans yet' : `No ${filter} records`}</Text>
-      <Text style={[es.sub, dynamicStyles.emptySub]}>Tap + to add your first record</Text>
+      <Text style={[es.title, { color: colors.primaryText }]}>
+        {isSearch
+          ? 'No matching records'
+          : filter === 'All'
+            ? 'No humans yet'
+            : `No ${filter} records`}
+      </Text>
+      <Text style={[es.sub, { color: colors.placeholder }]}>
+        {isSearch
+          ? `Nothing matched "${query}"`
+          : 'Tap the + button or "Create Human" to add your first record'}
+      </Text>
+      {isSearch && (
+        <Pressable onPress={onClear} style={({ pressed }) => [es.clearBtn, pressed && { opacity: 0.75 }]}>
+          <Text style={[es.clearTxt, { color: Colors.primaryHighlight }]}>Clear search</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
-export function HumanManagementScreen() {
+// ─── Dashboard tab content: Human creates come in here ────────────────────────
+function HumanDashboardView({
+  counts,
+  humans,
+  filter,
+  setFilter,
+  searchQuery,
+  setSearchQuery,
+  onOpenCreate,
+  onView,
+  onEdit,
+  onDelete,
+  filtered,
+  onRefresh,
+}: {
+  counts: Record<Filter, number>;
+  humans: Human[];
+  filter: Filter;
+  setFilter: (f: Filter) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  onOpenCreate: () => void;
+  onView: (h: Human) => void;
+  onEdit: (h: Human) => void;
+  onDelete: (h: Human) => void;
+  filtered: Human[];
+  onRefresh: () => void;
+}) {
+  const { colors, isDarkMode } = useTheme();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setIsScrolled(offsetY > 50);
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={dv.scroll}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+        onScroll={handleScroll}
+        scrollEventThrottle={16}>
+
+        {/* Create CTA card */}
+        <View style={dv.hero}>
+          <View style={dv.heroOrbA} />
+          <View style={dv.heroOrbB} />
+
+          <View style={dv.heroIconOuter}>
+            <View style={dv.heroHead} />
+            <View style={dv.heroBody} />
+            <View style={dv.heroPlus}>
+              <View style={dv.heroPlusH} />
+              <View style={dv.heroPlusV} />
+            </View>
+          </View>
+
+          <View style={dv.heroTextBlock}>
+            <Text style={dv.heroTitle}>Add a New Human</Text>
+            <Text style={dv.heroSub}>Register identity, names, and address — 3 quick steps.</Text>
+          </View>
+
+          <Pressable
+            onPress={onOpenCreate}
+            style={({ pressed }) => [dv.cta, pressed && dv.ctaPressed]}
+            accessibilityRole="button">
+            <View style={dv.ctaIcon}>
+              <View style={dv.ctaIconH} />
+              <View style={dv.ctaIconV} />
+            </View>
+            <Text style={dv.ctaTxt}>Create Human</Text>
+          </Pressable>
+        </View>
+
+        {/* Stat cards */}
+        <View style={dv.statsRow}>
+          <StatCard label="Total" value={counts.All} color="#595959" />
+          <StatCard label="Sri Lanka" value={counts['Sri Lanka']} color="#6B6B6B" />
+          <StatCard label="Japan" value={counts.Japan} color="#7D7D7D" />
+        </View>
+
+        {/* Section header: Created humans */}
+        <View style={dv.sectionHead}>
+          <View style={dv.sectionAccent} />
+          <Text style={[dv.sectionTitle, { color: colors.primaryText }]}>Created Humans</Text>
+          <Text style={[dv.sectionCount, { color: colors.placeholder }]}>{humans.length}</Text>
+        </View>
+
+        {/* Filter pills */}
+        <View style={dv.pillRow}>
+          {FILTERS.map(f => {
+            const active = filter === f;
+            return (
+              <Pressable
+                key={f}
+                onPress={() => setFilter(f)}
+                style={[dv.pill, active && dv.pillActive]}>
+                <Text style={[dv.pillTxt, dyn.pillTxt, active && dv.pillTxtActive]}>{f}</Text>
+                <View style={[dv.pillBadge, active && dv.pillBadgeActive]}>
+                  <Text style={[dv.pillBadgeTxt, active && dv.pillBadgeTxtActive]}>{counts[f]}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Search */}
+        <View style={[dv.searchBar, dyn.searchBar]}>
+          <UIIcon name="search" size={16} color="#8E8E93" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search by name, NIC, location…"
+            placeholderTextColor="#8E8E93"
+            style={[dv.searchInput, dyn.searchInput]}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} style={dv.clearBtn} hitSlop={8}>
+              <View style={[dv.clearX1, { backgroundColor: colors.placeholder }]} />
+              <View style={[dv.clearX2, { backgroundColor: colors.placeholder }]} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Table — always visible with default structure */}
+        <View style={dv.tableWrap}>
+          <View style={[th.row, dyn.tableHeader]}>
+            <View style={th.colIdx}><Text style={[th.txt, dyn.headerTxt]}>#</Text></View>
+            <View style={th.colName}><Text style={[th.txt, dyn.headerTxt]}>Name · Country</Text></View>
+            <View style={th.colMeta}>
+              <Text style={[th.txt, dyn.headerTxt]}>
+                {filter === 'Japan' ? 'Prefecture' : 'DOB / Gender'}
+              </Text>
+            </View>
+            <View style={th.colActions}>
+              <Text style={[th.txt, dyn.headerTxt, { textAlign: 'center' }]}>Actions</Text>
+            </View>
+          </View>
+
+          {filtered.length === 0 ? (
+            <TableEmpty query={searchQuery} filter={filter} onClear={() => setSearchQuery('')} />
+          ) : (
+            filtered.map((item, index) => (
+              <TableRow
+                key={item.id}
+                human={item}
+                index={index}
+                onView={() => onView(item)}
+                onEdit={() => onEdit(item)}
+                onDelete={() => onDelete(item)}
+              />
+            ))
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Refresh button - appears when scrolled down */}
+      {isScrolled && (
+        <Pressable
+          onPress={() => {
+            onRefresh();
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+            setIsScrolled(false);
+          }}
+          style={({ pressed }) => [dv.refreshBtn, pressed && dv.refreshBtnPressed]}>
+          <View style={dv.refreshIcon}>
+            <View style={dv.refreshArrow} />
+          </View>
+          <Text style={dv.refreshText}>Refresh</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+  return (
+    <View style={dv.statCard}>
+      <View style={[dv.statAccent, { backgroundColor: color }]} />
+      <Text style={[dv.statValue, { color: colors.primaryText }]}>{value}</Text>
+      <Text style={[dv.statLabel, { color: colors.placeholder }]}>{label}</Text>
+    </View>
+  );
+}
+
+// ─── Modules tab content ──────────────────────────────────────────────────────
+function ModulesView({ onModulePress }: { onModulePress: (module: AppModule) => void }) {
+  const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
+
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={[{ paddingHorizontal: H_PAD, paddingVertical: Spacing.md, gap: Spacing.md }]}
+      showsVerticalScrollIndicator={false}>
+      <View style={[{ paddingHorizontal: 6 }]}>
+        <Text style={[{ fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', color: colors.primaryText, marginBottom: 12 }]}>
+          Available Modules
+        </Text>
+      </View>
+      <ModulesGrid
+        data={MODULES}
+        cardWidth={cardWidth}
+        numColumns={GRID_COLS}
+        gap={GRID_GAP}
+        hPad={0}
+        renderItem={(module, width) => (
+          <ModuleCard
+            key={module.id}
+            module={module}
+            width={width}
+            onPress={() => onModulePress(module)}
+          />
+        )}
+      />
+    </ScrollView>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
+export function HumanManagementScreen() {
+  const { colors, isDarkMode } = useTheme();
+  const { navigate } = useNavigation();
+  const { width } = useWindowDimensions();
+  const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
+
+  const [tab,          setTab]          = useState<Tab>('dashboard');
   const [humans,       setHumans]       = useState<Human[]>([]);
   const [filter,       setFilter]       = useState<Filter>('All');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<ModalMode>('create');
   const [selected,     setSelected]     = useState<Human | null>(null);
+
+  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   const countryFiltered = filter === 'All' ? humans : humans.filter(h => h.country === filter);
 
@@ -207,97 +413,82 @@ export function HumanManagementScreen() {
     setModalVisible(false);
   }
 
+  function handleRefresh() {
+    // Refresh the data - in a real app, this would fetch from an API
+    // For now, we'll just trigger a re-render
+  }
+
+  function handleQuickAccess(module: AppModule) {
+    navigate('ModuleDetail', { moduleId: module.id });
+  }
+
+  function handleModulePress(module: AppModule) {
+    navigate('ModuleDetail', { moduleId: module.id });
+  }
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
+      <PageHeader title="Human Management" showBack={true} />
 
-      {/* Dark band */}
-      <View style={styles.darkBand}>
-        <PageHeader title="Human Management" showBack={true} />
-
-        {/* Stats chips */}
-        <View style={styles.statsRow}>
-          {(['All', 'Sri Lanka', 'Japan'] as Filter[]).map(f => (
-            <View key={f} style={styles.statChip}>
-              <Text style={styles.statValue}>{counts[f]}</Text>
-              <Text style={styles.statLabel}>{f}</Text>
-            </View>
-          ))}
+      <View style={styles.whiteSection}>
+        {/* Quick Access — always */}
+        <View style={styles.quickWrap}>
+          <QuickAccessRow onPress={handleQuickAccess} />
         </View>
-      </View>
 
-      {/* Light sheet */}
-      <View style={styles.sheet}>
+        {/* Tabs — Dashboard / Modules / Create Human */}
+        <View style={[styles.tabsContainer, dyn.tabsBorder]}>
+          <TabButton
+            label="Dashboard"
+            active={tab === 'dashboard'}
+            onPress={() => setTab('dashboard')}
+            dyn={dyn}
+            isFirst
+          />
+          <TabButton
+            label="Modules"
+            active={tab === 'modules'}
+            onPress={() => setTab('modules')}
+            dyn={dyn}
+          />
+          <TabButton
+            label="Human Create"
+            active={tab === 'createHuman'}
+            onPress={() => setTab('createHuman')}
+            dyn={dyn}
+            isLast
+          />
+        </View>
 
-        {/* Filter toggle */}
-        <FilterToggle active={filter} counts={counts} onChange={setFilter} />
-
-        {/* Search bar */}
-        {humans.length > 0 && (
-          <View style={sb.wrap}>
-            {/* Search icon */}
-            <View style={sb.iconWrap}>
-              <View style={[sb.glass, { borderColor: colors.placeholder }]} />
-              <View style={[sb.handle, { backgroundColor: colors.placeholder }]} />
+        {/* Content below the tabs */}
+        {tab === 'dashboard' ? (
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.contentScrollContent}
+            showsVerticalScrollIndicator={false}>
+            <View style={styles.dashboardContent}>
+              <DashboardView />
             </View>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name, NIC, location…"
-              placeholderTextColor={colors.placeholder}
-              style={[sb.input, { color: colors.primaryText }]}
-              autoCapitalize="none"
-              clearButtonMode="while-editing"
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} style={sb.clearBtn} hitSlop={8}>
-                <View style={[sb.clearX1, { backgroundColor: colors.placeholder }]} />
-                <View style={[sb.clearX2, { backgroundColor: colors.placeholder }]} />
-              </Pressable>
-            )}
-          </View>
-        )}
-
-        {/* Table header (shown when there are records) */}
-        {filtered.length > 0 && (
-          <View style={th.row}>
-            <View style={th.colIdx}><Text style={[th.txt, dynamicStyles.headerTxt]}>#</Text></View>
-            <View style={th.colName}><Text style={[th.txt, dynamicStyles.headerTxt]}>Name · Country</Text></View>
-            <View style={th.colMeta}><Text style={[th.txt, dynamicStyles.headerTxt]}>{filter === 'Japan' ? 'Prefecture' : 'DOB / Gender'}</Text></View>
-            <View style={th.colActions}><Text style={[th.txt, dynamicStyles.headerTxt, { textAlign: 'center' }]}>Actions</Text></View>
-          </View>
-        )}
-
-        {filtered.length === 0 && humans.length === 0 ? (
-          <EmptyState filter={filter} onAdd={openCreate} />
-        ) : filtered.length === 0 ? (
-          <NoResults query={searchQuery} onClear={() => setSearchQuery('')} />
+          </ScrollView>
+        ) : tab === 'modules' ? (
+          <ModulesView onModulePress={handleModulePress} />
         ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={h => h.id}
-            renderItem={({ item, index }) => (
-              <TableRow
-                human={item} index={index}
-                onView={() => openView(item)}
-                onEdit={() => openEdit(item)}
-                onDelete={() => handleDelete(item)}
-              />
-            )}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 100 }}
+          <HumanDashboardView
+            counts={counts}
+            humans={humans}
+            filter={filter}
+            setFilter={setFilter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onOpenCreate={openCreate}
+            onView={openView}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+            filtered={filtered}
+            onRefresh={handleRefresh}
           />
         )}
 
-        {/* FAB — mirrors assets/icons/create-button.svg */}
-        <Pressable
-          onPress={openCreate}
-          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-          accessibilityLabel="Create human"
-          accessibilityRole="button">
-          <View style={styles.fabH} />
-          <View style={styles.fabV} />
-        </Pressable>
       </View>
 
       <HumanFormModal
@@ -311,117 +502,309 @@ export function HumanManagementScreen() {
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-const DARK   = '#1C1C1E';
-const LIGHT  = '#F2F2F7';
+function createDynamicStyles(colors: any, isDarkMode: boolean) {
+  return StyleSheet.create({
+    safe: { backgroundColor: '#5A5A5A' },
+    searchBar: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7',
+      borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
+    },
+    searchInput: { color: colors.primaryText },
+    tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
+    tabsBorder: { borderBottomColor: isDarkMode ? '#3A3A3C' : '#E5E5EA' },
+    tableHeader: {
+      backgroundColor: isDarkMode ? '#1F1F22' : '#FAFAFC',
+      borderBottomColor: isDarkMode ? '#3A3A3C' : '#E8E8F0',
+    },
+    headerTxt: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B6B70' },
+    pillTxt: { color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#5A5A62' },
+  });
+}
 
 const styles = StyleSheet.create({
-  safe:     { flex: 1, backgroundColor: DARK },
-  darkBand: { backgroundColor: DARK, paddingBottom: 24 },
-  sheet: {
-    flex: 1, backgroundColor: LIGHT,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    marginTop: -28, overflow: 'hidden',
+  safe: { flex: 1 },
+
+  whiteSection: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
   },
-  statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
-  statChip: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', minWidth: 64 },
-  statValue: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
-  statLabel: { fontFamily: FontFamily.regular, fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
-  fab: { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.primaryHighlight, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 },
-  fabPressed: { transform: [{ scale: 0.93 }], opacity: 0.88 },
-  fabH: { position: 'absolute', width: 24, height: 3, borderRadius: 1.5, backgroundColor: '#FFF' },
-  fabV: { position: 'absolute', width: 3, height: 24, borderRadius: 1.5, backgroundColor: '#FFF' },
-});
 
-const ft = StyleSheet.create({
-  wrap: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm, gap: 8 },
-  btn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: '#FFF', borderWidth: 1.5, borderColor: '#E5E5EA' },
-  btnActive: { backgroundColor: DARK, borderColor: DARK },
-  label: { fontFamily: FontFamily.medium, fontSize: FontSize.xs },
-  labelActive: { color: '#FFF', fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
-  badge: { backgroundColor: '#F0F0F5', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
-  badgeActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
-  badgeText: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold },
-  badgeTextActive: { color: '#FFF' },
-});
+  quickWrap: {
+    paddingHorizontal: H_PAD,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+    backgroundColor: '#FFFFFF',
+  },
 
-const th = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 8, backgroundColor: '#FFF', borderBottomWidth: 1.5, borderBottomColor: '#E8E8F0' },
-  txt: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, textTransform: 'uppercase', letterSpacing: 0.6 },
-  colIdx:    { width: 28 },
-  colName:   { flex: 1 },
-  colMeta:   { width: 80 },
-  colActions:{ width: 96 },
-});
-
-const tr = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F5', backgroundColor: '#FFF' },
-  rowEven: { backgroundColor: '#FAFAFA' },
-  colIdx:  { width: 28 },
-  colName: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  colMeta: { width: 80 },
-  colActions: { width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
-
-  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs },
-  avatar:  { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: FontWeight.bold, color: '#FFF' },
-  nameBlock: { flex: 1, gap: 2 },
-  nameText: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: FontWeight.medium },
-  countryBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-  badgeSL: { backgroundColor: 'rgba(233,30,99,0.1)' },
-  badgeJP: { backgroundColor: 'rgba(63,81,181,0.1)' },
-  countryTxt: { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.5 },
-  countryTxtSL: { color: Colors.primaryHighlight },
-  countryTxtJP: { color: '#3F51B5' },
-
-  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: FontWeight.medium },
-  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, marginTop: 1 },
-
-  btn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  btnView:   { backgroundColor: 'rgba(63,81,181,0.1)' },
-  btnEdit:   { backgroundColor: 'rgba(255,152,0,0.1)' },
-  btnDelete: { backgroundColor: 'rgba(211,47,47,0.1)' },
-});
-
-const es = StyleSheet.create({
-  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xl, paddingBottom: 60, gap: Spacing.md },
-  iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(233,30,99,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  head: { position: 'absolute', top: 12, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(233,30,99,0.3)' },
-  body: { position: 'absolute', bottom: 14, width: 28, height: 16, borderTopLeftRadius: 14, borderTopRightRadius: 14, backgroundColor: 'rgba(233,30,99,0.3)' },
-  plusH: { position: 'absolute', bottom: 10, right: 8, width: 14, height: 3, borderRadius: 1.5, backgroundColor: Colors.primaryHighlight },
-  plusV: { position: 'absolute', bottom: 4, right: 14, width: 3, height: 14, borderRadius: 1.5, backgroundColor: Colors.primaryHighlight },
-  title: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold },
-  sub:   { fontFamily: FontFamily.regular, fontSize: FontSize.sm, textAlign: 'center', lineHeight: 18 },
-  btn:   { marginTop: Spacing.sm, backgroundColor: Colors.primaryHighlight, borderRadius: 12, paddingHorizontal: Spacing.xl, paddingVertical: 12 },
-  btnTxt:{ fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: '#FFF' },
-});
-
-const sb = StyleSheet.create({
-  wrap: {
+  // ── Tabs ──
+  tabsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
+    paddingHorizontal: H_PAD,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBtnFirst: {
+    alignItems: 'flex-start',
+    paddingLeft: 12,
+    paddingRight: 4,
+  },
+  tabBtnLast: {
+    alignItems: 'flex-end',
+    paddingLeft: 4,
+    paddingRight: 12,
+  },
+  tabLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.sm,
+  },
+  tabLabelActive: {
+    fontFamily: FontFamily.bold,
+    fontWeight: '700',
+    color: Colors.primaryHighlight,
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: -7,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: Colors.primaryHighlight,
+    borderRadius: 2,
+  },
+
+
+  dashboardContent: {
+    flex: 1,
+  },
+
+  contentScroll: {
+    flex: 1,
+  },
+
+  contentScrollContent: {
+    flexGrow: 1,
+  },
+});
+
+// ─── Dashboard tab styles (hero, stats, table section) ────────────────────────
+const dv = StyleSheet.create({
+  scroll: {
+    paddingHorizontal: H_PAD + 6,
+    paddingTop: Spacing.md,
+    paddingBottom: 100,
+    gap: Spacing.md,
+  },
+
+  // Hero create card
+  hero: {
+    backgroundColor: '#595959',
+    borderRadius: 22,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    overflow: 'hidden',
+    shadowColor: '#595959',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  heroOrbA: {
+    position: 'absolute',
+    width: 160, height: 160, borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    top: -60, right: -40,
+  },
+  heroOrbB: {
+    position: 'absolute',
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    bottom: -50, left: -20,
+  },
+  heroIconOuter: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  heroHead: { position: 'absolute', top: 10, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFF' },
+  heroBody: { position: 'absolute', bottom: 10, width: 24, height: 12, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: '#FFF' },
+  heroPlus: {
+    position: 'absolute',
+    bottom: 2, right: 2,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroPlusH: { position: 'absolute', width: 8, height: 2, borderRadius: 1, backgroundColor: Colors.primaryHighlight },
+  heroPlusV: { position: 'absolute', width: 2, height: 8, borderRadius: 1, backgroundColor: Colors.primaryHighlight },
+  heroTextBlock: { flex: 1 },
+  heroTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 3,
+  },
+  heroSub: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 15,
+  },
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#FFF',
+  },
+  ctaPressed: { opacity: 0.88, transform: [{ scale: 0.97 }] },
+  ctaIcon: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
+  ctaIconH: { position: 'absolute', width: 10, height: 2, borderRadius: 1, backgroundColor: Colors.primaryHighlight },
+  ctaIconV: { position: 'absolute', width: 2, height: 10, borderRadius: 1, backgroundColor: Colors.primaryHighlight },
+  ctaTxt: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.primaryHighlight,
+  },
+
+  // Stats row
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FAFAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#EEEEF2',
+    overflow: 'hidden',
+  },
+  statAccent: {
+    position: 'absolute',
+    top: 0, left: 0,
+    width: 3, height: '100%',
+  },
+  statValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xl,
+    fontWeight: '700',
     marginBottom: 2,
-    paddingBottom: 8,
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#D0D0D0',
+  },
+  statLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: 10,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+
+  // Section header
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: Spacing.xs,
+  },
+  sectionAccent: {
+    width: 3, height: 14, borderRadius: 2,
+    backgroundColor: Colors.primaryHighlight,
+  },
+  sectionTitle: {
+    flex: 1,
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+  },
+  sectionCount: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
+
+  // Filter pills
+  pillRow: {
+    flexDirection: 'row',
     gap: 8,
   },
-  iconWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
-  glass: {
-    width: 11, height: 11,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    position: 'absolute', top: 0, left: 0,
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  handle: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 5, height: 1.5,
-    borderRadius: 1,
-    transform: [{ rotate: '45deg' }],
+  pillActive: {
+    backgroundColor: '#FFF',
+    borderColor: Colors.primaryHighlight,
   },
-  input: {
+  pillTxt: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  pillTxtActive: {
+    color: Colors.primaryHighlight,
+    fontFamily: FontFamily.bold,
+    fontWeight: '700',
+  },
+  pillBadge: {
+    backgroundColor: '#E0E0E8',
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    minWidth: 16,
+    alignItems: 'center',
+  },
+  pillBadgeActive: {
+    backgroundColor: Colors.primaryHighlight,
+  },
+  pillBadgeTxt: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#8E8E93',
+  },
+  pillBadgeTxtActive: {
+    color: '#FFF',
+  },
+
+  // Search
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  searchInput: {
     flex: 1,
     fontFamily: FontFamily.regular,
     fontSize: FontSize.sm,
@@ -436,30 +819,177 @@ const sb = StyleSheet.create({
   },
   clearX1: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
   clearX2: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+
+  // Refresh button
+  refreshBtn: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#595959',
+    borderRadius: 20,
+    shadowColor: '#595959',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  refreshBtnPressed: {
+    opacity: 0.85,
+  },
+  refreshIcon: {
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  refreshArrow: {
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#FFFFFF',
+    borderRadius: 2,
+    transform: [{ rotate: '-45deg' }],
+  },
+  refreshText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.sm,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+
+  // Table wrap
+  tableWrap: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8E8F0',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
 });
 
-const nr = StyleSheet.create({
-  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60, gap: Spacing.md },
-  iconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#F0F0F5', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  glass: { width: 26, height: 26, borderRadius: 14, borderWidth: 2.5, borderColor: '#C0C0CC', position: 'absolute', top: 10, left: 10 },
-  handle: { position: 'absolute', bottom: 11, right: 10, width: 11, height: 2.5, backgroundColor: '#C0C0CC', borderRadius: 1.5, transform: [{ rotate: '45deg' }] },
-  cross1: { position: 'absolute', top: 12, left: 22, width: 10, height: 2, backgroundColor: '#D32F2F', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  cross2: { position: 'absolute', top: 12, left: 22, width: 10, height: 2, backgroundColor: '#D32F2F', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  title: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold },
-  sub: { fontFamily: FontFamily.regular, fontSize: FontSize.sm, textAlign: 'center' },
-  query: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
-  btn: { marginTop: 4, paddingHorizontal: Spacing.lg, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, backgroundColor: '#FFF' },
-  btnTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm },
+// ─── Table header ─────────────────────────────────────────────────────────────
+const th = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  txt: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  colIdx:    { width: 28 },
+  colName:   { flex: 1 },
+  colMeta:   { width: 80 },
+  colActions:{ width: 96 },
 });
 
+// ─── Table row ────────────────────────────────────────────────────────────────
+const tr = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F5',
+    backgroundColor: '#FFF',
+  },
+  rowEven: { backgroundColor: '#FAFAFA' },
+  colIdx:  { width: 28 },
+  colName: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  colMeta: { width: 80 },
+  colActions: { width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+
+  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs },
+  avatar:  { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#FFF' },
+  nameBlock: { flex: 1, gap: 2 },
+  nameText: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: '500' },
+  countryBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  badgeSL: { backgroundColor: 'rgba(89,89,89,0.1)' },
+  badgeJP: { backgroundColor: 'rgba(89,89,89,0.08)' },
+  countryTxt: { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700', letterSpacing: 0.5 },
+  countryTxtSL: { color: '#595959' },
+  countryTxtJP: { color: '#595959' },
+
+  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: '500' },
+  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, marginTop: 1 },
+
+  btn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  btnView:   { backgroundColor: 'rgba(89,89,89,0.1)' },
+  btnEdit:   { backgroundColor: 'rgba(89,89,89,0.1)' },
+  btnDelete: { backgroundColor: 'rgba(89,89,89,0.12)' },
+});
+
+// ─── Empty state in table ─────────────────────────────────────────────────────
+const es = StyleSheet.create({
+  wrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  iconCircle: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: 'rgba(89,89,89,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
+  head: { position: 'absolute', top: 10, width: 13, height: 13, borderRadius: 6.5, backgroundColor: 'rgba(89,89,89,0.3)' },
+  body: { position: 'absolute', bottom: 12, width: 20, height: 10, borderTopLeftRadius: 10, borderTopRightRadius: 10, backgroundColor: 'rgba(89,89,89,0.3)' },
+  title: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  sub: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 16,
+    paddingHorizontal: Spacing.md,
+  },
+  clearBtn: {
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryHighlight,
+    backgroundColor: '#FFF',
+  },
+  clearTxt: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
+});
+
+// ─── Icon primitives ──────────────────────────────────────────────────────────
 const ai = StyleSheet.create({
   wrap: { width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
-  eyeOval: { position: 'absolute', width: 14, height: 9, borderRadius: 5, borderWidth: 1.5, borderColor: '#3F51B5' },
-  eyeDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: '#3F51B5' },
-  penBody: { position: 'absolute', width: 9, height: 3, backgroundColor: '#FF9800', borderRadius: 1, transform: [{ rotate: '-45deg' }], top: 2, left: 1 },
-  penLine: { position: 'absolute', bottom: 0, width: 8, height: 1.5, backgroundColor: '#FF9800', borderRadius: 1 },
-  lidBar:  { position: 'absolute', top: 0, width: 12, height: 2, borderRadius: 1, backgroundColor: '#D32F2F' },
-  binBody: { position: 'absolute', bottom: 0, width: 10, height: 10, borderBottomLeftRadius: 2, borderBottomRightRadius: 2, borderWidth: 1.5, borderColor: '#D32F2F', borderTopWidth: 0 },
-  binL:    { position: 'absolute', bottom: 2, left: 4, width: 1.5, height: 6, backgroundColor: '#D32F2F', borderRadius: 1 },
-  binR:    { position: 'absolute', bottom: 2, right: 4, width: 1.5, height: 6, backgroundColor: '#D32F2F', borderRadius: 1 },
+  eyeOval: { position: 'absolute', width: 14, height: 9, borderRadius: 5, borderWidth: 1.5, borderColor: '#595959' },
+  eyeDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: '#595959' },
+  penBody: { position: 'absolute', width: 9, height: 3, backgroundColor: '#595959', borderRadius: 1, transform: [{ rotate: '-45deg' }], top: 2, left: 1 },
+  penLine: { position: 'absolute', bottom: 0, width: 8, height: 1.5, backgroundColor: '#595959', borderRadius: 1 },
+  lidBar:  { position: 'absolute', top: 0, width: 12, height: 2, borderRadius: 1, backgroundColor: '#595959' },
+  binBody: { position: 'absolute', bottom: 0, width: 10, height: 10, borderBottomLeftRadius: 2, borderBottomRightRadius: 2, borderWidth: 1.5, borderColor: '#595959', borderTopWidth: 0 },
+  binL:    { position: 'absolute', bottom: 2, left: 4, width: 1.5, height: 6, backgroundColor: '#595959', borderRadius: 1 },
+  binR:    { position: 'absolute', bottom: 2, right: 4, width: 1.5, height: 6, backgroundColor: '#595959', borderRadius: 1 },
+  refreshArrow: { width: 12, height: 12, borderTopWidth: 2, borderRightWidth: 2, borderColor: '#FFFFFF', borderRadius: 2, transform: [{ rotate: '-45deg' }] },
 });
