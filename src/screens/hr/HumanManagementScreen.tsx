@@ -158,17 +158,10 @@ function HumanDashboardView({
   onEdit: (h: Human) => void;
   onDelete: (h: Human) => void;
   filtered: Human[];
-  onRefresh: () => void;
 }) {
   const { colors, isDarkMode } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [isScrolled, setIsScrolled] = useState(false);
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
-
-  const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    setIsScrolled(offsetY > 50);
-  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -178,52 +171,42 @@ function HumanDashboardView({
         contentContainerStyle={dv.scroll}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
-        onScroll={handleScroll}
         scrollEventThrottle={16}>
 
-        {/* Create CTA card */}
-        <View style={dv.hero}>
-          <View style={dv.heroOrbA} />
-          <View style={dv.heroOrbB} />
-
-          <View style={dv.heroIconOuter}>
-            <View style={dv.heroHead} />
-            <View style={dv.heroBody} />
-            <View style={dv.heroPlus}>
-              <View style={dv.heroPlusH} />
-              <View style={dv.heroPlusV} />
-            </View>
-          </View>
-
-          <View style={dv.heroTextBlock}>
-            <Text style={dv.heroTitle}>Add a New Human</Text>
-            <Text style={dv.heroSub}>Register identity, names, and address — 3 quick steps.</Text>
-          </View>
-
-          <Pressable
-            onPress={onOpenCreate}
-            style={({ pressed }) => [dv.cta, pressed && dv.ctaPressed]}
-            accessibilityRole="button">
-            <View style={dv.ctaIcon}>
-              <View style={dv.ctaIconH} />
-              <View style={dv.ctaIconV} />
-            </View>
-            <Text style={dv.ctaTxt}>Create Human</Text>
-          </Pressable>
-        </View>
-
-        {/* Stat cards */}
+        {/* Stat cards - at the top */}
         <View style={dv.statsRow}>
           <StatCard label="Total" value={counts.All} color="#595959" />
           <StatCard label="Sri Lanka" value={counts['Sri Lanka']} color="#6B6B6B" />
           <StatCard label="Japan" value={counts.Japan} color="#7D7D7D" />
         </View>
 
-        {/* Section header: Created humans */}
-        <View style={dv.sectionHead}>
-          <View style={dv.sectionAccent} />
-          <Text style={[dv.sectionTitle, { color: colors.primaryText }]}>Created Humans</Text>
-          <Text style={[dv.sectionCount, { color: colors.placeholder }]}>{humans.length}</Text>
+        {/* Search with Add button */}
+        <View style={dv.searchWrapper}>
+          <View style={[dv.searchBar, dyn.searchBar]}>
+            <UIIcon name="search" size={16} color="#8E8E93" />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by name, NIC, location…"
+              placeholderTextColor="#8E8E93"
+              style={[dv.searchInput, dyn.searchInput]}
+              autoCapitalize="none"
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={dv.clearBtn} hitSlop={8}>
+                <View style={[dv.clearX1, { backgroundColor: colors.placeholder }]} />
+                <View style={[dv.clearX2, { backgroundColor: colors.placeholder }]} />
+              </Pressable>
+            )}
+          </View>
+          <Pressable
+            onPress={onOpenCreate}
+            style={({ pressed }) => [dv.addBtn, pressed && dv.addBtnPressed]}
+            accessibilityRole="button">
+            <View style={dv.addBtnIcon} />
+            <View style={dv.addBtnIconV} />
+          </Pressable>
         </View>
 
         {/* Filter pills */}
@@ -242,26 +225,6 @@ function HumanDashboardView({
               </Pressable>
             );
           })}
-        </View>
-
-        {/* Search */}
-        <View style={[dv.searchBar, dyn.searchBar]}>
-          <UIIcon name="search" size={16} color="#8E8E93" />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search by name, NIC, location…"
-            placeholderTextColor="#8E8E93"
-            style={[dv.searchInput, dyn.searchInput]}
-            autoCapitalize="none"
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} style={dv.clearBtn} hitSlop={8}>
-              <View style={[dv.clearX1, { backgroundColor: colors.placeholder }]} />
-              <View style={[dv.clearX2, { backgroundColor: colors.placeholder }]} />
-            </Pressable>
-          )}
         </View>
 
         {/* Table — always visible with default structure */}
@@ -295,22 +258,6 @@ function HumanDashboardView({
           )}
         </View>
       </ScrollView>
-
-      {/* Refresh button - appears when scrolled down */}
-      {isScrolled && (
-        <Pressable
-          onPress={() => {
-            onRefresh();
-            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-            setIsScrolled(false);
-          }}
-          style={({ pressed }) => [dv.refreshBtn, pressed && dv.refreshBtnPressed]}>
-          <View style={dv.refreshIcon}>
-            <View style={dv.refreshArrow} />
-          </View>
-          <Text style={dv.refreshText}>Refresh</Text>
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -413,11 +360,6 @@ export function HumanManagementScreen() {
     setModalVisible(false);
   }
 
-  function handleRefresh() {
-    // Refresh the data - in a real app, this would fetch from an API
-    // For now, we'll just trigger a re-render
-  }
-
   function handleQuickAccess(module: AppModule) {
     navigate('ModuleDetail', { moduleId: module.id });
   }
@@ -485,7 +427,6 @@ export function HumanManagementScreen() {
             onEdit={openEdit}
             onDelete={handleDelete}
             filtered={filtered}
-            onRefresh={handleRefresh}
           />
         )}
 
@@ -693,6 +634,7 @@ const dv = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 10,
+    marginBottom: Spacing.sm,
   },
   statCard: {
     flex: 1,
@@ -794,8 +736,15 @@ const dv = StyleSheet.create({
     color: '#FFF',
   },
 
-  // Search
+  // Search wrapper with add button
+  searchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: Spacing.md,
+  },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -819,6 +768,15 @@ const dv = StyleSheet.create({
   },
   clearX1: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
   clearX2: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  addBtn: {
+    width: 36, height: 36, borderRadius: 8,
+    backgroundColor: '#595959',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addBtnPressed: { opacity: 0.8, transform: [{ scale: 0.95 }] },
+  addBtnIcon: { position: 'absolute', width: 14, height: 2, borderRadius: 1, backgroundColor: '#FFF' },
+  addBtnIconV: { position: 'absolute', width: 2, height: 14, borderRadius: 1, backgroundColor: '#FFF' },
 
   // Refresh button
   refreshBtn: {
