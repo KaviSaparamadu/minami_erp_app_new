@@ -14,10 +14,10 @@ interface QuickAccessRowProps {
   onPress?: (module: AppModule) => void;
 }
 
-const ITEM_WIDTH = 56;
+const ITEM_WIDTH = 50;
 const ITEM_GAP = Spacing.md;
-const MAX_ITEMS = 4;
-const STEP = (ITEM_WIDTH + ITEM_GAP) * 3;
+const MAX_ITEMS = 5;
+const STEP = (ITEM_WIDTH + ITEM_GAP) * 4;
 
 export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
   const { colors, isDarkMode } = useTheme();
