@@ -15,7 +15,7 @@ interface QuickAccessRowProps {
 }
 
 const ITEM_WIDTH = 50;
-const ITEM_GAP = Spacing.md;
+const ITEM_GAP = 8;
 const MAX_ITEMS = 5;
 const STEP = (ITEM_WIDTH + ITEM_GAP) * 4;
 
