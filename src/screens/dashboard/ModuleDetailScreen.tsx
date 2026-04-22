@@ -194,8 +194,8 @@ const styles = StyleSheet.create({
 
   quickWrap: {
     paddingHorizontal: H_PAD,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
     backgroundColor: '#FFFFFF',
   },
 

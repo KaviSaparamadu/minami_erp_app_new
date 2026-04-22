@@ -18,13 +18,21 @@ export function TabsSection({ tabs, activeTab, onTabChange, colors, isDarkMode }
 
   return (
     <View style={[styles.tabsRow, { borderBottomColor }]}>
-      {tabs.map(tab => {
+      {tabs.map((tab, idx) => {
         const isActive = activeTab === tab;
+        const isFirst = idx === 0;
+        const isLast = idx === tabs.length - 1;
         return (
           <TouchableOpacity
             key={tab}
             onPress={() => onTabChange(tab)}
-            style={[styles.tabBtn, tabs.length === 3 && styles.tabBtn3Cols]}
+            style={[
+              styles.tabBtn,
+              tabs.length === 3 && styles.tabBtn3Cols,
+              isFirst && styles.tabBtnFirst,
+              isLast && styles.tabBtnLast,
+              !isFirst && !isLast && styles.tabBtnMiddle,
+            ]}
             activeOpacity={0.7}>
             <Text
               style={[
@@ -50,17 +58,31 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     marginHorizontal: 0,
     marginBottom: Spacing.sm,
-    paddingHorizontal: 0,
+    paddingHorizontal: 6,
     borderBottomWidth: 1,
   },
   tabBtn: {
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     alignItems: 'center',
     flex: 1,
+    justifyContent: 'center',
   },
   tabBtn3Cols: {
     flex: 1,
+  },
+  tabBtnFirst: {
+    alignItems: 'flex-start',
+    paddingLeft: 12,
+    paddingRight: 0,
+  },
+  tabBtnMiddle: {
+    alignItems: 'center',
+  },
+  tabBtnLast: {
+    alignItems: 'flex-end',
+    paddingLeft: 0,
+    paddingRight: 12,
   },
   tabLabel: {
     fontFamily: FontFamily.medium,

@@ -62,26 +62,35 @@ const SCREEN_LABELS: Record<string, string> = {
 };
 
 export function PageHeader({ title = '', showBack = true, transparent = false, showBrand = false }: PageHeaderProps) {
-  const { goBack, stack, navigateTo, openSidebar, params } = useNavigation();
+  const { goBack, stack, navigateTo, openSidebar, paramsStack } = useNavigation();
   const { user, logout } = useAuth();
   const { colors } = useTheme();
   const [showProfile, setShowProfile] = useState(false);
 
-  // Get module name if on ModuleDetail screen
-  const getModuleName = () => {
-    if (stack[stack.length - 1] === 'ModuleDetail' && params && 'moduleId' in params) {
-      const module = MODULES.find(m => m.id === params.moduleId);
+  const getModuleNameForIdx = (idx: number) => {
+    const p = paramsStack[idx];
+    if (p && 'moduleId' in p) {
+      const module = MODULES.find(m => m.id === p.moduleId);
       return module?.name || 'ModuleDetail';
     }
-    return null;
+    return 'ModuleDetail';
   };
 
-  const breadcrumbs = stack.length > 1 ? stack.map((screen, idx) => {
-    if (screen === 'ModuleDetail') {
-      return getModuleName() || screen;
+  const breadcrumbs = stack.slice(1).map((screen, i) => {
+    const stackIdx = i + 1;
+    const label = screen === 'ModuleDetail'
+      ? getModuleNameForIdx(stackIdx)
+      : (SCREEN_LABELS[screen] || screen);
+    return { screen, label, stackIdx };
+  });
+
+  // Remove duplicate consecutive breadcrumbs
+  const uniqueBreadcrumbs = breadcrumbs.reduce((acc, current, idx) => {
+    if (idx === 0 || current.label !== breadcrumbs[idx - 1].label) {
+      acc.push(current);
     }
-    return screen;
-  }) : [];
+    return acc;
+  }, [] as typeof breadcrumbs);
   const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   const fullName = user?.fullName ?? 'Administrator';
@@ -90,7 +99,7 @@ export function PageHeader({ title = '', showBack = true, transparent = false, s
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
   return (
-    <View style={[styles.header, transparent && styles.headerTransparent, dynamicStyles.header]}>
+    <View style={[styles.header, showBack && styles.headerCompact, transparent && styles.headerTransparent, dynamicStyles.header]}>
       <View style={styles.headerDecoration} />
 
       {/* ── Top Row: Menu, Brand, Avatar ── */}
@@ -137,7 +146,7 @@ export function PageHeader({ title = '', showBack = true, transparent = false, s
       {/* Breadcrumbs */}
       {!showBrand && (
         <View style={styles.breadcrumbContainer}>
-          {breadcrumbs.length > 0 && (
+          {uniqueBreadcrumbs.length > 0 && (
             <>
               <Pressable
                 onPress={goBack}
@@ -145,15 +154,14 @@ export function PageHeader({ title = '', showBack = true, transparent = false, s
                 accessibilityLabel="Go back"
                 accessibilityRole="button"
                 hitSlop={14}>
-                <MaterialCommunityIcons name="chevron-left" size={32} color="#FFFFFF" />
+                <MaterialCommunityIcons name="chevron-left" size={22} color="#FFFFFF" />
               </Pressable>
-              {breadcrumbs.map((screenLabel, idx) => {
-                const isLast = idx === breadcrumbs.length - 1;
-                const screenName = stack[idx + 1]; // Get original screen name from stack
+              {uniqueBreadcrumbs.map((crumb, idx) => {
+                const isLast = idx === uniqueBreadcrumbs.length - 1;
                 return (
                   <Pressable
-                    key={`${screenLabel}-${idx}`}
-                    onPress={() => navigateTo(screenName as any)}
+                    key={`${crumb.label}-${idx}`}
+                    onPress={() => navigateTo(crumb.screen as any)}
                     style={({ pressed }) => [
                       styles.breadcrumbItem,
                       isLast && styles.breadcrumbActive,
@@ -165,7 +173,7 @@ export function PageHeader({ title = '', showBack = true, transparent = false, s
                         dynamicStyles.breadcrumbText,
                         isLast && [styles.breadcrumbTextActive, dynamicStyles.breadcrumbTextActive],
                       ]}>
-                      {SCREEN_LABELS[screenName] || screenLabel}
+                      {crumb.label}
                     </Text>
                     {!isLast && <Text style={[styles.separator, dynamicStyles.separator]}> / </Text>}
                   </Pressable>
@@ -256,6 +264,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
+  headerCompact: {
+    minHeight: 68,
+    paddingVertical: 6,
+    paddingTop: 6,
+    paddingBottom: 6,
+    gap: 4,
+  },
 
   headerDecoration: {
     position: 'absolute',
@@ -344,8 +359,9 @@ const styles = StyleSheet.create({
   breadcrumbContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 8,
+    marginTop: 0,
+    gap: 4,
+    flexWrap: 'wrap',
   },
   backIconBtn: {
     padding: 4,

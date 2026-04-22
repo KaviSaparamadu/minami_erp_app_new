@@ -16,6 +16,7 @@ interface NavigationContextValue {
   navigating: boolean;
   stack: ScreenName[];
   params: Record<string, any> | null;
+  paramsStack: Array<Record<string, any> | null>;
   navigateTo: (screen: ScreenName) => void;
   sidebarOpen: boolean;
   openSidebar: () => void;
@@ -28,9 +29,9 @@ const NAV_DELAY = 500; // ms — page transition loader duration
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
   const [stack,       setStack]       = useState<ScreenName[]>(['Dashboard']);
+  const [paramsStack, setParamsStack] = useState<Array<Record<string, any> | null>>([null]);
   const [navigating,  setNavigating]  = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [params,      setParams]      = useState<Record<string, any> | null>(null);
 
   const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
@@ -39,7 +40,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setNavigating(true);
     setTimeout(() => {
       setStack(prev => [...prev, screen]);
-      setParams(navParams || null);
+      setParamsStack(prev => [...prev, navParams || null]);
       setNavigating(false);
     }, NAV_DELAY);
   }, []);
@@ -48,7 +49,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setNavigating(true);
     setTimeout(() => {
       setStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
-      setParams(null);
+      setParamsStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
       setNavigating(false);
     }, NAV_DELAY);
   }, []);
@@ -58,7 +59,11 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setTimeout(() => {
       setStack(prev => {
         const idx = prev.indexOf(screen);
-        return idx >= 0 ? prev.slice(0, idx + 1) : prev;
+        if (idx >= 0) {
+          setParamsStack(pPrev => pPrev.slice(0, idx + 1));
+          return prev.slice(0, idx + 1);
+        }
+        return prev;
       });
       setNavigating(false);
     }, NAV_DELAY);
@@ -66,9 +71,10 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 
   const currentScreen = stack[stack.length - 1];
   const canGoBack = stack.length > 1;
+  const params = paramsStack[paramsStack.length - 1];
 
   return (
-    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating, stack, params, navigateTo, sidebarOpen, openSidebar, closeSidebar }}>
+    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating, stack, params, paramsStack, navigateTo, sidebarOpen, openSidebar, closeSidebar }}>
       {children}
     </NavigationContext.Provider>
   );

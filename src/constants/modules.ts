@@ -130,16 +130,5 @@ export const MODULES: AppModule[] = [
       { id: '9-3', name: 'Complaints', value: '8', valueLabel: 'Pending' },
     ],
   },
-  {
-    id: '10',
-    name: 'Enterprise Management',
-    iconType: 'enterprise',
-    value: '3',
-    valueLabel: 'Divisions',
-    submodules: [
-      { id: '10-1', name: 'Divisions', value: '3', valueLabel: 'Total' },
-      { id: '10-2', name: 'Business Units', value: '8', valueLabel: 'Units' },
-      { id: '10-3', name: 'Departments', value: '24', valueLabel: 'Total' },
-    ],
-  },
+ 
 ];

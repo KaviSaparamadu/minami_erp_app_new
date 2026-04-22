@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  PanResponder,
+  GestureResponderEvent,
+  PanResponderGestureState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UIIcon } from '../../components/common/UIIcon';
@@ -36,8 +39,30 @@ export function DashboardScreen() {
 
   const [tab, setTab] = useState<Tab>('dashboard');
   const [search, setSearch] = useState('');
+  const panResponder = useRef<any>(null);
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+
+  // Set up swipe gesture handling
+  useEffect(() => {
+    panResponder.current = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (evt: GestureResponderEvent, state: PanResponderGestureState) => {
+        return Math.abs(state.dx) > 10 && Math.abs(state.dy) < 10;
+      },
+      onPanResponderRelease: (evt: GestureResponderEvent, state: PanResponderGestureState) => {
+        const threshold = 50;
+        // Swipe right (from left to right) - go to dashboard
+        if (state.dx > threshold && tab !== 'dashboard') {
+          setTab('dashboard');
+        }
+        // Swipe left (from right to left) - go to modules
+        if (state.dx < -threshold && tab !== 'modules') {
+          setTab('modules');
+        }
+      },
+    });
+  }, [tab]);
 
   function handleModulePress(module: AppModule) {
     navigate('ModuleDetail', { moduleId: module.id });
@@ -52,7 +77,7 @@ export function DashboardScreen() {
       <PageHeader showBack={false} showBrand={true} />
 
       {/* White section with fixed and scrollable content */}
-      <View style={styles.whiteSection}>
+      <View style={styles.whiteSection} {...panResponder.current?.panHandlers}>
 
         {/* Quick Access - Fixed in white area */}
         <View style={styles.quickWrap}>
@@ -78,12 +103,14 @@ export function DashboardScreen() {
             active={tab === 'dashboard'}
             onPress={() => setTab('dashboard')}
             dyn={dyn}
+            isFirst
           />
           <TabButton
             label="Modules"
             active={tab === 'modules'}
             onPress={() => setTab('modules')}
             dyn={dyn}
+            isLast
           />
         </View>
 
@@ -116,9 +143,9 @@ export function DashboardScreen() {
   );
 }
 
-function TabButton({ label, active, onPress, dyn }: { label: string; active: boolean; onPress: () => void; dyn: any }) {
+function TabButton({ label, active, onPress, dyn, isFirst, isLast }: { label: string; active: boolean; onPress: () => void; dyn: any; isFirst?: boolean; isLast?: boolean }) {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.tabBtn} activeOpacity={0.7}>
+    <TouchableOpacity onPress={onPress} style={[styles.tabBtn, isFirst && styles.tabBtnFirst, isLast && styles.tabBtnLast]} activeOpacity={0.7}>
       <Text style={[styles.tabLabel, dyn.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
       {active && <View style={styles.tabUnderline} />}
     </TouchableOpacity>
@@ -172,7 +199,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 0,
+    paddingHorizontal: H_PAD,
     paddingVertical: 6,
     borderBottomWidth: 1,
     backgroundColor: '#FFFFFF',
@@ -181,8 +208,21 @@ const styles = StyleSheet.create({
   tabBtn: {
     flex: 1,
     paddingVertical: 6,
-    paddingHorizontal: H_PAD,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  tabBtnFirst: {
+    alignItems: 'flex-start',
+    paddingLeft: 12,
+    paddingRight: 0,
+  },
+
+  tabBtnLast: {
+    alignItems: 'flex-end',
+    paddingLeft: 0,
+    paddingRight: 12,
   },
 
   tabLabel: {
@@ -197,7 +237,7 @@ const styles = StyleSheet.create({
 
   tabUnderline: {
     position: 'absolute',
-    bottom: -10,
+    bottom: -6,
     left: 0,
     right: 0,
     height: 2,
