@@ -173,13 +173,6 @@ function HumanDashboardView({
         nestedScrollEnabled
         scrollEventThrottle={16}>
 
-        {/* Stat cards - at the top */}
-        <View style={dv.statsRow}>
-          <StatCard label="Total" value={counts.All} color="#595959" />
-          <StatCard label="Sri Lanka" value={counts['Sri Lanka']} color="#6B6B6B" />
-          <StatCard label="Japan" value={counts.Japan} color="#7D7D7D" />
-        </View>
-
         {/* Search with Add button */}
         <View style={dv.searchWrapper}>
           <View style={[dv.searchBar, dyn.searchBar]}>
@@ -258,17 +251,6 @@ function HumanDashboardView({
           )}
         </View>
       </ScrollView>
-    </View>
-  );
-}
-
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
-  const { colors } = useTheme();
-  return (
-    <View style={dv.statCard}>
-      <View style={[dv.statAccent, { backgroundColor: color }]} />
-      <Text style={[dv.statValue, { color: colors.primaryText }]}>{value}</Text>
-      <Text style={[dv.statLabel, { color: colors.placeholder }]}>{label}</Text>
     </View>
   );
 }
@@ -628,39 +610,6 @@ const dv = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: Colors.primaryHighlight,
-  },
-
-  // Stats row
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: Spacing.sm,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FAFAFC',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#EEEEF2',
-    overflow: 'hidden',
-  },
-  statAccent: {
-    position: 'absolute',
-    top: 0, left: 0,
-    width: 3, height: '100%',
-  },
-  statValue: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.xl,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontFamily: FontFamily.regular,
-    fontSize: 10,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
   },
 
   // Section header
