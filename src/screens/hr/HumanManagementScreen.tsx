@@ -3,6 +3,7 @@ import {
   Alert,
   FlatList,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -161,7 +162,15 @@ function HumanDashboardView({
 }) {
   const { colors, isDarkMode } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -171,7 +180,14 @@ function HumanDashboardView({
         contentContainerStyle={dv.scroll}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
-        scrollEventThrottle={16}>
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#595959"
+          />
+        }>
 
         {/* Search with Add button */}
         <View style={dv.searchWrapper}>
@@ -256,7 +272,7 @@ function HumanDashboardView({
 }
 
 // ─── Modules tab content ──────────────────────────────────────────────────────
-function ModulesView({ onModulePress }: { onModulePress: (module: AppModule) => void }) {
+function ModulesView({ onModulePress, refreshing, onRefresh }: { onModulePress: (module: AppModule) => void; refreshing: boolean; onRefresh: () => void }) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
@@ -265,7 +281,14 @@ function ModulesView({ onModulePress }: { onModulePress: (module: AppModule) => 
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={[{ paddingHorizontal: H_PAD, paddingVertical: Spacing.md, gap: Spacing.md }]}
-      showsVerticalScrollIndicator={false}>
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#595959"
+        />
+      }>
       <View style={[{ paddingHorizontal: 6 }]}>
         <Text style={[{ fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', color: colors.primaryText, marginBottom: 12 }]}>
           Available Modules
@@ -304,6 +327,7 @@ export function HumanManagementScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<ModalMode>('create');
   const [selected,     setSelected]     = useState<Human | null>(null);
+  const [refreshing,   setRefreshing]   = useState(false);
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
@@ -350,6 +374,13 @@ export function HumanManagementScreen() {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
+  function handleDashboardRefresh() {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }
+
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
       <PageHeader title="Human Management" showBack={true} />
@@ -389,13 +420,20 @@ export function HumanManagementScreen() {
           <ScrollView
             style={styles.contentScroll}
             contentContainerStyle={styles.contentScrollContent}
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleDashboardRefresh}
+                tintColor="#595959"
+              />
+            }>
             <View style={styles.dashboardContent}>
               <DashboardView />
             </View>
           </ScrollView>
         ) : tab === 'modules' ? (
-          <ModulesView onModulePress={handleModulePress} />
+          <ModulesView onModulePress={handleModulePress} refreshing={refreshing} onRefresh={handleDashboardRefresh} />
         ) : (
           <HumanDashboardView
             counts={counts}
