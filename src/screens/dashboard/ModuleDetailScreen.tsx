@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
+import { Breadcrumbs } from '../../components/common/Breadcrumbs';
 import { TabsSection } from '../../components/dashboard/TabsSection';
 import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
 import { DashboardView } from '../../components/dashboard/DashboardView';
@@ -61,7 +62,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
 
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
-      <PageHeader showBack={true} showBrand={false} title={module.name} />
+      <PageHeader showBack={true} showBrand={false} title={module.name} showBreadcrumbs={false} />
 
       <View style={styles.whiteSection}>
         {/* Quick Access - Fixed in white area */}
@@ -72,7 +73,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
         {/* Tabs - Fixed in white area */}
         <TabsSection
           tabs={['Dashboard' as const, 'Modules' as const, 'Submodules' as const]}
-          activeTab={(tab === 'modules' ? 'Modules' : tab === 'submodules' ? 'Submodules' : 'Dashboard') as const}
+          activeTab={tab === 'modules' ? 'Modules' : tab === 'submodules' ? 'Submodules' : 'Dashboard'}
           onTabChange={(newTab) => {
             if (newTab === 'Modules') setTab('modules');
             else if (newTab === 'Submodules') setTab('submodules');
@@ -81,6 +82,9 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
           colors={colors}
           isDarkMode={isDarkMode}
         />
+
+        {/* Breadcrumbs - under the tab section */}
+        <Breadcrumbs variant="light" />
 
         {/* Scrollable content only */}
         <ScrollView
@@ -202,10 +206,11 @@ const styles = StyleSheet.create({
   whiteSection: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
     overflow: 'hidden',
     flexDirection: 'column',
+    marginTop: -10,
   },
 
   contentScroll: {

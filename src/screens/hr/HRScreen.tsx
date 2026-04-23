@@ -92,7 +92,7 @@ const SUBMODULE_SCREENS: Record<string, ScreenName> = {
 export function HRScreen() {
   const { navigate } = useNavigation();
   const { colors, isDarkMode } = useTheme();
-  const [tab, setTab] = useState<'dashboard' | 'modules'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'modules' | 'submodules'>('dashboard');
   const dynamicStyles = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   function handleSubModulePress(id: string) {
@@ -243,6 +243,18 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
     },
     bandSub: {
       color: 'rgba(255,255,255,0.4)',
+    },
+    cardTitle: {
+      color: colors.primaryText,
+    },
+    cardDesc: {
+      color: colors.placeholder,
+    },
+    chipCount: {
+      color: colors.primaryText,
+    },
+    chipLabel: {
+      color: colors.placeholder,
     },
   });
 }

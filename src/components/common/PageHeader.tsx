@@ -13,6 +13,7 @@ interface PageHeaderProps {
   showBack?: boolean;   // true on sub-screens; false on Dashboard
   transparent?: boolean; // removes dark background (for coloured parent headers)
   showBrand?: boolean; // shows brand logo instead of title (for Dashboard)
+  showBreadcrumbs?: boolean; // renders breadcrumbs inside the header (default true when !showBrand)
 }
 
 interface BackArrowProps {
@@ -39,8 +40,10 @@ function BrandLogo() {
   return (
     <View style={brandStyles.brand}>
       <Text style={brandStyles.brandG}>G</Text>
+      <Text style={brandStyles.brandSpace}> </Text>
       <Text style={brandStyles.brandPink}>P</Text>
-      <Text style={brandStyles.brandRest}>IT</Text>
+      <Text style={brandStyles.brandLowercaseI}>i</Text>
+      <Text style={brandStyles.brandRest}>T</Text>
       <View style={brandStyles.brandPill}>
         <Text style={brandStyles.brandPillText}>ERP</Text>
       </View>
@@ -61,7 +64,7 @@ const SCREEN_LABELS: Record<string, string> = {
   AssignUserRolePermission: 'Assign User Role Permission',
 };
 
-export function PageHeader({ title = '', showBack = true, transparent = false, showBrand = false }: PageHeaderProps) {
+export function PageHeader({ title = '', showBack = true, transparent = false, showBrand = false, showBreadcrumbs = true }: PageHeaderProps) {
   const { goBack, stack, navigateTo, openSidebar, paramsStack } = useNavigation();
   const { user, logout } = useAuth();
   const { colors } = useTheme();
@@ -144,7 +147,7 @@ export function PageHeader({ title = '', showBack = true, transparent = false, s
       )}
 
       {/* Breadcrumbs */}
-      {!showBrand && (
+      {!showBrand && showBreadcrumbs && (
         <View style={styles.breadcrumbContainer}>
           {uniqueBreadcrumbs.length > 0 && (
             <>
@@ -202,7 +205,7 @@ function createDynamicStyles(colors: any) {
   const isDark = colors.background !== '#FFFFFF';
   return StyleSheet.create({
     header: {
-      backgroundColor: '#595959',
+      backgroundColor: 'rgba(89, 89, 89, 0.8)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
@@ -450,6 +453,18 @@ const brandStyles = StyleSheet.create({
     color: '#E91E63',
   },
   brandPink: {
+    fontFamily: FontFamily.bold,
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  brandSpace: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    width: 4,
+  },
+  brandLowercaseI: {
     fontFamily: FontFamily.bold,
     fontSize: 18,
     fontWeight: FontWeight.bold,

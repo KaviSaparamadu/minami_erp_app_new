@@ -30,6 +30,7 @@ export interface NavNode {
 interface SidebarProps {
   visible: boolean;
   onClose: () => void;
+  navTitle?: string;
 }
 
 const NAV: NavNode[] = (navigationData as { modules: NavNode[] }).modules;
@@ -38,10 +39,10 @@ const SIDEBAR_MAX = 300;
 const ANIM_MS = 240;
 const PINK = Colors.primaryHighlight;
 
-export function Sidebar({ visible, onClose }: SidebarProps) {
+export function Sidebar({ visible, onClose, navTitle = 'Modules' }: SidebarProps) {
   const { width } = useWindowDimensions();
   const { currentScreen, navigate } = useNavigation();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const { colors, isDarkMode } = useTheme();
 
   const sidebarWidth = Math.min(width * SIDEBAR_RATIO, SIDEBAR_MAX);
@@ -122,8 +123,6 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
 
   if (!rendered) return null;
 
-  const initial = user?.fullName.charAt(0).toUpperCase() ?? '?';
-
   return (
     <Modal transparent visible={rendered} animationType="none" onRequestClose={onClose}>
       <View style={styles.root}>
@@ -142,19 +141,9 @@ export function Sidebar({ visible, onClose }: SidebarProps) {
           ]}>
           <SafeAreaView edges={['top', 'left', 'bottom']} style={styles.panelInner}>
 
-            {/* Header */}
-            <View style={[styles.header, dyn.header]}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initial}</Text>
-              </View>
-              <View style={styles.headerText}>
-                <Text style={[styles.userName, dyn.textPrimary]} numberOfLines={1}>
-                  {user?.fullName ?? 'Guest'}
-                </Text>
-                <Text style={[styles.userRole, dyn.textMuted]} numberOfLines={1}>
-                  {user?.role ?? 'Administrator'}
-                </Text>
-              </View>
+            {/* Top Bar: Title + Close Button */}
+            <View style={styles.topBar}>
+              <Text style={[styles.navHeader, dyn.textPrimary]}>{navTitle}</Text>
               <Pressable
                 onPress={onClose}
                 style={({ pressed }) => [styles.closeBtn, dyn.closeBtn, pressed && dyn.rowPressed]}
@@ -376,19 +365,33 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     marginTop: 2,
   },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
   closeBtn: {
-    width: 32, height: 32, borderRadius: 16,
+    width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderWidth: 0,
   },
   closeBar: {
     position: 'absolute',
-    width: 14, height: 1.5, borderRadius: 1,
+    width: 12, height: 1.2, borderRadius: 0.6,
   },
   closeBar1: { transform: [{ rotate: '45deg' }] },
   closeBar2: { transform: [{ rotate: '-45deg' }] },
 
   // Nav
+  navHeader: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+    flex: 1,
+  },
   nav: {
     paddingVertical: Spacing.sm,
   },
@@ -434,14 +437,14 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   logoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    paddingVertical: 11,
+    paddingVertical: 8,
     paddingHorizontal: Spacing.md,
     borderRadius: 10,
   },

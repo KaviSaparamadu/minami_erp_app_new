@@ -124,7 +124,7 @@ const ICONS = [UserPlusIcon, KeyIcon, BadgeIcon, ShieldIcon];
 export function UserManagementScreen() {
   const { navigate } = useNavigation();
   const { colors } = useTheme();
-  const [tab, setTab] = useState<'dashboard' | 'modules'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'modules' | 'submodules'>('dashboard');
   const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
   function handlePress(id: string) {

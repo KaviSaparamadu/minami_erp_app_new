@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   Alert,
   FlatList,
@@ -19,15 +19,29 @@ import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { HumanFormModal, ModalMode } from '../../components/hr/HumanFormModal';
+import { DataTable, DataTableColumn, TableIcons } from '../../components/common/DataTable';
 import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
 import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import type { Country, Human } from '../../types/hr';
+import { fetchHumanList, dataKeyFor, HumanRow, HumanColumn } from '../../api/humanApi';
 
 let nextId = 1;
 const genId = () => String(nextId++);
+
+function mapRowToHuman(row: HumanRow): Human {
+  const country: Country = row.t2name === 'Japan' ? 'Japan' : 'Sri Lanka';
+  return {
+    id: String(row.id),
+    country,
+    fullName: (row.t1fullname as string) ?? '',
+    gender: (row.t1gender as string) ?? undefined,
+    dateOfBirth: (row.t1dob as string) ?? undefined,
+    nic: (row.t1NIC as string) ?? undefined,
+  };
+}
 
 const H_PAD = 6;
 const GRID_GAP = 10;
@@ -38,13 +52,51 @@ type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
 const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
 
-//  Action icons
-function EyeIcon()  { return <View style={ai.wrap}><View style={ai.eyeOval}/><View style={ai.eyeDot}/></View>; }
-function EditIcon() { return <View style={ai.wrap}><View style={ai.penBody}/><View style={ai.penLine}/></View>; }
-function TrashIcon(){ return <View style={ai.wrap}><View style={ai.lidBar}/><View style={ai.binBody}/><View style={ai.binL}/><View style={ai.binR}/></View>; }
-function RefreshIcon() { return <View style={ai.wrap}><View style={ai.refreshArrow}/></View>; }
+// ─── Human table cell renderers 
+function IndexCell({ index }: { index: number }) {
+  const { colors } = useTheme();
+  return <Text style={[cell.idxText, { color: colors.placeholder }]}>{index + 1}</Text>;
+}
 
-//  Tab button (Dashboard/Modules style)  
+function NameCell({ human, index }: { human: Human; index: number }) {
+  const { colors } = useTheme();
+  const initial = human.fullName.charAt(0).toUpperCase();
+  const isSL = human.country === 'Sri Lanka';
+
+  return (
+    <View style={cell.nameRow}>
+      <View style={[cell.avatar, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
+        <Text style={cell.avatarTxt}>{initial}</Text>
+      </View>
+      <View style={cell.nameBlock}>
+        <Text style={[cell.nameText, { color: colors.primaryText }]} numberOfLines={1}>
+          {human.title ? `${human.title} ` : ''}{human.fullName}
+        </Text>
+        <View style={[cell.countryBadge, isSL ? cell.badgeSL : cell.badgeJP]}>
+          <Text style={cell.countryTxt}>{isSL ? 'SL' : 'JP'}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function MetaCell({ human }: { human: Human }) {
+  const { colors } = useTheme();
+  const isSL = human.country === 'Sri Lanka';
+
+  return (
+    <View>
+      <Text style={[cell.metaText, { color: colors.primaryText }]} numberOfLines={1}>
+        {isSL ? (human.dateOfBirth ?? '—') : (human.prefecture ?? '—')}
+      </Text>
+      <Text style={[cell.metaSub, { color: colors.placeholder }]} numberOfLines={1}>
+        {isSL ? (human.gender ?? '') : (human.city ?? '')}
+      </Text>
+    </View>
+  );
+}
+
+//  Tab button (Dashboard/Modules style)
 function TabButton({ label, active, onPress, dyn, isFirst, isLast }: { label: string; active: boolean; onPress: () => void; dyn: any; isFirst?: boolean; isLast?: boolean }) {
   return (
     <Pressable
@@ -56,87 +108,9 @@ function TabButton({ label, active, onPress, dyn, isFirst, isLast }: { label: st
   );
 }
 
-//  Table row 
-function TableRow({ human, index, onView, onEdit, onDelete }: { human: Human; index: number; onView(): void; onEdit(): void; onDelete(): void }) {
-  const { colors } = useTheme();
-  const initial = human.fullName.charAt(0).toUpperCase();
-  const isEven  = index % 2 === 0;
-  const isSL    = human.country === 'Sri Lanka';
-
-  return (
-    <View style={[tr.row, isEven && tr.rowEven]}>
-      <View style={tr.colIdx}><Text style={[tr.idxText, { color: colors.placeholder }]}>{index + 1}</Text></View>
-
-      <View style={tr.colName}>
-        <View style={[tr.avatar, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
-          <Text style={tr.avatarTxt}>{initial}</Text>
-        </View>
-        <View style={tr.nameBlock}>
-          <Text style={[tr.nameText, { color: colors.primaryText }]} numberOfLines={1}>
-            {human.title ? `${human.title} ` : ''}{human.fullName}
-          </Text>
-          <View style={[tr.countryBadge, isSL ? tr.badgeSL : tr.badgeJP]}>
-            <Text style={[tr.countryTxt, isSL ? tr.countryTxtSL : tr.countryTxtJP]}>
-              {isSL ? 'SL' : 'JP'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={tr.colMeta}>
-        <Text style={[tr.metaText, { color: colors.primaryText }]} numberOfLines={1}>
-          {isSL ? (human.dateOfBirth ?? '—') : (human.prefecture ?? '—')}
-        </Text>
-        <Text style={[tr.metaSub, { color: colors.placeholder }]} numberOfLines={1}>
-          {isSL ? (human.gender ?? '') : (human.city ?? '')}
-        </Text>
-      </View>
-
-      <View style={tr.colActions}>
-        <Pressable onPress={onView}   style={[tr.btn, tr.btnView]}   hitSlop={6}><EyeIcon /></Pressable>
-        <Pressable onPress={onEdit}   style={[tr.btn, tr.btnEdit]}   hitSlop={6}><EditIcon /></Pressable>
-        <Pressable onPress={onDelete} style={[tr.btn, tr.btnDelete]} hitSlop={6}><TrashIcon /></Pressable>
-      </View>
-    </View>
-  );
-}
-
-//  Empty state within the table 
-function TableEmpty({ query, filter, onClear }: { query: string; filter: Filter; onClear(): void }) {
-  const { colors } = useTheme();
-  const isSearch = query.trim().length > 0;
-
-  return (
-    <View style={es.wrap}>
-      <View style={es.iconCircle}>
-        <View style={es.head}/>
-        <View style={es.body}/>
-      </View>
-      <Text style={[es.title, { color: colors.primaryText }]}>
-        {isSearch
-          ? 'No matching records'
-          : filter === 'All'
-            ? 'No humans yet'
-            : `No ${filter} records`}
-      </Text>
-      <Text style={[es.sub, { color: colors.placeholder }]}>
-        {isSearch
-          ? `Nothing matched "${query}"`
-          : 'Tap the + button or "Create Human" to add your first record'}
-      </Text>
-      {isSearch && (
-        <Pressable onPress={onClear} style={({ pressed }) => [es.clearBtn, pressed && { opacity: 0.75 }]}>
-          <Text style={[es.clearTxt, { color: Colors.primaryHighlight }]}>Clear search</Text>
-        </Pressable>
-      )}
-    </View>
-  );
-}
-
 // ─── Dashboard tab content: Human creates come in here ────────────────────────
 function HumanDashboardView({
   counts,
-  humans,
   filter,
   setFilter,
   searchQuery,
@@ -145,31 +119,36 @@ function HumanDashboardView({
   onView,
   onEdit,
   onDelete,
-  filtered,
+  filteredRows,
+  apiColumns,
+  aliasMap,
   onRefresh,
+  loadError,
 }: {
   counts: Record<Filter, number>;
-  humans: Human[];
   filter: Filter;
   setFilter: (f: Filter) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   onOpenCreate: () => void;
-  onView: (h: Human) => void;
-  onEdit: (h: Human) => void;
-  onDelete: (h: Human) => void;
-  filtered: Human[];
+  onView: (r: HumanRow) => void;
+  onEdit: (r: HumanRow) => void;
+  onDelete: (r: HumanRow) => void;
+  filteredRows: HumanRow[];
+  apiColumns: HumanColumn[];
+  aliasMap: Record<string, string>;
+  onRefresh: () => Promise<void> | void;
+  loadError: string | null;
 }) {
   const { colors, isDarkMode } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
   const [refreshing, setRefreshing] = useState(false);
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await onRefresh();
+    setRefreshing(false);
   };
 
   return (
@@ -236,36 +215,50 @@ function HumanDashboardView({
           })}
         </View>
 
-        {/* Table — always visible with default structure */}
-        <View style={dv.tableWrap}>
-          <View style={[th.row, dyn.tableHeader]}>
-            <View style={th.colIdx}><Text style={[th.txt, dyn.headerTxt]}>#</Text></View>
-            <View style={th.colName}><Text style={[th.txt, dyn.headerTxt]}>Name · Country</Text></View>
-            <View style={th.colMeta}>
-              <Text style={[th.txt, dyn.headerTxt]}>
-                {filter === 'Japan' ? 'Prefecture' : 'DOB / Gender'}
-              </Text>
-            </View>
-            <View style={th.colActions}>
-              <Text style={[th.txt, dyn.headerTxt, { textAlign: 'center' }]}>Actions</Text>
-            </View>
+        {loadError && (
+          <View style={dv.errorBanner}>
+            <Text style={dv.errorTxt}>{loadError}</Text>
           </View>
+        )}
 
-          {filtered.length === 0 ? (
-            <TableEmpty query={searchQuery} filter={filter} onClear={() => setSearchQuery('')} />
-          ) : (
-            filtered.map((item, index) => (
-              <TableRow
-                key={item.id}
-                human={item}
-                index={index}
-                onView={() => onView(item)}
-                onEdit={() => onEdit(item)}
-                onDelete={() => onDelete(item)}
-              />
-            ))
-          )}
-        </View>
+        {/* Data Table — columns driven by API response */}
+        <DataTable<HumanRow>
+          data={filteredRows}
+          keyExtractor={(r) => String(r.id)}
+          columns={[
+            {
+              key: 'idx',
+              header: '#',
+              width: 28,
+              render: (_item, i) => <IndexCell index={i} />,
+            },
+            ...apiColumns.map<DataTableColumn<HumanRow>>((c) => {
+              const key = dataKeyFor(c, aliasMap);
+              return {
+                key,
+                header: c.label,
+                flex: 1,
+                render: (row) => {
+                  const v = row[key];
+                  return (
+                    <Text style={[cell.metaText, { color: colors.primaryText }]} numberOfLines={1}>
+                      {v == null || v === '' ? '—' : String(v)}
+                    </Text>
+                  );
+                },
+              };
+            }),
+          ]}
+          actions={[
+            { icon: <TableIcons.Eye />,   variant: 'view',   onPress: onView,   label: 'View' },
+            { icon: <TableIcons.Edit />,  variant: 'edit',   onPress: onEdit,   label: 'Edit' },
+            { icon: <TableIcons.Trash />, variant: 'delete', onPress: onDelete, label: 'Delete' },
+          ]}
+          searchQuery={searchQuery}
+          onClearSearch={() => setSearchQuery('')}
+          emptyTitle={filter === 'All' ? 'No humans yet' : `No ${filter} records`}
+          emptySubtitle='Tap the + button or "Create Human" to add your first record'
+        />
       </ScrollView>
     </View>
   );
@@ -320,50 +313,70 @@ export function HumanManagementScreen() {
   const { width } = useWindowDimensions();
   const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
 
-  const [tab,          setTab]          = useState<Tab>('dashboard');
-  const [humans,       setHumans]       = useState<Human[]>([]);
+  const [tab,          setTab]          = useState<Tab>('createHuman');
+  const [rows,         setRows]         = useState<HumanRow[]>([]);
+  const [apiColumns,   setApiColumns]   = useState<HumanColumn[]>([]);
+  const [aliasMap,     setAliasMap]     = useState<Record<string, string>>({});
   const [filter,       setFilter]       = useState<Filter>('All');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<ModalMode>('create');
   const [selected,     setSelected]     = useState<Human | null>(null);
   const [refreshing,   setRefreshing]   = useState(false);
+  const [loadError,    setLoadError]    = useState<string | null>(null);
+
+  const loadHumans = useCallback(async () => {
+    const res = await fetchHumanList(1, 10);
+    if (res.ok) {
+      setRows(res.data.rows);
+      setApiColumns(res.data.columns);
+      setAliasMap(res.data.aliasMap);
+      setLoadError(null);
+    } else {
+      setLoadError(res.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadHumans();
+  }, [loadHumans]);
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
-  const countryFiltered = filter === 'All' ? humans : humans.filter(h => h.country === filter);
+  const countryFiltered = filter === 'All'
+    ? rows
+    : rows.filter(r => r.t2name === filter);
 
   const q = searchQuery.trim().toLowerCase();
-  const filtered = q === ''
+  const filteredRows = q === ''
     ? countryFiltered
-    : countryFiltered.filter(h =>
-        [h.fullName, h.firstName, h.surname, h.otherName, h.title,
-         h.nic, h.dateOfBirth, h.gender, h.district, h.gnDivision,
-         h.province, h.prefecture, h.city, h.townDistrict]
-          .some(v => v?.toLowerCase().includes(q)),
+    : countryFiltered.filter(r =>
+        Object.values(r).some(v =>
+          typeof v === 'string' && v.toLowerCase().includes(q),
+        ),
       );
 
   const counts: Record<Filter, number> = {
-    All:         humans.length,
-    'Sri Lanka': humans.filter(h => h.country === 'Sri Lanka').length,
-    Japan:       humans.filter(h => h.country === 'Japan').length,
+    All:         rows.length,
+    'Sri Lanka': rows.filter(r => r.t2name === 'Sri Lanka').length,
+    Japan:       rows.filter(r => r.t2name === 'Japan').length,
   };
 
   function openCreate() { setSelected(null); setModalMode('create'); setModalVisible(true); }
-  function openEdit(h: Human)   { setSelected(h); setModalMode('edit');   setModalVisible(true); }
-  function openView(h: Human)   { setSelected(h); setModalMode('view');   setModalVisible(true); }
+  function openEdit(r: HumanRow) { setSelected(mapRowToHuman(r)); setModalMode('edit'); setModalVisible(true); }
+  function openView(r: HumanRow) { setSelected(mapRowToHuman(r)); setModalMode('view'); setModalVisible(true); }
 
-  function handleDelete(h: Human) {
-    Alert.alert('Delete Human', `Remove "${h.fullName}"?`, [
+  function handleDelete(r: HumanRow) {
+    const name = String(r.t1fullname ?? '');
+    Alert.alert('Delete Human', `Remove "${name}"?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => setHumans(p => p.filter(x => x.id !== h.id)) },
+      { text: 'Delete', style: 'destructive', onPress: () => setRows(p => p.filter(x => x.id !== r.id)) },
     ]);
   }
 
-  function handleSave(data: Omit<Human, 'id'>) {
-    if (modalMode === 'create') setHumans(p => [...p, { ...data, id: genId() }]);
-    else setHumans(p => p.map(x => x.id === selected?.id ? { ...data, id: x.id } : x));
+  function handleSave(_data: Omit<Human, 'id'>) {
     setModalVisible(false);
+    loadHumans();
   }
 
   function handleQuickAccess(module: AppModule) {
@@ -374,11 +387,10 @@ export function HumanManagementScreen() {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
-  function handleDashboardRefresh() {
+  async function handleDashboardRefresh() {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await loadHumans();
+    setRefreshing(false);
   }
 
   return (
@@ -437,7 +449,6 @@ export function HumanManagementScreen() {
         ) : (
           <HumanDashboardView
             counts={counts}
-            humans={humans}
             filter={filter}
             setFilter={setFilter}
             searchQuery={searchQuery}
@@ -446,7 +457,11 @@ export function HumanManagementScreen() {
             onView={openView}
             onEdit={openEdit}
             onDelete={handleDelete}
-            filtered={filtered}
+            filteredRows={filteredRows}
+            apiColumns={apiColumns}
+            aliasMap={aliasMap}
+            onRefresh={loadHumans}
+            loadError={loadError}
           />
         )}
 
@@ -473,11 +488,6 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
     searchInput: { color: colors.primaryText },
     tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
     tabsBorder: { borderBottomColor: isDarkMode ? '#3A3A3C' : '#E5E5EA' },
-    tableHeader: {
-      backgroundColor: isDarkMode ? '#1F1F22' : '#FAFAFC',
-      borderBottomColor: isDarkMode ? '#3A3A3C' : '#E8E8F0',
-    },
-    headerTxt: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#6B6B70' },
     pillTxt: { color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#5A5A62' },
   });
 }
@@ -808,56 +818,26 @@ const dv = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Table wrap
-  tableWrap: {
-    borderRadius: 12,
+  errorBanner: {
+    backgroundColor: 'rgba(233,30,99,0.08)',
+    borderColor: 'rgba(233,30,99,0.25)',
     borderWidth: 1,
-    borderColor: '#E8E8F0',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  errorTxt: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.xs,
+    color: Colors.primaryHighlight,
   },
 });
 
-// ─── Table header ─────────────────────────────────────────────────────────────
-const th = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-  },
-  txt: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  colIdx:    { width: 28 },
-  colName:   { flex: 1 },
-  colMeta:   { width: 80 },
-  colActions:{ width: 96 },
-});
-
-// ─── Table row ────────────────────────────────────────────────────────────────
-const tr = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F5',
-    backgroundColor: '#FFF',
-  },
-  rowEven: { backgroundColor: '#FAFAFA' },
-  colIdx:  { width: 28 },
-  colName: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  colMeta: { width: 80 },
-  colActions: { width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
-
+// ─── Human table cell styles ──────────────────────────────────────────────────
+const cell = StyleSheet.create({
   idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs },
+
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   avatar:  { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   avatarTxt: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#FFF' },
   nameBlock: { flex: 1, gap: 2 },
@@ -865,76 +845,8 @@ const tr = StyleSheet.create({
   countryBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   badgeSL: { backgroundColor: 'rgba(89,89,89,0.1)' },
   badgeJP: { backgroundColor: 'rgba(89,89,89,0.08)' },
-  countryTxt: { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700', letterSpacing: 0.5 },
-  countryTxtSL: { color: '#595959' },
-  countryTxtJP: { color: '#595959' },
+  countryTxt: { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: '#595959' },
 
   metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: '500' },
   metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, marginTop: 1 },
-
-  btn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  btnView:   { backgroundColor: 'rgba(89,89,89,0.1)' },
-  btnEdit:   { backgroundColor: 'rgba(89,89,89,0.1)' },
-  btnDelete: { backgroundColor: 'rgba(89,89,89,0.12)' },
-});
-
-// ─── Empty state in table ─────────────────────────────────────────────────────
-const es = StyleSheet.create({
-  wrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.xs,
-  },
-  iconCircle: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: 'rgba(89,89,89,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  head: { position: 'absolute', top: 10, width: 13, height: 13, borderRadius: 6.5, backgroundColor: 'rgba(89,89,89,0.3)' },
-  body: { position: 'absolute', bottom: 12, width: 20, height: 10, borderTopLeftRadius: 10, borderTopRightRadius: 10, backgroundColor: 'rgba(89,89,89,0.3)' },
-  title: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  sub: {
-    fontFamily: FontFamily.regular,
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 16,
-    paddingHorizontal: Spacing.md,
-  },
-  clearBtn: {
-    marginTop: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: Colors.primaryHighlight,
-    backgroundColor: '#FFF',
-  },
-  clearTxt: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-  },
-});
-
-// ─── Icon primitives ──────────────────────────────────────────────────────────
-const ai = StyleSheet.create({
-  wrap: { width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
-  eyeOval: { position: 'absolute', width: 14, height: 9, borderRadius: 5, borderWidth: 1.5, borderColor: '#595959' },
-  eyeDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: '#595959' },
-  penBody: { position: 'absolute', width: 9, height: 3, backgroundColor: '#595959', borderRadius: 1, transform: [{ rotate: '-45deg' }], top: 2, left: 1 },
-  penLine: { position: 'absolute', bottom: 0, width: 8, height: 1.5, backgroundColor: '#595959', borderRadius: 1 },
-  lidBar:  { position: 'absolute', top: 0, width: 12, height: 2, borderRadius: 1, backgroundColor: '#595959' },
-  binBody: { position: 'absolute', bottom: 0, width: 10, height: 10, borderBottomLeftRadius: 2, borderBottomRightRadius: 2, borderWidth: 1.5, borderColor: '#595959', borderTopWidth: 0 },
-  binL:    { position: 'absolute', bottom: 2, left: 4, width: 1.5, height: 6, backgroundColor: '#595959', borderRadius: 1 },
-  binR:    { position: 'absolute', bottom: 2, right: 4, width: 1.5, height: 6, backgroundColor: '#595959', borderRadius: 1 },
-  refreshArrow: { width: 12, height: 12, borderTopWidth: 2, borderRightWidth: 2, borderColor: '#FFFFFF', borderRadius: 2, transform: [{ rotate: '-45deg' }] },
 });

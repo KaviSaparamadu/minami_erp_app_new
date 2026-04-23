@@ -1,5 +1,4 @@
 // GPIT UI Style Guide — sourced from claud.md
-import { Platform } from 'react-native';
 
 export type Theme = 'light' | 'dark';
 
@@ -70,8 +69,11 @@ export const FontSize = {
   xxl: 22,
 } as const;
 
+// Inter — modern professional UI font used by Linear, GitHub, Figma, Vercel.
+// Drop TTFs into assets/fonts/ and run: npx react-native-asset
 export const FontFamily = {
-  regular: Platform.select({ ios: 'Avenir Next', android: 'sans-serif', default: undefined }),
-  medium: Platform.select({ ios: 'Avenir Next', android: 'sans-serif-medium', default: undefined }),
-  bold: Platform.select({ ios: 'Avenir Next', android: 'sans-serif-medium', default: undefined }),
+  regular: 'Inter-Regular',
+  medium: 'Inter-Medium',
+  semiBold: 'Inter-SemiBold',
+  bold: 'Inter-Bold',
 } as const;

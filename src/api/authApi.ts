@@ -1,8 +1,6 @@
 import type { AuthUser, LoginCredentials } from '../types/auth';
 import type { ApiResult } from '../types/common';
-
-// Replace with your actual API base URL (must be HTTPS in production)
-const API_BASE_URL = 'https://api.example.com';
+import { API_BASE_URL } from '../constants/api';
 
 interface LoginResponse {
   token: string;

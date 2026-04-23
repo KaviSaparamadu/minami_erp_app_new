@@ -26,7 +26,7 @@ function FooterTabItem({ icon, label, onPress, active }: FooterItemProps) {
       accessibilityLabel={label}>
       <MaterialCommunityIcons
         name={icon}
-        size={24}
+        size={20}
         color={active ? '#E91E63' : '#8E8E93'}
       />
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
@@ -57,27 +57,22 @@ export function Footer() {
         </View>
       </View>
 
-      {/* Home Tab */}
-      <FooterTabItem
-        icon="home-outline"
-        label="Home"
-        active={true}
-        onPress={() => navigate('Dashboard')}
-      />
-
-      {/* Notifications Tab */}
-      <FooterTabItem
-        icon="bell-outline"
-        label="Notifications"
-        onPress={() => {}}
-      />
-
       {/* Settings Tab */}
       <FooterTabItem
         icon="cog-outline"
         label="Settings"
         onPress={() => {}}
       />
+
+      {/* Home Tab - Center */}
+      <View style={styles.homeCenter}>
+        <FooterTabItem
+          icon="home-outline"
+          label="Home"
+          active={true}
+          onPress={() => navigate('Dashboard')}
+        />
+      </View>
 
       {/* Profile Tab - Opens Profile Modal */}
       <FooterTabItem
@@ -120,12 +115,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingVertical: 10,
+    paddingVertical: 6,
     paddingHorizontal: Spacing.md,
     width: '100%',
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    height: 80,
+    height: 62,
     backgroundColor: '#FFFFFF',
   },
 
@@ -136,26 +131,26 @@ const styles = StyleSheet.create({
   },
 
   logoBorder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFF5FA',
   },
 
   logoImage: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
   },
 
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 6,
     paddingHorizontal: 4,
-    gap: 5,
+    gap: 3,
     borderRadius: 8,
   },
 
@@ -176,5 +171,11 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontWeight: FontWeight.bold,
     color: '#E91E63',
+  },
+
+  homeCenter: {
+    flex: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

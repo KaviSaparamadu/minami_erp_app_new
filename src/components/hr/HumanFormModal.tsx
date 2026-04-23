@@ -375,9 +375,10 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
   const STEP_COUNT = 3;
 
   return (
-    <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
-        <View style={s.container}>
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
+      <View style={s.modalOverlay}>
+        <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+          <View style={s.container}>
 
           {/* ── Header ── */}
           <View style={s.header}>
@@ -489,7 +490,8 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
           </View>
 
         </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -498,10 +500,25 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
 const DARK = '#1C1C1E';
 
 const s = StyleSheet.create({
-  container: { flex:1, backgroundColor:'#F5F5F7' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
+    paddingTop: 120,
+    paddingHorizontal: 12,
+  },
+
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F7',
+    borderRadius: 10,
+    maxHeight: '92%',
+    width: '100%',
+    overflow: 'hidden',
+  },
 
   // Header
-  header: { flexDirection:'row', alignItems:'center', backgroundColor:'#FFFFFF', paddingHorizontal:Spacing.lg, paddingTop: Platform.OS==='ios'?56:22, paddingBottom:Spacing.md, gap:Spacing.md, borderBottomWidth:1, borderBottomColor:'#EBEBEB' },
+  header: { flexDirection:'row', alignItems:'center', backgroundColor:'#FFFFFF', paddingHorizontal:Spacing.lg, paddingTop: Spacing.sm, paddingBottom:Spacing.sm, gap:Spacing.md, borderBottomWidth:1, borderBottomColor:'#EBEBEB' },
   headerIcon: { width:38, height:38, borderRadius:8, backgroundColor:Colors.primaryHighlight, alignItems:'center', justifyContent:'center' },
   penBody: { position:'absolute', width:16, height:3, backgroundColor:'#FFF', borderRadius:1.5, transform:[{rotate:'-45deg'},{translateY:-2}] },
   penTip:  { position:'absolute', bottom:8, left:8, width:0, height:0, borderLeftWidth:4, borderRightWidth:4, borderTopWidth:6, borderLeftColor:'transparent', borderRightColor:'transparent', borderTopColor:'#FFF', transform:[{rotate:'-45deg'}] },
@@ -513,7 +530,7 @@ const s = StyleSheet.create({
   xR: { position:'absolute', width:14, height:2, backgroundColor:'#888', borderRadius:1, transform:[{rotate:'-45deg'}] },
 
   // Step pills
-  stepRow: { flexDirection:'row', alignItems:'flex-start', justifyContent:'center', backgroundColor:'#FFFFFF', paddingHorizontal:Spacing.xl, paddingVertical:Spacing.md, borderBottomWidth:1, borderBottomColor:'#EBEBEB' },
+  stepRow: { flexDirection:'row', alignItems:'flex-start', justifyContent:'center', backgroundColor:'#FFFFFF', paddingHorizontal:Spacing.xl, paddingVertical:Spacing.sm, borderBottomWidth:1, borderBottomColor:'#EBEBEB' },
   stepCol:  { alignItems:'center', gap:4, minWidth:64 },
   stepLine: { flex:1, height:2, backgroundColor:'#E0E0E8', marginTop:13, marginHorizontal:2 },
   stepLineDone: { backgroundColor:Colors.primaryHighlight },
@@ -528,10 +545,10 @@ const s = StyleSheet.create({
   ckL: { position:'absolute', left:1, bottom:3, width:5, height:2, backgroundColor:'#FFF', borderRadius:1, transform:[{rotate:'45deg'}] },
   ckR: { position:'absolute', right:1, bottom:4, width:8, height:2, backgroundColor:'#FFF', borderRadius:1, transform:[{rotate:'-50deg'}] },
 
-  form: { paddingHorizontal:Spacing.lg, paddingTop:Spacing.lg },
+  form: { paddingHorizontal:Spacing.lg, paddingTop:Spacing.sm },
 
   // Footer
-  footer: { flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:Spacing.lg, paddingVertical:Spacing.md, backgroundColor:'#FFFFFF', borderTopWidth:1, borderTopColor:'#E5E5EA', gap:Spacing.sm },
+  footer: { flexDirection:'row', alignItems:'center', justifyContent:'space-between', paddingHorizontal:Spacing.lg, paddingVertical:Spacing.sm, backgroundColor:'#FFFFFF', borderTopWidth:1, borderTopColor:'#E5E5EA', gap:Spacing.sm },
   backBtn: { flexDirection:'row', alignItems:'center', gap:6, paddingVertical:12, paddingHorizontal:Spacing.md, borderRadius:8, borderWidth:1.5, borderColor:'#D0D0D8', backgroundColor:'#FFF', minWidth:80, justifyContent:'center' },
   backTxt: { fontFamily:FontFamily.medium, fontSize:FontSize.sm, color:Colors.primaryText },
   backArrow: { width:7, height:7, borderTopWidth:2, borderLeftWidth:2, borderColor:Colors.primaryText, transform:[{rotate:'-45deg'},{translateX:2}] },
@@ -555,14 +572,14 @@ const pb = StyleSheet.create({
 });
 
 const sec = StyleSheet.create({
-  row: { flexDirection:'row', alignItems:'center', gap:8, marginTop:Spacing.xl, marginBottom:Spacing.md },
+  row: { flexDirection:'row', alignItems:'center', gap:8, marginTop:Spacing.md, marginBottom:Spacing.sm },
   bar: { width:3, height:13, borderRadius:2, backgroundColor:Colors.primaryHighlight },
   txt: { fontFamily:FontFamily.bold, fontSize:FontSize.xs, fontWeight:FontWeight.bold, color:Colors.placeholder, textTransform:'uppercase', letterSpacing:0.8 },
   line: { flex:1, height:1, backgroundColor:'#E8E8EE' },
 });
 
 const fi = StyleSheet.create({
-  wrapper: { marginBottom:Spacing.lg },
+  wrapper: { marginBottom:Spacing.sm },
   label: { fontFamily:FontFamily.medium, fontSize:FontSize.xs, color:Colors.placeholder, marginBottom:5 },
   labelFoc: { color:Colors.primaryText },
   req: { color:Colors.primaryHighlight },
@@ -596,7 +613,7 @@ const dd = StyleSheet.create({
 });
 
 const tag = StyleSheet.create({
-  wrapper: { marginBottom:Spacing.lg },
+  wrapper: { marginBottom:Spacing.sm },
   label: { fontFamily:FontFamily.medium, fontSize:FontSize.xs, color:Colors.placeholder, marginBottom:5 },
   labelFoc: { color:Colors.primaryText },
   req: { color:Colors.primaryHighlight },

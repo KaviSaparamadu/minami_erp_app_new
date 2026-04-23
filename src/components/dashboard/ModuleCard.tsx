@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontWeight, Spacing } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
 import { ModuleIcon } from './ModuleIcon';
 import { useTheme } from '../../hooks/useTheme';
@@ -17,22 +17,26 @@ export function ModuleCard({ module, width, onPress }: ModuleCardProps) {
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.outer, dyn.outer, { width }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, dyn.card, { width }, pressed && styles.pressed]}
       onPress={() => onPress?.(module)}
       accessibilityRole="button"
       accessibilityLabel={`${module.name} module`}>
 
-      {/* Floating icon — overflows the top of the inner card */}
-      <View style={styles.iconFloat}>
-        <ModuleIcon type={module.iconType} size={46} />
+      {/* Pink circular icon */}
+      <View style={styles.iconWrap}>
+        <ModuleIcon type={module.iconType} size={40} />
       </View>
 
-      {/* Inner white card */}
-      <View style={[styles.inner, dyn.inner]}>
-        <Text style={[styles.name, dyn.name]} numberOfLines={2}>{module.name}</Text>
-        <Text style={[styles.label, dyn.label]} numberOfLines={1}>
-          {module.value} {module.valueLabel}
-        </Text>
+      {/* Name */}
+      <Text style={[styles.name, dyn.name]} numberOfLines={1}>{module.name}</Text>
+
+      {/* Large value */}
+      <Text style={[styles.value, dyn.value]} numberOfLines={1}>{module.value}</Text>
+
+      {/* Label row: pink dot + label */}
+      <View style={styles.labelRow}>
+        <View style={styles.dot} />
+        <Text style={[styles.label, dyn.label]} numberOfLines={1}>{module.valueLabel}</Text>
       </View>
     </Pressable>
   );
@@ -40,66 +44,64 @@ export function ModuleCard({ module, width, onPress }: ModuleCardProps) {
 
 function createDynamicStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
-    outer: {
-      backgroundColor: isDarkMode ? '#2A2A2E' : '#F2F2F5',
-    },
-    inner: {
+    card: {
       backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF',
+      shadowColor: isDarkMode ? '#000' : '#F8BBD0',
     },
     name:  { color: colors.primaryText },
+    value: { color: colors.primaryText },
     label: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
   });
 }
 
 const styles = StyleSheet.create({
-  outer: {
-    borderRadius: 18,
-    marginBottom: Spacing.md,
-    paddingTop: 28,
-    paddingBottom: 12,
-    paddingHorizontal: 12,
+  card: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     alignItems: 'center',
+    marginBottom: Spacing.sm,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
   pressed: {
     transform: [{ scale: 0.97 }],
     opacity: 0.94,
   },
-
-  iconFloat: {
-    position: 'absolute',
-    top: -4,
-    alignSelf: 'center',
-    zIndex: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
+  iconWrap: {
+    marginBottom: 8,
   },
-
-  inner: {
-    width: '100%',
-    borderRadius: 14,
-    paddingTop: 36,
-    paddingBottom: 18,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    gap: 8,
-  },
-
   name: {
     fontFamily: FontFamily.bold,
     fontSize: 11,
     fontWeight: FontWeight.bold,
     textAlign: 'center',
-    letterSpacing: 0.1,
-    minHeight: 28,
+    letterSpacing: 0.2,
+    marginBottom: 4,
+  },
+  value: {
+    fontFamily: FontFamily.bold,
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: Colors.primaryHighlight,
   },
   label: {
     fontFamily: FontFamily.regular,
     fontSize: 9,
-    textAlign: 'center',
     letterSpacing: 0.2,
   },
-
 });

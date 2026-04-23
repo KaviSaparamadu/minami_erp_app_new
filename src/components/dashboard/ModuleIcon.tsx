@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { ModuleIconType } from '../../constants/modules';
 import { UIIcon, type IconName } from '../common/UIIcon';
-import { useTheme } from '../../hooks/useTheme';
 
 interface ModuleIconProps {
   type: ModuleIconType;
@@ -23,11 +22,7 @@ export const MODULE_ICON_MAP: Record<string, IconName> = {
 };
 
 export function ModuleIcon({ type, size = 48 }: ModuleIconProps) {
-  const { isDarkMode } = useTheme();
   const glyphSize = Math.round(size * 0.5);
-  const bg = '#FFFFFF';
-  const borderColor = isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)';
-  const glyphColor = '#595959';
   const iconName = MODULE_ICON_MAP[type] ?? 'clipboard';
 
   return (
@@ -37,12 +32,10 @@ export function ModuleIcon({ type, size = 48 }: ModuleIconProps) {
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: bg,
-        borderColor,
-        borderWidth: StyleSheet.hairlineWidth,
+        backgroundColor: '#FCE4EC',
       },
     ]}>
-      <UIIcon name={iconName} color={glyphColor} size={glyphSize} />
+      <UIIcon name={iconName} color="#E91E63" size={glyphSize} />
     </View>
   );
 }
