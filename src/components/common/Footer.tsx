@@ -4,6 +4,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import { useAuth } from '../../hooks/useAuth';
+import { useSearch } from '../../context/SearchContext';
 import { ProfileSheet } from '../dashboard/ProfileSheet';
 import { Colors, Spacing, FontFamily, FontSize, FontWeight } from '../../constants/theme';
 
@@ -40,14 +41,22 @@ export function Footer() {
   const { colors } = useTheme();
   const { navigate } = useNavigation();
   const { user, logout } = useAuth();
+  const { isSearchVisible, setIsSearchVisible } = useSearch();
   const [showProfile, setShowProfile] = useState(false);
   const dyn = useMemo(() => createDynamicStyles(colors), [colors]);
 
   return (
     <>
     <View style={[styles.footer, dyn.footer]}>
-      {/* Logo Section with Pink Border */}
-      <View style={styles.logoContainer}>
+      {/* Logo Section - Clickable Home Button */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.logoContainer,
+          pressed && styles.logoContainerPressed,
+        ]}
+        onPress={() => navigate('Dashboard')}
+        accessibilityRole="button"
+        accessibilityLabel="Home">
         <View style={styles.logoBorder}>
           <Image
             source={require('../../../assets/images/logo.png')}
@@ -55,7 +64,7 @@ export function Footer() {
             resizeMode="contain"
           />
         </View>
-      </View>
+      </Pressable>
 
       {/* Settings Tab */}
       <FooterTabItem
@@ -64,15 +73,12 @@ export function Footer() {
         onPress={() => {}}
       />
 
-      {/* Home Tab - Center */}
-      <View style={styles.homeCenter}>
-        <FooterTabItem
-          icon="home-outline"
-          label="Home"
-          active={true}
-          onPress={() => navigate('Dashboard')}
-        />
-      </View>
+      {/* Search Tab */}
+      <FooterTabItem
+        icon="magnify"
+        label="Search"
+        onPress={() => setIsSearchVisible(!isSearchVisible)}
+      />
 
       {/* Profile Tab - Opens Profile Modal */}
       <FooterTabItem
@@ -128,6 +134,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
+    gap: 3,
+  },
+
+  logoContainerPressed: {
+    opacity: 0.6,
+    transform: [{ scale: 0.92 }],
   },
 
   logoBorder: {
@@ -137,11 +149,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFF5FA',
+    borderWidth: 2,
+    borderColor: '#E91E63',
   },
 
   logoImage: {
     width: 32,
     height: 32,
+  },
+
+  logoLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: 9,
+    color: '#8E8E93',
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
 
   tabItem: {
@@ -173,9 +195,4 @@ const styles = StyleSheet.create({
     color: '#E91E63',
   },
 
-  homeCenter: {
-    flex: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

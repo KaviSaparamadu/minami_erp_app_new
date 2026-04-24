@@ -3,7 +3,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -12,7 +11,6 @@ import {
   PanResponderGestureState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { UIIcon } from '../../components/common/UIIcon';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
@@ -74,7 +72,13 @@ export function DashboardScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
-      <PageHeader showBack={false} showBrand={true} />
+      <PageHeader
+        showBack={false}
+        showBrand={true}
+        dashboardSearch={true}
+        searchValue={search}
+        onSearchChange={setSearch}
+      />
 
       {/* White section with fixed and scrollable content */}
       <View style={styles.whiteSection} {...panResponder.current?.panHandlers}>
@@ -82,18 +86,6 @@ export function DashboardScreen() {
         {/* Quick Access - Fixed in white area */}
         <View style={styles.quickWrap}>
           <QuickAccessRow onPress={handleModulePress} />
-        </View>
-
-        {/* Search bar - Fixed in white area */}
-        <View style={[styles.searchBar, dyn.searchBar]}>
-          <UIIcon name="search" size={16} color="#8E8E93" />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search modules..."
-            placeholderTextColor={isDarkMode ? '#8E8E93' : '#8E8E93'}
-            style={[styles.searchInput, dyn.searchInput]}
-          />
         </View>
 
         {/* Tabs - Fixed in white area */}
@@ -155,11 +147,6 @@ function TabButton({ label, active, onPress, dyn, isFirst, isLast }: { label: st
 function createDynamicStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
     safe: { backgroundColor: '#5A5A5A' },
-    searchBar: {
-      backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7',
-      borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
-    },
-    searchInput: { color: colors.primaryText },
     tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
     tabsBorder: {
       borderBottomColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
@@ -175,24 +162,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.xs,
     backgroundColor: '#FFFFFF',
-  },
-
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginHorizontal: H_PAD,
-    marginVertical: Spacing.xs,
-    paddingHorizontal: 12,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-  },
-  searchInput: {
-    flex: 1,
-    fontFamily: FontFamily.regular,
-    fontSize: FontSize.sm,
-    paddingVertical: 0,
   },
 
   tabsContainer: {

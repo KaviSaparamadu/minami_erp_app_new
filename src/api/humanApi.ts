@@ -42,23 +42,26 @@ export async function fetchHumanList(
   page = 1,
   limit = 10,
 ): Promise<ApiResult<HumanListResponse>> {
+  const url = `${API_BASE_URL}/t-data/humanmap.json?page=${page}&limit=${limit}`;
+  console.log('[humanApi] GET', url);
   try {
-    console.log(`${API_BASE_URL}/t-data/humanmap.json?page=${page}&limit=${limit}`);
-    const res = await fetch(
-      `${API_BASE_URL}/t-data/humanmap.json?page=${page}&limit=${limit}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({ page, limit }),
-      },
-    );
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
 
-    if (!res.ok) return { ok: false, message: `Request failed (${res.status})` };
+    console.log('[humanApi] status', res.status);
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.log('[humanApi] error body', text);
+      return { ok: false, message: `Request failed (${res.status})` };
+    }
 
     const json = await res.json();
+    console.log('[humanApi] response keys', Object.keys(json));
+    console.log('[humanApi] rows count', (json.data ?? []).length);
+
     return {
       ok: true,
       data: {
@@ -71,7 +74,11 @@ export async function fetchHumanList(
         last_page: json.last_page ?? 1,
       },
     };
-  } catch {
-    return { ok: false, message: 'Unable to connect. Please check your network.' };
+  } catch (err) {
+    console.log('[humanApi] fetch failed for', url, err);
+    return {
+      ok: false,
+      message: `Unable to connect to ${API_BASE_URL}. Check network / API URL.`,
+    };
   }
 }

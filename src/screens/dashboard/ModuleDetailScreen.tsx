@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,7 +13,7 @@ import { Breadcrumbs } from '../../components/common/Breadcrumbs';
 import { TabsSection } from '../../components/dashboard/TabsSection';
 import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
 import { DashboardView } from '../../components/dashboard/DashboardView';
-import { FontFamily, FontSize, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
 import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
@@ -20,6 +21,8 @@ import { useNavigation } from '../../context/NavigationContext';
 import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { SubmoduleDetailCard } from '../../components/dashboard/SubmoduleDetailCard';
 import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
+import { UIIcon } from '../../components/common/UIIcon';
+import { MODULE_ICON_MAP } from '../../components/dashboard/ModuleIcon';
 
 const H_PAD = 6;
 const GAP = 10;
@@ -37,7 +40,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
   const { colors, isDarkMode } = useTheme();
   const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
-  const [tab, setTab] = useState<Tab>('submodules');
+  const [tab, setTab] = useState<Tab>('dashboard');
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
@@ -70,18 +73,48 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
           <QuickAccessRow onPress={handleModulePress} />
         </View>
 
-        {/* Tabs - Fixed in white area */}
+        {/* Tabs - Fixed in white area (Submodules removed) */}
         <TabsSection
-          tabs={['Dashboard' as const, 'Modules' as const, 'Submodules' as const]}
-          activeTab={tab === 'modules' ? 'Modules' : tab === 'submodules' ? 'Submodules' : 'Dashboard'}
+          tabs={['Dashboard' as const, 'Modules' as const]}
+          activeTab={tab === 'modules' ? 'Modules' : 'Dashboard'}
           onTabChange={(newTab) => {
             if (newTab === 'Modules') setTab('modules');
-            else if (newTab === 'Submodules') setTab('submodules');
             else setTab('dashboard');
           }}
           colors={colors}
           isDarkMode={isDarkMode}
         />
+
+        {/* Sub-tab - Compact modern design, right-aligned */}
+        {tab !== 'submodules' && (
+          <Pressable
+            onPress={() => setTab('submodules')}
+            style={({ pressed }) => [
+              styles.subTabMinimal,
+              dyn.subTabMinimal,
+              pressed && styles.subTabMinimalPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="View submodules">
+            <View style={styles.subTabMinimalContent}>
+              <Text
+                style={[styles.subTabMinimalText, dyn.subTabMinimalText]}
+                numberOfLines={1}>
+                {module.name}
+              </Text>
+              <Text style={[styles.subTabMinimalLabel, dyn.subTabMinimalLabel]}>
+                Submodules
+              </Text>
+            </View>
+            <View style={[styles.subTabMinimalIcon, dyn.subTabMinimalIcon]}>
+              <UIIcon
+                name={MODULE_ICON_MAP[module.iconType] ?? 'clipboard'}
+                color={Colors.primaryHighlight}
+                size={12}
+              />
+            </View>
+          </Pressable>
+        )}
 
         {/* Breadcrumbs - under the tab section */}
         <Breadcrumbs variant="light" />
@@ -166,6 +199,14 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
     moduleName: { color: '#FFFFFF' },
     moduleValue: { color: 'rgba(255, 255, 255, 0.8)' },
     emptyText: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
+    subTabMinimal: {
+      backgroundColor: isDarkMode ? 'rgba(233, 30, 99, 0.08)' : '#FFF5F9',
+    },
+    subTabMinimalText: { color: colors.primaryText },
+    subTabMinimalLabel: { color: isDarkMode ? 'rgba(255,255,255,0.50)' : '#A0A0A0' },
+    subTabMinimalIcon: {
+      backgroundColor: isDarkMode ? 'rgba(233, 30, 99, 0.15)' : '#FFE1EC',
+    },
   });
 }
 
@@ -215,6 +256,40 @@ const styles = StyleSheet.create({
 
   contentScroll: {
     flex: 1,
+  },
+
+  subTabMinimal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  subTabMinimalPressed: {
+    opacity: 0.75,
+  },
+  subTabMinimalContent: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  subTabMinimalText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSize.xs,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  subTabMinimalLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: 9,
+    letterSpacing: 0.2,
+  },
+  subTabMinimalIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   contentScrollContent: {

@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import { useNavigation } from '../../context/NavigationContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { useSearch } from '../../context/SearchContext';
 import { ProfileSheet } from '../dashboard/ProfileSheet';
 import { MODULES } from '../../constants/modules';
 
@@ -14,6 +15,9 @@ interface PageHeaderProps {
   transparent?: boolean; // removes dark background (for coloured parent headers)
   showBrand?: boolean; // shows brand logo instead of title (for Dashboard)
   showBreadcrumbs?: boolean; // renders breadcrumbs inside the header (default true when !showBrand)
+  dashboardSearch?: boolean; // shows dashboard search in header
+  searchValue?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 interface BackArrowProps {
@@ -64,10 +68,20 @@ const SCREEN_LABELS: Record<string, string> = {
   AssignUserRolePermission: 'Assign User Role Permission',
 };
 
-export function PageHeader({ title = '', showBack = true, transparent = false, showBrand = false, showBreadcrumbs = true }: PageHeaderProps) {
+export function PageHeader({
+  title = '',
+  showBack = true,
+  transparent = false,
+  showBrand = false,
+  showBreadcrumbs = true,
+  dashboardSearch = false,
+  searchValue = '',
+  onSearchChange = () => {},
+}: PageHeaderProps) {
   const { goBack, stack, navigateTo, openSidebar, paramsStack } = useNavigation();
   const { user, logout } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
+  const { isSearchVisible, searchQuery, setSearchQuery, setIsSearchVisible } = useSearch();
   const [showProfile, setShowProfile] = useState(false);
 
   const getModuleNameForIdx = (idx: number) => {
@@ -102,8 +116,32 @@ export function PageHeader({ title = '', showBack = true, transparent = false, s
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
   return (
-    <View style={[styles.header, showBack && styles.headerCompact, transparent && styles.headerTransparent, dynamicStyles.header]}>
-      <View style={styles.headerDecoration} />
+    <View>
+      {/* Universal Search Bar - Appears above header */}
+      {isSearchVisible && (
+        <View style={[styles.searchBarWrapper, dynamicStyles.searchBarWrapper]}>
+          <Pressable
+            onPress={() => setIsSearchVisible(false)}
+            style={styles.closeSearchBtn}
+            hitSlop={10}>
+            <MaterialCommunityIcons name="close" size={20} color={isDarkMode ? '#FFFFFF' : '#000000'} />
+          </Pressable>
+          <View style={[styles.universalSearch, dynamicStyles.universalSearch]}>
+            <MaterialCommunityIcons name="magnify" size={18} color="#8E8E93" />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search everything..."
+              placeholderTextColor="#A0A0A0"
+              style={[styles.searchInputField, dynamicStyles.searchInputField]}
+              autoFocus
+            />
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.header, showBack && styles.headerCompact, transparent && styles.headerTransparent, dynamicStyles.header]}>
+        <View style={styles.headerDecoration} />
 
       {/* ── Top Row: Menu, Brand, Avatar ── */}
       <View style={styles.topRow}>
@@ -143,6 +181,20 @@ export function PageHeader({ title = '', showBack = true, transparent = false, s
           <Text style={[styles.greetingSubtitle, dynamicStyles.greetingSubtitle]}>{greeting} {greetingEmoji}</Text>
           <Text style={[styles.greetingTitle, dynamicStyles.greetingTitle]}>{fullName}</Text>
           <Text style={[styles.greetingWelcome, dynamicStyles.greetingWelcome]}>welcome</Text>
+        </View>
+      )}
+
+      {/* Dashboard Search Bar */}
+      {dashboardSearch && showBrand && (
+        <View style={[styles.dashboardSearchBar, dynamicStyles.dashboardSearchBar]}>
+          <MaterialCommunityIcons name="magnify" size={16} color="#8E8E93" />
+          <TextInput
+            value={searchValue}
+            onChangeText={onSearchChange}
+            placeholder="Search modules..."
+            placeholderTextColor="#A0A0A0"
+            style={[styles.dashboardSearchInput, dynamicStyles.dashboardSearchInput]}
+          />
         </View>
       )}
 
@@ -195,6 +247,7 @@ export function PageHeader({ title = '', showBack = true, transparent = false, s
           onLogout={logout}
         />
       )}
+      </View>
     </View>
   );
 }
@@ -204,6 +257,22 @@ const DARK = '#1C1C1E';
 function createDynamicStyles(colors: any) {
   const isDark = colors.background !== '#FFFFFF';
   return StyleSheet.create({
+    searchBarWrapper: {
+      backgroundColor: isDark ? 'rgba(20, 20, 20, 0.95)' : 'rgba(89, 89, 89, 0.9)',
+    },
+    universalSearch: {
+      backgroundColor: isDark ? '#2A2A2E' : 'rgba(255, 255, 255, 0.95)',
+    },
+    searchInputField: {
+      color: isDark ? '#FFFFFF' : '#000000',
+    },
+    dashboardSearchBar: {
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.15)',
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.2)',
+    },
+    dashboardSearchInput: {
+      color: '#FFFFFF',
+    },
     header: {
       backgroundColor: 'rgba(89, 89, 89, 0.8)',
       shadowColor: '#000',
@@ -254,6 +323,39 @@ function createDynamicStyles(colors: any) {
 }
 
 const styles = StyleSheet.create({
+  searchBarWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(89, 89, 89, 0.9)',
+  },
+  closeSearchBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  universalSearch: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  searchInputField: {
+    flex: 1,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    color: '#000000',
+    paddingVertical: 0,
+  },
   header: {
     flexDirection: 'column',
     paddingHorizontal: Spacing.lg,
@@ -357,6 +459,23 @@ const styles = StyleSheet.create({
     marginTop: 2,
     color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '400',
+  },
+
+  dashboardSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+  },
+
+  dashboardSearchInput: {
+    flex: 1,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    paddingVertical: 0,
   },
 
   breadcrumbContainer: {

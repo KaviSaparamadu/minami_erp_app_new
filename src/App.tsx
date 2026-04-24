@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthContext';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SearchProvider } from './context/SearchContext';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { Footer } from './components/common/Footer';
@@ -86,7 +87,9 @@ function AppNavigator() {
 
   return (
     <View style={styles.root}>
-      {screen}
+      <View style={styles.screenContainer}>
+        {screen}
+      </View>
       <Footer />
 
       {/* ── Sidebar drawer ── */}
@@ -122,9 +125,11 @@ function AppWithTheme() {
         backgroundColor={isDarkMode ? '#1C1C1E' : '#FFFFFF'}
       />
       <AuthProvider>
-        <NavigationProvider>
-          <RootScreen />
-        </NavigationProvider>
+        <SearchProvider>
+          <NavigationProvider>
+            <RootScreen />
+          </NavigationProvider>
+        </SearchProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
@@ -144,6 +149,10 @@ export default App;
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  screenContainer: {
     flex: 1,
   },
   overlay: {
