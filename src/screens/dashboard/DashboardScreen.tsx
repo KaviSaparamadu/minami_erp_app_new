@@ -78,6 +78,7 @@ export function DashboardScreen() {
         dashboardSearch={true}
         searchValue={search}
         onSearchChange={setSearch}
+        hideSearchBar={true}
       />
 
       {/* White section with fixed and scrollable content */}

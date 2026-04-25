@@ -18,6 +18,7 @@ interface PageHeaderProps {
   dashboardSearch?: boolean; // shows dashboard search in header
   searchValue?: string;
   onSearchChange?: (query: string) => void;
+  hideSearchBar?: boolean; // hides search bar even if dashboardSearch is true
 }
 
 interface BackArrowProps {
@@ -77,6 +78,7 @@ export function PageHeader({
   dashboardSearch = false,
   searchValue = '',
   onSearchChange = () => {},
+  hideSearchBar = false,
 }: PageHeaderProps) {
   const { goBack, stack, navigateTo, openSidebar, paramsStack } = useNavigation();
   const { user, logout } = useAuth();
@@ -185,7 +187,7 @@ export function PageHeader({
       )}
 
       {/* Dashboard Search Bar */}
-      {dashboardSearch && showBrand && (
+      {dashboardSearch && showBrand && !hideSearchBar && (
         <View style={[styles.dashboardSearchBar, dynamicStyles.dashboardSearchBar]}>
           <MaterialCommunityIcons name="magnify" size={16} color="#8E8E93" />
           <TextInput

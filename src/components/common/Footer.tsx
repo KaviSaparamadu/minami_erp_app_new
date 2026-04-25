@@ -39,7 +39,7 @@ function FooterTabItem({ icon, label, onPress, active }: FooterItemProps) {
 
 export function Footer() {
   const { colors } = useTheme();
-  const { navigate } = useNavigation();
+  const { navigate, currentScreen } = useNavigation();
   const { user, logout } = useAuth();
   const { isSearchVisible, setIsSearchVisible } = useSearch();
   const [showProfile, setShowProfile] = useState(false);
@@ -73,12 +73,14 @@ export function Footer() {
         onPress={() => {}}
       />
 
-      {/* Search Tab */}
-      <FooterTabItem
-        icon="magnify"
-        label="Search"
-        onPress={() => setIsSearchVisible(!isSearchVisible)}
-      />
+      {/* Search Tab - Hidden on DashboardScreen */}
+      {currentScreen !== 'Dashboard' && (
+        <FooterTabItem
+          icon="magnify"
+          label="Search"
+          onPress={() => setIsSearchVisible(!isSearchVisible)}
+        />
+      )}
 
       {/* Profile Tab - Opens Profile Modal */}
       <FooterTabItem
