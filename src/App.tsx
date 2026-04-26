@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './context/AuthContext';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { SearchProvider } from './context/SearchContext';
+import { SearchProvider, useSearch } from './context/SearchContext';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { Footer } from './components/common/Footer';
@@ -65,6 +65,7 @@ function DottedLoader() {
 
 function AppNavigator() {
   const { currentScreen, navigating, sidebarOpen, closeSidebar, params } = useNavigation();
+  const { searchQuery } = useSearch();
 
   const screen = (() => {
     switch (currentScreen) {
@@ -90,7 +91,7 @@ function AppNavigator() {
       <View style={styles.screenContainer}>
         {screen}
       </View>
-      <Footer />
+      {!searchQuery.trim() && <Footer />}
 
       {/* ── Sidebar drawer ── */}
       <Sidebar visible={sidebarOpen} onClose={closeSidebar} />

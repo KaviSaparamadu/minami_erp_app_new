@@ -17,6 +17,7 @@ export interface AppModule {
   screen?: ScreenName;
   value: string;
   valueLabel: string;
+  description?: string;
   submodules?: Submodule[];
 }
 

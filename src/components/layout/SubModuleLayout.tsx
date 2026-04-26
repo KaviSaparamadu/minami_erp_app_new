@@ -2,13 +2,14 @@ import React, { useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Text,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../common/PageHeader';
 import { QuickAccessRow } from '../dashboard/QuickAccessRow';
+import { Breadcrumbs } from '../common/Breadcrumbs';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
@@ -23,6 +24,9 @@ interface SubModuleLayoutProps {
   onTabChange?: (tab: Tab) => void;
   onModulePress?: (module: AppModule) => void;
   showSubmodulesTab?: boolean;
+  submodulesTabLabel?: string;
+  showSubTab?: boolean;
+  subTabLabel?: string;
 }
 
 function TabButton({
@@ -54,6 +58,9 @@ export function SubModuleLayout({
   onTabChange,
   onModulePress,
   showSubmodulesTab = false,
+  submodulesTabLabel = 'Submodules',
+  showSubTab = false,
+  subTabLabel = 'Sub Tab',
 }: SubModuleLayoutProps) {
   const { colors, isDarkMode } = useTheme();
   const [tab, setTab] = useState<Tab>(activeTab);
@@ -68,43 +75,62 @@ export function SubModuleLayout({
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
       {/* Header */}
-      <PageHeader showBack={showBack} title={title} />
-
-      {/* Quick Access */}
-      <View style={styles.quickWrap}>
-        <QuickAccessRow onPress={onModulePress} />
-      </View>
+      <PageHeader showBack={showBack} title={title} showBreadcrumbs={false} />
 
       {/* White section with scrollable content */}
       <View style={styles.whiteSection}>
+        {/* Quick Access - At Top (Fixed) */}
+        <View style={styles.quickWrap}>
+          <QuickAccessRow onPress={onModulePress} />
+        </View>
+
+        {/* Tabs (Fixed) */}
+        <View style={[styles.tabsRow, dyn.tabsBorder]}>
+          <TabButton
+            label="Dashboard"
+            active={tab === 'dashboard'}
+            onPress={() => handleTabChange('dashboard')}
+            dyn={dyn}
+          />
+          <TabButton
+            label="Modules"
+            active={tab === 'modules'}
+            onPress={() => handleTabChange('modules')}
+            dyn={dyn}
+          />
+          {showSubmodulesTab && (
+            <TabButton
+              label={submodulesTabLabel}
+              active={tab === 'submodules'}
+              onPress={() => handleTabChange('submodules')}
+              dyn={dyn}
+            />
+          )}
+        </View>
+
+        {/* Sub-tab - Compact design, right-aligned */}
+        {showSubTab && tab !== 'submodules' && (
+          <TouchableOpacity
+            onPress={() => handleTabChange('submodules')}
+            style={[styles.subTabContainer, dyn.subTabContainer]}
+            activeOpacity={0.7}>
+            <View style={styles.subTabContent}>
+              <Text style={[styles.subTabLabel, dyn.subTabLabel]}>{subTabLabel}</Text>
+            </View>
+            <View style={[styles.subTabIcon, dyn.subTabIcon]}>
+              <View style={styles.subTabDot} />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Breadcrumbs - Below tabs (Fixed) */}
+        <Breadcrumbs variant="light" />
+
+        {/* Scrollable content only */}
         <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentScrollContent}
           showsVerticalScrollIndicator={false}>
-
-          {/* Tabs */}
-          <View style={[styles.tabsRow, dyn.tabsBorder]}>
-            <TabButton
-              label="Dashboard"
-              active={tab === 'dashboard'}
-              onPress={() => handleTabChange('dashboard')}
-              dyn={dyn}
-            />
-            <TabButton
-              label="Modules"
-              active={tab === 'modules'}
-              onPress={() => handleTabChange('modules')}
-              dyn={dyn}
-            />
-            {showSubmodulesTab && (
-              <TabButton
-                label="Submodules"
-                active={tab === 'submodules'}
-                onPress={() => handleTabChange('submodules')}
-                dyn={dyn}
-              />
-            )}
-          </View>
 
           {/* Content */}
           <View style={styles.content}>
@@ -123,6 +149,13 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
       borderBottomColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
     },
     tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
+    subTabContainer: {
+      backgroundColor: isDarkMode ? 'rgba(233, 30, 99, 0.08)' : '#FFF5F9',
+    },
+    subTabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.70)' : '#5A5A62' },
+    subTabIcon: {
+      backgroundColor: isDarkMode ? 'rgba(233, 30, 99, 0.15)' : '#FFE1EC',
+    },
   });
 }
 
@@ -131,18 +164,20 @@ const styles = StyleSheet.create({
 
   quickWrap: {
     paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
+    paddingTop: 0,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
   },
 
   whiteSection: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     overflow: 'hidden',
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    marginTop: 16,
+    marginTop: -5,
     flexDirection: 'column',
   },
 
@@ -153,7 +188,7 @@ const styles = StyleSheet.create({
   contentScrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
+    paddingTop: 0,
     paddingBottom: 80,
   },
 
@@ -161,14 +196,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: Spacing.md,
-    marginHorizontal: -Spacing.lg - 8,
-    paddingHorizontal: Spacing.lg + 8,
+    marginTop: 0,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 2,
     borderBottomWidth: 1,
   },
 
   tabBtn: {
-    paddingVertical: 10,
+    paddingVertical: 8,
+    paddingHorizontal: Spacing.sm,
     alignItems: 'center',
   },
 
@@ -193,8 +229,41 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 
+  subTabContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 2,
+    gap: 8,
+  },
+
+  subTabContent: {
+    alignItems: 'flex-end',
+  },
+
+  subTabLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.sm,
+  },
+
+  subTabIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  subTabDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primaryHighlight,
+  },
+
   content: {
     flex: 1,
-    paddingTop: Spacing.md,
+    paddingTop: 12,
   },
 });

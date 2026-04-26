@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, ScrollView } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import { useNavigation } from '../../context/NavigationContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useSearch } from '../../context/SearchContext';
+import { SearchResults } from './SearchResults';
+import { SearchSuggestions } from './SearchSuggestions';
 import { ProfileSheet } from '../dashboard/ProfileSheet';
 import { MODULES } from '../../constants/modules';
 
@@ -83,7 +85,7 @@ export function PageHeader({
   const { goBack, stack, navigateTo, openSidebar, paramsStack } = useNavigation();
   const { user, logout } = useAuth();
   const { colors, isDarkMode } = useTheme();
-  const { isSearchVisible, searchQuery, setSearchQuery, setIsSearchVisible } = useSearch();
+  const { searchQuery, setSearchQuery, searchResults, isSearching } = useSearch();
   const [showProfile, setShowProfile] = useState(false);
 
   const getModuleNameForIdx = (idx: number) => {
@@ -117,31 +119,16 @@ export function PageHeader({
   const greetingEmoji = hour < 12 ? '☀️' : hour < 17 ? '👋' : '🌙';
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
+  const suggestions = [
+    { id: '1', title: 'Human Resources', icon: 'account-group' },
+    { id: '2', title: 'Employee Management', icon: 'briefcase' },
+    { id: '3', title: 'User Management', icon: 'account-multiple' },
+    { id: '4', title: 'Dashboard', icon: 'view-dashboard' },
+    { id: '5', title: 'Settings', icon: 'cog' },
+  ];
+
   return (
     <View>
-      {/* Universal Search Bar - Appears above header */}
-      {isSearchVisible && (
-        <View style={[styles.searchBarWrapper, dynamicStyles.searchBarWrapper]}>
-          <Pressable
-            onPress={() => setIsSearchVisible(false)}
-            style={styles.closeSearchBtn}
-            hitSlop={10}>
-            <MaterialCommunityIcons name="close" size={20} color={isDarkMode ? '#FFFFFF' : '#000000'} />
-          </Pressable>
-          <View style={[styles.universalSearch, dynamicStyles.universalSearch]}>
-            <MaterialCommunityIcons name="magnify" size={18} color="#8E8E93" />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search everything..."
-              placeholderTextColor="#A0A0A0"
-              style={[styles.searchInputField, dynamicStyles.searchInputField]}
-              autoFocus
-            />
-          </View>
-        </View>
-      )}
-
       <View style={[styles.header, showBack && styles.headerCompact, transparent && styles.headerTransparent, dynamicStyles.header]}>
         <View style={styles.headerDecoration} />
 
@@ -186,17 +173,51 @@ export function PageHeader({
         </View>
       )}
 
-      {/* Dashboard Search Bar */}
+      {/* Dashboard Search Bar with Everything Search */}
       {dashboardSearch && showBrand && !hideSearchBar && (
-        <View style={[styles.dashboardSearchBar, dynamicStyles.dashboardSearchBar]}>
-          <MaterialCommunityIcons name="magnify" size={16} color="#8E8E93" />
-          <TextInput
-            value={searchValue}
-            onChangeText={onSearchChange}
-            placeholder="Search modules..."
-            placeholderTextColor="#A0A0A0"
-            style={[styles.dashboardSearchInput, dynamicStyles.dashboardSearchInput]}
-          />
+        <View>
+          <View style={[styles.dashboardSearchBar, dynamicStyles.dashboardSearchBar]}>
+            <MaterialCommunityIcons name="magnify" size={16} color="#8E8E93" />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search everything..."
+              placeholderTextColor="#A0A0A0"
+              style={[styles.dashboardSearchInput, dynamicStyles.dashboardSearchInput]}
+            />
+            {searchQuery.trim() && (
+              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                <MaterialCommunityIcons name="close-circle" size={14} color="#8E8E93" />
+              </Pressable>
+            )}
+          </View>
+
+          {/* Search Results Dropdown */}
+          {searchQuery.trim() && (
+            <ScrollView
+              style={[styles.searchDropdown, dynamicStyles.searchDropdown]}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={false}>
+              {searchResults.length > 0 ? (
+                <SearchResults
+                  results={searchResults.slice(0, 8)}
+                  isLoading={isSearching}
+                  onSelectResult={() => setSearchQuery('')}
+                />
+              ) : (
+                <View style={[styles.noResultsMessage, dynamicStyles.noResultsMessage]}>
+                  <MaterialCommunityIcons
+                    name="magnify-close"
+                    size={40}
+                    color={isDarkMode ? '#666' : '#CCC'}
+                  />
+                  <Text style={[styles.noResultsText, dynamicStyles.noResultsText]}>
+                    No results found
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          )}
         </View>
       )}
 
@@ -262,11 +283,28 @@ function createDynamicStyles(colors: any) {
     searchBarWrapper: {
       backgroundColor: isDark ? 'rgba(20, 20, 20, 0.95)' : 'rgba(89, 89, 89, 0.9)',
     },
+    searchHeader: {
+      backgroundColor: isDark ? 'rgba(20, 20, 20, 0.95)' : 'rgba(89, 89, 89, 0.9)',
+    },
     universalSearch: {
       backgroundColor: isDark ? '#2A2A2E' : 'rgba(255, 255, 255, 0.95)',
     },
     searchInputField: {
       color: isDark ? '#FFFFFF' : '#000000',
+    },
+    searchContentContainer: {
+      backgroundColor: isDark ? 'rgba(20, 20, 20, 0.95)' : 'rgba(89, 89, 89, 0.9)',
+    },
+    noResultsContainer: {
+      backgroundColor: isDark ? 'rgba(42, 42, 46, 0.5)' : 'rgba(255, 255, 255, 0.1)',
+      borderRadius: 12,
+      margin: Spacing.lg,
+    },
+    noResultsText: {
+      color: '#FFFFFF',
+    },
+    noResultsSubtext: {
+      color: isDark ? '#999' : '#666',
     },
     dashboardSearchBar: {
       backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.15)',
@@ -274,6 +312,12 @@ function createDynamicStyles(colors: any) {
     },
     dashboardSearchInput: {
       color: '#FFFFFF',
+    },
+    searchDropdown: {
+      backgroundColor: 'transparent',
+    },
+    noResultsMessage: {
+      backgroundColor: 'transparent',
     },
     header: {
       backgroundColor: 'rgba(89, 89, 89, 0.8)',
@@ -321,17 +365,45 @@ function createDynamicStyles(colors: any) {
     greetingWelcome: {
       color: 'rgba(255, 255, 255, 0.75)',
     },
+    footerSearchContainer: {
+      position: 'relative',
+    },
+    footerSearchBar: {
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.12)',
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.2)',
+    },
+    footerSearchDropdown: {
+      backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+      borderWidth: 1,
+    },
+    footerSearchInput: {
+      borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+    },
+    footerSearchTextInput: {
+      color: isDark ? '#FFFFFF' : '#000000',
+    },
+    dropdownNoResults: {
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    dropdownNoResultsText: {
+      color: isDark ? '#FFFFFF' : '#000000',
+    },
   });
 }
 
 const styles = StyleSheet.create({
   searchBarWrapper: {
+    flexDirection: 'column',
+    backgroundColor: 'rgba(89, 89, 89, 0.9)',
+    minHeight: 100,
+  },
+  searchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: Spacing.lg,
     paddingVertical: 12,
-    backgroundColor: 'rgba(89, 89, 89, 0.9)',
   },
   closeSearchBtn: {
     width: 36,
@@ -357,6 +429,30 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: '#000000',
     paddingVertical: 0,
+  },
+  searchContentContainer: {
+    maxHeight: 450,
+    paddingVertical: Spacing.md,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: Spacing.sm,
+  },
+  noResultsContainer: {
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noResultsText: {
+    marginTop: Spacing.md,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semiBold,
+  },
+  noResultsSubtext: {
+    marginTop: Spacing.sm,
+    fontSize: FontSize.sm,
   },
   header: {
     flexDirection: 'column',
@@ -478,6 +574,97 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     fontSize: FontSize.sm,
     paddingVertical: 0,
+  },
+
+  searchDropdown: {
+    maxHeight: 400,
+    marginTop: 8,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+  },
+
+  noResultsMessage: {
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+
+  footerSearchContainer: {
+    position: 'relative',
+    marginBottom: Spacing.md,
+    zIndex: 50,
+  },
+
+  footerSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+
+  footerSearchPlaceholder: {
+    flex: 1,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+
+  footerSearchDropdown: {
+    position: 'absolute',
+    top: 45,
+    left: 0,
+    right: 0,
+    maxHeight: 380,
+    borderRadius: 12,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 1000,
+  },
+
+  footerSearchInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+
+  footerSearchTextInput: {
+    flex: 1,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    paddingVertical: 0,
+  },
+
+  dropdownResultsSection: {
+    paddingVertical: Spacing.md,
+  },
+
+  dropdownNoResults: {
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    marginHorizontal: Spacing.lg,
+    marginVertical: Spacing.lg,
+  },
+
+  dropdownNoResultsText: {
+    marginTop: Spacing.md,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semiBold,
   },
 
   breadcrumbContainer: {

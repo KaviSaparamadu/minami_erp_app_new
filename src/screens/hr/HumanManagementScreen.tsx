@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PageHeader } from '../../components/common/PageHeader';
+import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
 import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
 import { ModuleCard } from '../../components/dashboard/ModuleCard';
@@ -47,7 +47,7 @@ const H_PAD = 6;
 const GRID_GAP = 10;
 const GRID_COLS = 3;
 
-type Tab = 'dashboard' | 'modules' | 'createHuman';
+type Tab = 'dashboard' | 'modules' | 'submodules';
 type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
 const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
@@ -93,18 +93,6 @@ function MetaCell({ human }: { human: Human }) {
         {isSL ? (human.gender ?? '') : (human.city ?? '')}
       </Text>
     </View>
-  );
-}
-
-//  Tab button (Dashboard/Modules style)
-function TabButton({ label, active, onPress, dyn, isFirst, isLast }: { label: string; active: boolean; onPress: () => void; dyn: any; isFirst?: boolean; isLast?: boolean }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.tabBtn, isFirst && styles.tabBtnFirst, isLast && styles.tabBtnLast]}>
-      <Text style={[styles.tabLabel, dyn.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
-      {active && <View style={styles.tabUnderline} />}
-    </Pressable>
   );
 }
 
@@ -168,51 +156,62 @@ function HumanDashboardView({
           />
         }>
 
-        {/* Search with Add button */}
-        <View style={dv.searchWrapper}>
-          <View style={[dv.searchBar, dyn.searchBar]}>
-            <UIIcon name="search" size={16} color="#8E8E93" />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name, NIC, location…"
-              placeholderTextColor="#8E8E93"
-              style={[dv.searchInput, dyn.searchInput]}
-              autoCapitalize="none"
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} style={dv.clearBtn} hitSlop={8}>
-                <View style={[dv.clearX1, { backgroundColor: colors.placeholder }]} />
-                <View style={[dv.clearX2, { backgroundColor: colors.placeholder }]} />
-              </Pressable>
-            )}
-          </View>
-          <Pressable
-            onPress={onOpenCreate}
-            style={({ pressed }) => [dv.addBtn, pressed && dv.addBtnPressed]}
-            accessibilityRole="button">
-            <View style={dv.addBtnIcon} />
-            <View style={dv.addBtnIconV} />
-          </Pressable>
+        {/* Section Title */}
+        <View style={dv.sectionHeader}>
+          <Text style={[dv.sectionTitle, { color: colors.primaryText }]}>Create Human</Text>
         </View>
 
-        {/* Filter pills */}
-        <View style={dv.pillRow}>
-          {FILTERS.map(f => {
-            const active = filter === f;
-            return (
+        {/* Search and Filters Container */}
+        <View style={dv.searchFilterContainer}>
+          {/* Search with Add button and Filters */}
+          <View style={dv.searchAndFilterRow}>
+            {/* Search with Add button */}
+            <View style={[dv.searchWrapper, dyn.searchWrapper]}>
+              <View style={[dv.searchBar, dyn.searchBar]}>
+                <UIIcon name="search" size={16} color="#8E8E93" />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search by name, NIC, location…"
+                  placeholderTextColor="#8E8E93"
+                  style={[dv.searchInput, dyn.searchInput]}
+                  autoCapitalize="none"
+                  returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                  <Pressable onPress={() => setSearchQuery('')} style={dv.clearBtn} hitSlop={8}>
+                    <View style={[dv.clearX1, { backgroundColor: colors.placeholder }]} />
+                    <View style={[dv.clearX2, { backgroundColor: colors.placeholder }]} />
+                  </Pressable>
+                )}
+              </View>
               <Pressable
-                key={f}
-                onPress={() => setFilter(f)}
-                style={[dv.pill, active && dv.pillActive]}>
-                <Text style={[dv.pillTxt, dyn.pillTxt, active && dv.pillTxtActive]}>{f}</Text>
-                <View style={[dv.pillBadge, active && dv.pillBadgeActive]}>
-                  <Text style={[dv.pillBadgeTxt, active && dv.pillBadgeTxtActive]}>{counts[f]}</Text>
-                </View>
+                onPress={onOpenCreate}
+                style={({ pressed }) => [dv.addBtn, pressed && dv.addBtnPressed]}
+                accessibilityRole="button">
+                <View style={dv.addBtnIcon} />
+                <View style={dv.addBtnIconV} />
               </Pressable>
-            );
-          })}
+            </View>
+
+            {/* Filter pills */}
+            <View style={dv.pillRow}>
+              {FILTERS.map(f => {
+                const active = filter === f;
+                return (
+                  <Pressable
+                    key={f}
+                    onPress={() => setFilter(f)}
+                    style={[dv.pill, active && dv.pillActive]}>
+                    <Text style={[dv.pillTxt, dyn.pillTxt, active && dv.pillTxtActive]}>{f}</Text>
+                    <View style={[dv.pillBadge, active && dv.pillBadgeActive]}>
+                      <Text style={[dv.pillBadgeTxt, active && dv.pillBadgeTxtActive]}>{counts[f]}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {loadError && (
@@ -221,25 +220,39 @@ function HumanDashboardView({
           </View>
         )}
 
+        {/* Debug info */}
+        {apiColumns.length === 0 && !loadError && (
+          <View style={[dv.errorBanner, { borderColor: '#FFA500', backgroundColor: 'rgba(255, 165, 0, 0.08)' }]}>
+            <Text style={[dv.errorTxt, { color: '#FFA500' }]}>
+              Loading columns... (Rows: {filteredRows.length})
+            </Text>
+          </View>
+        )}
+
         {/* Data Table — columns driven by API response */}
         <DataTable<HumanRow>
           data={filteredRows}
           keyExtractor={(r) => String(r.id)}
-          columns={[
+          columns={apiColumns.length > 0 ? [
             {
               key: 'idx',
               header: '#',
               width: 28,
               render: (_item, i) => <IndexCell index={i} />,
             },
-            ...apiColumns.map<DataTableColumn<HumanRow>>((c) => {
+            ...apiColumns.map<DataTableColumn<HumanRow>>((c, colIdx) => {
               const key = dataKeyFor(c, aliasMap);
+              console.log(`[HumanDashboardView] Rendering column[${colIdx}]: label="${c.label}", key="${key}"`);
               return {
                 key,
-                header: c.label,
+                header: c.label || c.column || `Col ${colIdx}`,
                 flex: 1,
-                render: (row) => {
+                minWidth: 80,
+                render: (row, idx) => {
                   const v = row[key];
+                  if (idx === 0) {
+                    console.log(`[HumanDashboardView] Row 0: key="${key}" value=`, v);
+                  }
                   return (
                     <Text style={[cell.metaText, { color: colors.primaryText }]} numberOfLines={1}>
                       {v == null || v === '' ? '—' : String(v)}
@@ -248,6 +261,23 @@ function HumanDashboardView({
                 },
               };
             }),
+          ] : [
+            {
+              key: 'idx',
+              header: '#',
+              width: 28,
+              render: (_item, i) => <IndexCell index={i} />,
+            },
+            {
+              key: 'placeholder',
+              header: 'Loading...',
+              flex: 1,
+              render: () => (
+                <Text style={[cell.metaText, { color: colors.placeholder }]}>
+                  Waiting for column data
+                </Text>
+              ),
+            },
           ]}
           actions={[
             { icon: <TableIcons.Eye />,   variant: 'view',   onPress: onView,   label: 'View' },
@@ -273,7 +303,7 @@ function ModulesView({ onModulePress, refreshing, onRefresh }: { onModulePress: 
   return (
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={[{ paddingHorizontal: H_PAD, paddingVertical: Spacing.md, gap: Spacing.md }]}
+      contentContainerStyle={[{ paddingHorizontal: 8, paddingVertical: Spacing.sm, gap: 8 }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
@@ -282,7 +312,7 @@ function ModulesView({ onModulePress, refreshing, onRefresh }: { onModulePress: 
           tintColor="#595959"
         />
       }>
-      <View style={[{ paddingHorizontal: 6 }]}>
+      <View style={[{ paddingHorizontal: 8 }]}>
         <Text style={[{ fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', color: colors.primaryText, marginBottom: 12 }]}>
           Available Modules
         </Text>
@@ -313,7 +343,7 @@ export function HumanManagementScreen() {
   const { width } = useWindowDimensions();
   const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
 
-  const [tab,          setTab]          = useState<Tab>('createHuman');
+  const [tab,          setTab]          = useState<Tab>('submodules');
   const [rows,         setRows]         = useState<HumanRow[]>([]);
   const [apiColumns,   setApiColumns]   = useState<HumanColumn[]>([]);
   const [aliasMap,     setAliasMap]     = useState<Record<string, string>>({});
@@ -326,13 +356,23 @@ export function HumanManagementScreen() {
   const [loadError,    setLoadError]    = useState<string | null>(null);
 
   const loadHumans = useCallback(async () => {
-    const res = await fetchHumanList(1, 10);
+    console.log('=== [loadHumans] called ===');
+    const res = await fetchHumanList(1, 100);
+    console.log('[loadHumans] res.ok:', res.ok);
+    console.log('[loadHumans] res.message:', res.ok ? 'Success' : res.message);
     if (res.ok) {
+      console.log('[loadHumans] data received:', {
+        rows: res.data.rows.length,
+        columns: res.data.columns.length,
+        aliasMap: res.data.aliasMap,
+      });
       setRows(res.data.rows);
       setApiColumns(res.data.columns);
       setAliasMap(res.data.aliasMap);
       setLoadError(null);
+      console.log('[loadHumans] State updated successfully');
     } else {
+      console.log('[loadHumans] ERROR - setting error state:', res.message);
       setLoadError(res.message);
     }
   }, []);
@@ -394,40 +434,17 @@ export function HumanManagementScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
-      <PageHeader title="Human Management" showBack={true} />
-
-      <View style={styles.whiteSection}>
-        {/* Quick Access — always */}
-        <View style={styles.quickWrap}>
-          <QuickAccessRow onPress={handleQuickAccess} />
-        </View>
-
-        {/* Tabs — Dashboard / Modules / Create Human */}
-        <View style={[styles.tabsContainer, dyn.tabsBorder]}>
-          <TabButton
-            label="Dashboard"
-            active={tab === 'dashboard'}
-            onPress={() => setTab('dashboard')}
-            dyn={dyn}
-            isFirst
-          />
-          <TabButton
-            label="Modules"
-            active={tab === 'modules'}
-            onPress={() => setTab('modules')}
-            dyn={dyn}
-          />
-          <TabButton
-            label="Human Create"
-            active={tab === 'createHuman'}
-            onPress={() => setTab('createHuman')}
-            dyn={dyn}
-            isLast
-          />
-        </View>
-
-        {/* Content below the tabs */}
+    <>
+      <SubModuleLayout
+        title="Human Management"
+        showBack={true}
+        activeTab={tab}
+        onTabChange={setTab}
+        onModulePress={handleQuickAccess}
+        showSubmodulesTab={false}
+        showSubTab={true}
+        subTabLabel="Create Human"
+      >
         {tab === 'dashboard' ? (
           <ScrollView
             style={styles.contentScroll}
@@ -464,8 +481,7 @@ export function HumanManagementScreen() {
             loadError={loadError}
           />
         )}
-
-      </View>
+      </SubModuleLayout>
 
       <HumanFormModal
         visible={modalVisible}
@@ -474,7 +490,7 @@ export function HumanManagementScreen() {
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
       />
-    </SafeAreaView>
+    </>
   );
 }
 
@@ -482,10 +498,13 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
     safe: { backgroundColor: '#5A5A5A' },
     searchBar: {
-      backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7',
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
       borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
     },
     searchInput: { color: colors.primaryText },
+    searchWrapper: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
+    },
     tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
     tabsBorder: { borderBottomColor: isDarkMode ? '#3A3A3C' : '#E5E5EA' },
     pillTxt: { color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#5A5A62' },
@@ -572,10 +591,10 @@ const styles = StyleSheet.create({
 // ─── Dashboard tab styles (hero, stats, table section) ────────────────────────
 const dv = StyleSheet.create({
   scroll: {
-    paddingHorizontal: H_PAD + 6,
-    paddingTop: Spacing.md,
+    paddingHorizontal: 0,
+    paddingTop: 0,
     paddingBottom: 100,
-    gap: Spacing.md,
+    gap: 0,
   },
 
   // Hero create card
@@ -683,62 +702,97 @@ const dv = StyleSheet.create({
     fontWeight: '700',
   },
 
+  // Section header with title
+  sectionHeader: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: 0,
+    paddingBottom: 2,
+  },
+
+  // Search and Filter Container
+  searchFilterContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    gap: 0,
+    backgroundColor: 'transparent',
+    marginHorizontal: 0,
+    marginVertical: 0,
+  },
+
+  // Search and Filter Row - combine on same line
+  searchAndFilterRow: {
+    flexDirection: 'column',
+    gap: 6,
+  },
+
   // Filter pills
   pillRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    marginBottom: 0,
+    marginTop: 0,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-    backgroundColor: '#F2F2F7',
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#F8F8F8',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#E0E0E0',
+    shadowColor: 'transparent',
   },
   pillActive: {
-    backgroundColor: '#FFF',
-    borderColor: Colors.primaryHighlight,
+    backgroundColor: '#E91E63',
+    borderColor: 'transparent',
   },
   pillTxt: {
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.regular,
     fontSize: 11,
     fontWeight: '500',
   },
   pillTxtActive: {
-    color: Colors.primaryHighlight,
+    color: '#FFFFFF',
     fontFamily: FontFamily.bold,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   pillBadge: {
-    backgroundColor: '#E0E0E8',
+    backgroundColor: '#D0D0D0',
     borderRadius: 8,
     paddingHorizontal: 5,
     minWidth: 16,
     alignItems: 'center',
   },
   pillBadgeActive: {
-    backgroundColor: Colors.primaryHighlight,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   pillBadgeTxt: {
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.regular,
     fontSize: 9,
-    fontWeight: '700',
-    color: '#8E8E93',
+    fontWeight: '600',
+    color: '#666666',
   },
   pillBadgeTxtActive: {
     color: '#FFF',
+    fontWeight: '700',
   },
 
   // Search wrapper with add button
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: Spacing.md,
+    gap: 6,
+    marginBottom: 0,
+    marginHorizontal: 0,
+    marginTop: 0,
+    paddingVertical: 4,
+    paddingHorizontal: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
   },
   searchBar: {
     flex: 1,
@@ -746,9 +800,13 @@ const dv = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 18,
+    paddingVertical: 8,
+    marginHorizontal: 0,
+    height: 40,
+    borderRadius: 10,
     borderWidth: 1,
+    borderColor: '#E5E5E5',
+    shadowColor: 'transparent',
   },
   searchInput: {
     flex: 1,
@@ -766,10 +824,12 @@ const dv = StyleSheet.create({
   clearX1: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
   clearX2: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
   addBtn: {
-    width: 36, height: 36, borderRadius: 8,
-    backgroundColor: '#595959',
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: '#E91E63',
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 0,
+    shadowColor: 'transparent',
   },
   addBtnPressed: { opacity: 0.8, transform: [{ scale: 0.95 }] },
   addBtnIcon: { position: 'absolute', width: 14, height: 2, borderRadius: 1, backgroundColor: '#FFF' },
@@ -823,8 +883,11 @@ const dv = StyleSheet.create({
     borderColor: 'rgba(233,30,99,0.25)',
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    marginHorizontal: Spacing.md,
+    marginBottom: 2,
+    marginTop: 2,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
   },
   errorTxt: {
     fontFamily: FontFamily.medium,
@@ -835,18 +898,18 @@ const dv = StyleSheet.create({
 
 // ─── Human table cell styles ──────────────────────────────────────────────────
 const cell = StyleSheet.create({
-  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs },
+  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs, fontWeight: '500' },
 
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  avatar:  { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#FFF' },
-  nameBlock: { flex: 1, gap: 2 },
-  nameText: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: '500' },
-  countryBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-  badgeSL: { backgroundColor: 'rgba(89,89,89,0.1)' },
-  badgeJP: { backgroundColor: 'rgba(89,89,89,0.08)' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  avatar:  { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: '#FFF' },
+  nameBlock: { flex: 1, gap: 3 },
+  nameText: { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '600' },
+  countryBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  badgeSL: { backgroundColor: 'rgba(89,89,89,0.12)' },
+  badgeJP: { backgroundColor: 'rgba(89,89,89,0.10)' },
   countryTxt: { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: '#595959' },
 
-  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: '500' },
-  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, marginTop: 1 },
+  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: '600' },
+  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, marginTop: 2 },
 });

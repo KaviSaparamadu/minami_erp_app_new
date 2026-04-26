@@ -4,7 +4,6 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import { useAuth } from '../../hooks/useAuth';
-import { useSearch } from '../../context/SearchContext';
 import { ProfileSheet } from '../dashboard/ProfileSheet';
 import { Colors, Spacing, FontFamily, FontSize, FontWeight } from '../../constants/theme';
 
@@ -41,7 +40,6 @@ export function Footer() {
   const { colors } = useTheme();
   const { navigate, currentScreen } = useNavigation();
   const { user, logout } = useAuth();
-  const { isSearchVisible, setIsSearchVisible } = useSearch();
   const [showProfile, setShowProfile] = useState(false);
   const dyn = useMemo(() => createDynamicStyles(colors), [colors]);
 
@@ -73,14 +71,6 @@ export function Footer() {
         onPress={() => {}}
       />
 
-      {/* Search Tab - Hidden on DashboardScreen */}
-      {currentScreen !== 'Dashboard' && (
-        <FooterTabItem
-          icon="magnify"
-          label="Search"
-          onPress={() => setIsSearchVisible(!isSearchVisible)}
-        />
-      )}
 
       {/* Profile Tab - Opens Profile Modal */}
       <FooterTabItem

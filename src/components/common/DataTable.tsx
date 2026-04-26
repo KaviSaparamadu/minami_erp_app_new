@@ -184,6 +184,7 @@ const tw = StyleSheet.create({
     borderColor: '#E8E8F0',
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
+    marginHorizontal: Spacing.md,
   },
 });
 

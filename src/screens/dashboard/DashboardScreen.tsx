@@ -36,7 +36,6 @@ export function DashboardScreen() {
   const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
   const [tab, setTab] = useState<Tab>('dashboard');
-  const [search, setSearch] = useState('');
   const panResponder = useRef<any>(null);
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
@@ -66,9 +65,6 @@ export function DashboardScreen() {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
-  const filteredModules = MODULES.filter(m =>
-    m.name.toLowerCase().includes(search.toLowerCase()),
-  );
 
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
@@ -76,10 +72,9 @@ export function DashboardScreen() {
         showBack={false}
         showBrand={true}
         dashboardSearch={true}
-        searchValue={search}
-        onSearchChange={setSearch}
-        hideSearchBar={true}
+        hideSearchBar={false}
       />
+
 
       {/* White section with fixed and scrollable content */}
       <View style={styles.whiteSection} {...panResponder.current?.panHandlers}>
@@ -116,7 +111,7 @@ export function DashboardScreen() {
           {/* Content */}
           {tab === 'modules' ? (
             <ModulesGrid
-              data={filteredModules}
+              data={MODULES}
               renderItem={(module, width) => (
                 <ModuleCard module={module} width={width} onPress={handleModulePress} />
               )}
