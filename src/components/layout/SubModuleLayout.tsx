@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Text,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../common/PageHeader';
@@ -64,12 +65,20 @@ export function SubModuleLayout({
 }: SubModuleLayoutProps) {
   const { colors, isDarkMode } = useTheme();
   const [tab, setTab] = useState<Tab>(activeTab);
+  const [refreshing, setRefreshing] = useState(false);
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   const handleTabChange = (newTab: Tab) => {
     setTab(newTab);
     onTabChange?.(newTab);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate data refresh (1.5 seconds)
+    await new Promise<void>(resolve => setTimeout(resolve, 1500));
+    setRefreshing(false);
   };
 
   return (
@@ -130,7 +139,15 @@ export function SubModuleLayout({
         <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentScrollContent}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={isDarkMode ? '#E91E63' : '#E91E63'}
+              colors={['#E91E63']}
+            />
+          }>
 
           {/* Content */}
           <View style={styles.content}>

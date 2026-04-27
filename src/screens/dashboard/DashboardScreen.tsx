@@ -9,6 +9,7 @@ import {
   PanResponder,
   GestureResponderEvent,
   PanResponderGestureState,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -36,6 +37,7 @@ export function DashboardScreen() {
   const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
   const [tab, setTab] = useState<Tab>('dashboard');
+  const [refreshing, setRefreshing] = useState(false);
   const panResponder = useRef<any>(null);
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
@@ -64,6 +66,13 @@ export function DashboardScreen() {
   function handleModulePress(module: AppModule) {
     navigate('ModuleDetail', { moduleId: module.id });
   }
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate data refresh (1.5 seconds)
+    await new Promise<void>(resolve => setTimeout(resolve, 1500));
+    setRefreshing(false);
+  };
 
 
   return (
@@ -106,7 +115,15 @@ export function DashboardScreen() {
         <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentScrollContent}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={isDarkMode ? '#E91E63' : '#E91E63'}
+              colors={['#E91E63']}
+            />
+          }>
 
           {/* Content */}
           {tab === 'modules' ? (

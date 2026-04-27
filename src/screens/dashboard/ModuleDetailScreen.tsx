@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -41,6 +42,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
   const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
   const [tab, setTab] = useState<Tab>('submodules');
+  const [refreshing, setRefreshing] = useState(false);
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
@@ -48,6 +50,13 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
 
   const handleModulePress = (mod: AppModule) => {
     navigate('ModuleDetail', { moduleId: mod.id });
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate data refresh (1.5 seconds)
+    await new Promise<void>(resolve => setTimeout(resolve, 1500));
+    setRefreshing(false);
   };
 
   if (!moduleId || !module) {
@@ -123,7 +132,15 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
         <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentScrollContent}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={isDarkMode ? '#E91E63' : '#E91E63'}
+              colors={['#E91E63']}
+            />
+          }>
 
           {tab === 'dashboard' ? (
             <View style={styles.dashboardContent}>

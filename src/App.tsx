@@ -10,6 +10,7 @@ import { useTheme } from './hooks/useTheme';
 import { Footer } from './components/common/Footer';
 import { Sidebar } from './components/layout/Sidebar';
 import { LoginScreen } from './screens/auth/LoginScreen';
+import { SplashScreen } from './screens/SplashScreen';
 import { DashboardScreen } from './screens/dashboard/DashboardScreen';
 import { HRScreen } from './screens/hr/HRScreen';
 import { EmployeeManagementScreen } from './screens/hr/EmployeeManagementScreen';
@@ -108,6 +109,11 @@ function AppNavigator() {
 
 function RootScreen() {
   const { isAuthenticated } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
 
   if (!isAuthenticated) {
     return <LoginScreen />;

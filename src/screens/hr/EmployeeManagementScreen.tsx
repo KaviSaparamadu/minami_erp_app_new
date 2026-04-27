@@ -3,6 +3,7 @@ import {
   Alert,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -139,6 +140,7 @@ export function EmployeeManagementScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<EmployeeModalMode>('create');
   const [selected,     setSelected]     = useState<Employee | null>(null);
+  const [refreshing,   setRefreshing]   = useState(false);
   const { colors } = useTheme();
   const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
@@ -168,6 +170,13 @@ export function EmployeeManagementScreen() {
     else setEmployees(p => p.map(x => x.id === selected?.id ? { ...data, id: x.id } : x));
     setModalVisible(false);
   }
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate data refresh (1.5 seconds)
+    await new Promise<void>(resolve => setTimeout(resolve, 1500));
+    setRefreshing(false);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -251,6 +260,14 @@ export function EmployeeManagementScreen() {
             )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 100 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#E91E63"
+                colors={['#E91E63']}
+              />
+            }
           />
         )}
 
