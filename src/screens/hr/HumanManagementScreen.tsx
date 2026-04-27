@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  FlatList,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -19,14 +19,14 @@ import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { HumanFormModal, ModalMode } from '../../components/hr/HumanFormModal';
-import { DataTable, DataTableColumn, TableIcons } from '../../components/common/DataTable';
+import { TableIcons } from '../../components/common/DataTable';
 import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
 import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import type { Country, Human } from '../../types/hr';
-import { fetchHumanList, dataKeyFor, HumanRow, HumanColumn } from '../../api/humanApi';
+import { fetchHumanList, HumanRow } from '../../api/humanApi';
 
 let nextId = 1;
 const genId = () => String(nextId++);
@@ -52,51 +52,99 @@ type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
 const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
 
-// ─── Human table cell renderers 
-function IndexCell({ index }: { index: number }) {
+// ─── Human card components ───────────────────────────────────────────────────
+function InfoChip({ label, value }: { label: string; value: string }) {
   const { colors } = useTheme();
-  return <Text style={[cell.idxText, { color: colors.placeholder }]}>{index + 1}</Text>;
+  return (
+    <View style={hc.chip}>
+      <Text style={hc.chipLabel}>{label}</Text>
+      <Text style={[hc.chipValue, { color: colors.primaryText }]} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
+  );
 }
 
-function NameCell({ human, index }: { human: Human; index: number }) {
-  const { colors } = useTheme();
-  const initial = human.fullName.charAt(0).toUpperCase();
+function HumanCard({
+  row,
+  index,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  row: HumanRow;
+  index: number;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { colors, isDarkMode } = useTheme();
+  const human = mapRowToHuman(row);
+  const initial = (human.fullName || '?').charAt(0).toUpperCase();
   const isSL = human.country === 'Sri Lanka';
+  const avatarBg = AVATAR_COLORS[index % AVATAR_COLORS.length];
+  const dob = human.dateOfBirth
+    ? human.dateOfBirth.split('T')[0].split(' ')[0]
+    : '—';
 
   return (
-    <View style={cell.nameRow}>
-      <View style={[cell.avatar, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
-        <Text style={cell.avatarTxt}>{initial}</Text>
-      </View>
-      <View style={cell.nameBlock}>
-        <Text style={[cell.nameText, { color: colors.primaryText }]} numberOfLines={1}>
-          {human.title ? `${human.title} ` : ''}{human.fullName}
-        </Text>
-        <View style={[cell.countryBadge, isSL ? cell.badgeSL : cell.badgeJP]}>
-          <Text style={cell.countryTxt}>{isSL ? 'SL' : 'JP'}</Text>
+    <View style={[hc.card, isDarkMode && hc.cardDark]}>
+      {/* Left accent bar */}
+      <View style={[hc.accent, { backgroundColor: '#595959' }]} />
+
+      <View style={hc.inner}>
+        {/* Header row */}
+        <View style={hc.header}>
+          <View style={[hc.avatar, { backgroundColor: avatarBg }]}>
+            <Text style={hc.avatarTxt}>{initial}</Text>
+          </View>
+          <View style={hc.nameBlock}>
+            <Text style={[hc.name, { color: colors.primaryText }]} numberOfLines={1}>
+              {human.fullName || '—'}
+            </Text>
+            <View style={[hc.badge, isSL ? hc.badgeSL : hc.badgeJP]}>
+              <Text style={[hc.badgeTxt, { color: isSL ? '#2E7D32' : '#B71C1C' }]}>
+                {isSL ? 'Sri Lanka' : 'Japan'}
+              </Text>
+            </View>
+          </View>
+          <Text style={[hc.idx, { color: colors.placeholder }]}>#{index + 1}</Text>
+        </View>
+
+        {/* Divider */}
+        <View style={[hc.divider, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F0F0F5' }]} />
+
+        {/* Meta chips row */}
+        <View style={hc.chips}>
+          <InfoChip label="Gender"  value={human.gender ?? '—'} />
+          <View style={[hc.chipSep, { backgroundColor: isDarkMode ? '#2C2C2E' : '#EBEBF0' }]} />
+          <InfoChip label="DOB"     value={dob} />
+          <View style={[hc.chipSep, { backgroundColor: isDarkMode ? '#2C2C2E' : '#EBEBF0' }]} />
+          <InfoChip label="NIC"     value={human.nic ?? '—'} />
+        </View>
+
+        {/* Actions */}
+        <View style={[hc.actions, { borderTopColor: isDarkMode ? '#2C2C2E' : '#F0F0F5' }]}>
+          <Pressable onPress={onView}   style={({ pressed }) => [hc.btn, hc.btnView,   pressed && hc.btnPressed]} hitSlop={4}>
+            <TableIcons.Eye />
+            <Text style={hc.btnTxt}>View</Text>
+          </Pressable>
+          <Pressable onPress={onEdit}   style={({ pressed }) => [hc.btn, hc.btnEdit,   pressed && hc.btnPressed]} hitSlop={4}>
+            <TableIcons.Edit />
+            <Text style={hc.btnTxt}>Edit</Text>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <Pressable onPress={onDelete} style={({ pressed }) => [hc.btn, hc.btnDelete, pressed && hc.btnPressed]} hitSlop={4}>
+            <TableIcons.Trash />
+            <Text style={hc.btnDelTxt}>Delete</Text>
+          </Pressable>
         </View>
       </View>
     </View>
   );
 }
 
-function MetaCell({ human }: { human: Human }) {
-  const { colors } = useTheme();
-  const isSL = human.country === 'Sri Lanka';
-
-  return (
-    <View>
-      <Text style={[cell.metaText, { color: colors.primaryText }]} numberOfLines={1}>
-        {isSL ? (human.dateOfBirth ?? '—') : (human.prefecture ?? '—')}
-      </Text>
-      <Text style={[cell.metaSub, { color: colors.placeholder }]} numberOfLines={1}>
-        {isSL ? (human.gender ?? '') : (human.city ?? '')}
-      </Text>
-    </View>
-  );
-}
-
-// ─── Dashboard tab content: Human creates come in here ────────────────────────
+// ─── Dashboard tab content ────────────────────────────────────────────────────
 function HumanDashboardView({
   counts,
   filter,
@@ -108,8 +156,7 @@ function HumanDashboardView({
   onEdit,
   onDelete,
   filteredRows,
-  apiColumns,
-  aliasMap,
+  loading,
   onRefresh,
   loadError,
 }: {
@@ -123,8 +170,7 @@ function HumanDashboardView({
   onEdit: (r: HumanRow) => void;
   onDelete: (r: HumanRow) => void;
   filteredRows: HumanRow[];
-  apiColumns: HumanColumn[];
-  aliasMap: Record<string, string>;
+  loading: boolean;
   onRefresh: () => Promise<void> | void;
   loadError: string | null;
 }) {
@@ -220,75 +266,49 @@ function HumanDashboardView({
           </View>
         )}
 
-        {/* Debug info */}
-        {apiColumns.length === 0 && !loadError && (
-          <View style={[dv.errorBanner, { borderColor: '#FFA500', backgroundColor: 'rgba(255, 165, 0, 0.08)' }]}>
-            <Text style={[dv.errorTxt, { color: '#FFA500' }]}>
-              Loading columns... (Rows: {filteredRows.length})
+        {/* Card list */}
+        {loading ? (
+          <View style={hc.emptyWrap}>
+            <ActivityIndicator size="large" color={Colors.primaryHighlight} />
+            <Text style={[hc.emptySubText, { color: colors.placeholder, marginTop: 12 }]}>
+              Loading records…
             </Text>
           </View>
+        ) : filteredRows.length === 0 ? (
+          <View style={hc.emptyWrap}>
+            <View style={hc.emptyIcon}>
+              <View style={hc.emptyHead} />
+              <View style={hc.emptyBody} />
+            </View>
+            <Text style={[hc.emptyTitle, { color: colors.primaryText }]}>
+              {searchQuery.trim() ? 'No matches found'
+                : filter === 'All' ? 'No humans yet' : `No ${filter} records`}
+            </Text>
+            <Text style={[hc.emptySubText, { color: colors.placeholder }]}>
+              {searchQuery.trim()
+                ? `Nothing matched "${searchQuery}"`
+                : 'Tap + to add your first record'}
+            </Text>
+            {searchQuery.trim().length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={hc.clearBtn}>
+                <Text style={hc.clearBtnTxt}>Clear search</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : (
+          <View style={hc.list}>
+            {filteredRows.map((row, idx) => (
+              <HumanCard
+                key={String(row.id)}
+                row={row}
+                index={idx}
+                onView={() => onView(row)}
+                onEdit={() => onEdit(row)}
+                onDelete={() => onDelete(row)}
+              />
+            ))}
+          </View>
         )}
-
-        {/* Data Table — columns driven by API response */}
-        <DataTable<HumanRow>
-          data={filteredRows}
-          keyExtractor={(r) => String(r.id)}
-          columns={apiColumns.length > 0 ? [
-            {
-              key: 'idx',
-              header: '#',
-              width: 28,
-              render: (_item, i) => <IndexCell index={i} />,
-            },
-            ...apiColumns.map<DataTableColumn<HumanRow>>((c, colIdx) => {
-              const key = dataKeyFor(c, aliasMap);
-              console.log(`[HumanDashboardView] Rendering column[${colIdx}]: label="${c.label}", key="${key}"`);
-              return {
-                key,
-                header: c.label || c.column || `Col ${colIdx}`,
-                flex: 1,
-                minWidth: 80,
-                render: (row, idx) => {
-                  const v = row[key];
-                  if (idx === 0) {
-                    console.log(`[HumanDashboardView] Row 0: key="${key}" value=`, v);
-                  }
-                  return (
-                    <Text style={[cell.metaText, { color: colors.primaryText }]} numberOfLines={1}>
-                      {v == null || v === '' ? '—' : String(v)}
-                    </Text>
-                  );
-                },
-              };
-            }),
-          ] : [
-            {
-              key: 'idx',
-              header: '#',
-              width: 28,
-              render: (_item, i) => <IndexCell index={i} />,
-            },
-            {
-              key: 'placeholder',
-              header: 'Loading...',
-              flex: 1,
-              render: () => (
-                <Text style={[cell.metaText, { color: colors.placeholder }]}>
-                  Waiting for column data
-                </Text>
-              ),
-            },
-          ]}
-          actions={[
-            { icon: <TableIcons.Eye />,   variant: 'view',   onPress: onView,   label: 'View' },
-            { icon: <TableIcons.Edit />,  variant: 'edit',   onPress: onEdit,   label: 'Edit' },
-            { icon: <TableIcons.Trash />, variant: 'delete', onPress: onDelete, label: 'Delete' },
-          ]}
-          searchQuery={searchQuery}
-          onClearSearch={() => setSearchQuery('')}
-          emptyTitle={filter === 'All' ? 'No humans yet' : `No ${filter} records`}
-          emptySubtitle='Tap the + button or "Create Human" to add your first record'
-        />
       </ScrollView>
     </View>
   );
@@ -345,8 +365,7 @@ export function HumanManagementScreen() {
 
   const [tab,          setTab]          = useState<Tab>('submodules');
   const [rows,         setRows]         = useState<HumanRow[]>([]);
-  const [apiColumns,   setApiColumns]   = useState<HumanColumn[]>([]);
-  const [aliasMap,     setAliasMap]     = useState<Record<string, string>>({});
+  const [loading,      setLoading]      = useState(true);
   const [filter,       setFilter]       = useState<Filter>('All');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -356,25 +375,15 @@ export function HumanManagementScreen() {
   const [loadError,    setLoadError]    = useState<string | null>(null);
 
   const loadHumans = useCallback(async () => {
-    console.log('=== [loadHumans] called ===');
+    setLoading(true);
     const res = await fetchHumanList(1, 100);
-    console.log('[loadHumans] res.ok:', res.ok);
-    console.log('[loadHumans] res.message:', res.ok ? 'Success' : res.message);
     if (res.ok) {
-      console.log('[loadHumans] data received:', {
-        rows: res.data.rows.length,
-        columns: res.data.columns.length,
-        aliasMap: res.data.aliasMap,
-      });
       setRows(res.data.rows);
-      setApiColumns(res.data.columns);
-      setAliasMap(res.data.aliasMap);
       setLoadError(null);
-      console.log('[loadHumans] State updated successfully');
     } else {
-      console.log('[loadHumans] ERROR - setting error state:', res.message);
       setLoadError(res.message);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -475,8 +484,7 @@ export function HumanManagementScreen() {
             onEdit={openEdit}
             onDelete={handleDelete}
             filteredRows={filteredRows}
-            apiColumns={apiColumns}
-            aliasMap={aliasMap}
+            loading={loading}
             onRefresh={loadHumans}
             loadError={loadError}
           />
@@ -896,20 +904,205 @@ const dv = StyleSheet.create({
   },
 });
 
-// ─── Human table cell styles ──────────────────────────────────────────────────
-const cell = StyleSheet.create({
-  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs, fontWeight: '500' },
+// ─── Human card styles ────────────────────────────────────────────────────────
+const hc = StyleSheet.create({
+  // Card list
+  list: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: 8,
+    paddingBottom: 28,
+    gap: 10,
+  },
 
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar:  { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: '#FFF' },
-  nameBlock: { flex: 1, gap: 3 },
-  nameText: { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '600' },
-  countryBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeSL: { backgroundColor: 'rgba(89,89,89,0.12)' },
-  badgeJP: { backgroundColor: 'rgba(89,89,89,0.10)' },
-  countryTxt: { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: '#595959' },
+  // Card shell
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EAEAF0',
+    shadowColor: '#8888AA',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  cardDark: {
+    backgroundColor: '#1C1C1E',
+    borderColor: '#2A2A2C',
+  },
+  accent: { width: 4 },
+  inner:  { flex: 1 },
 
-  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: '600' },
-  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, marginTop: 2 },
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
+    gap: 12,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  avatarTxt: {
+    fontFamily: FontFamily.bold,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  nameBlock: { flex: 1, gap: 4 },
+  name: {
+    fontFamily: FontFamily.bold,
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  badge: {
+    alignSelf: 'flex-start',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  badgeSL: { backgroundColor: 'rgba(56,142,60,0.12)' },
+  badgeJP: { backgroundColor: 'rgba(198,40,40,0.10)' },
+  badgeTxt: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  idx: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    fontWeight: '500',
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+
+  // Divider
+  divider: { height: 1 },
+
+  // Meta chips
+  chips: {
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  chip: { flex: 1, gap: 4 },
+  chipLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: 9,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: '#9090A0',
+  },
+  chipValue: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  chipSep: { width: 1, height: 34, marginHorizontal: 10 },
+
+  // Actions footer
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  btn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  btnView:    { backgroundColor: 'rgba(89,89,89,0.08)' },
+  btnEdit:    { backgroundColor: 'rgba(89,89,89,0.08)' },
+  btnDelete:  { backgroundColor: 'rgba(233,30,99,0.08)' },
+  btnPressed: { opacity: 0.7, transform: [{ scale: 0.97 }] },
+  btnTxt: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#595959',
+  },
+  btnDelTxt: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#E91E63',
+  },
+
+  // Empty / loading state
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: Spacing.xl,
+    gap: 8,
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(89,89,89,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyHead: {
+    position: 'absolute',
+    top: 12,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(89,89,89,0.25)',
+  },
+  emptyBody: {
+    position: 'absolute',
+    bottom: 12,
+    width: 26,
+    height: 14,
+    borderTopLeftRadius: 13,
+    borderTopRightRadius: 13,
+    backgroundColor: 'rgba(89,89,89,0.25)',
+  },
+  emptyTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  emptySubText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  clearBtn: {
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.primaryHighlight,
+  },
+  clearBtnTxt: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.primaryHighlight,
+  },
 });
