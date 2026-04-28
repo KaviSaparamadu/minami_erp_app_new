@@ -66,7 +66,7 @@ function DottedLoader() {
 
 function AppNavigator() {
   const { currentScreen, navigating, sidebarOpen, closeSidebar, params } = useNavigation();
-  const { searchQuery } = useSearch();
+  useSearch();
 
   const screen = (() => {
     switch (currentScreen) {
@@ -92,7 +92,7 @@ function AppNavigator() {
       <View style={styles.screenContainer}>
         {screen}
       </View>
-      {!searchQuery.trim() && <Footer />}
+      <Footer />
 
       {/* ── Sidebar drawer ── */}
       <Sidebar visible={sidebarOpen} onClose={closeSidebar} />

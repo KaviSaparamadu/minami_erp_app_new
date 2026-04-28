@@ -85,7 +85,7 @@ export function PageHeader({
   const { goBack, stack, navigateTo, openSidebar, paramsStack } = useNavigation();
   const { user, logout } = useAuth();
   const { colors, isDarkMode } = useTheme();
-  const { searchQuery, setSearchQuery, searchResults, isSearching } = useSearch();
+  const { searchQuery, setSearchQuery, searchResults, isSearching, setIsSearchVisible } = useSearch();
   const [showProfile, setShowProfile] = useState(false);
 
   const getModuleNameForIdx = (idx: number) => {
@@ -154,6 +154,18 @@ export function PageHeader({
 
         {/* Spacer */}
         <View style={styles.spacer} />
+
+        {/* Search icon — non-dashboard screens only */}
+        {!showBrand && (
+          <Pressable
+            onPress={() => setIsSearchVisible(true)}
+            style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
+            accessibilityLabel="Search"
+            accessibilityRole="button"
+            hitSlop={10}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#FFFFFF" />
+          </Pressable>
+        )}
 
         {/* Right: user avatar */}
         <View

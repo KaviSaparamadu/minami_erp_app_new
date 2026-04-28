@@ -590,6 +590,11 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.container}>
 
+          {/* Close button anchored to the very top of the modal border */}
+          <Pressable onPress={onClose} style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={16}>
+            <View style={s.xL} /><View style={s.xR} />
+          </Pressable>
+
           {/* ── Header ── */}
           <View style={s.header}>
             <View style={s.headerIcon}>
@@ -612,10 +617,6 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
                 <Text style={s.resetTxt}>Reset</Text>
               </Pressable>
             )}
-            {/* Close */}
-            <Pressable onPress={onClose} style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={12}>
-              <View style={s.xL} /><View style={s.xR} />
-            </Pressable>
           </View>
 
           {/* ── Progress bar ── */}
@@ -679,8 +680,8 @@ const s = StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF',
-    paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : 22,
-    paddingBottom: Spacing.md, gap: Spacing.md,
+    paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 58 : 24,
+    paddingBottom: Spacing.md, paddingRight: 60, gap: Spacing.md,
     borderBottomWidth: 1, borderBottomColor: '#EBEBEB',
   },
   headerIcon: {
@@ -703,9 +704,19 @@ const s = StyleSheet.create({
   rR: { position: 'absolute', width: 10, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
   resetTxt: { fontFamily: FontFamily.medium, fontSize: 10, color: Colors.placeholder },
 
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0F0F5', alignItems: 'center', justifyContent: 'center' },
-  xL: { position: 'absolute', width: 14, height: 2, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  xR: { position: 'absolute', width: 14, height: 2, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  closeBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 16,
+    right: 16,
+    zIndex: 10,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#1C1C1E',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2, shadowRadius: 4, elevation: 6,
+  },
+  xL: { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFFFFF', borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  xR: { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFFFFF', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
 
   // Tab bar
   tabBarWrap: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },

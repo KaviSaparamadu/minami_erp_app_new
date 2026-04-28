@@ -14,7 +14,7 @@ interface QuickAccessRowProps {
   onPress?: (module: AppModule) => void;
 }
 
-const ITEM_WIDTH = 50;
+const ITEM_WIDTH = 60;
 const ITEM_GAP = 8;
 const MAX_ITEMS = 5;
 const STEP = (ITEM_WIDTH + ITEM_GAP) * 4;
@@ -82,10 +82,14 @@ export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
               onPress={() => onPress?.(m)}
               accessibilityRole="button"
               accessibilityLabel={m.name}>
-              <View style={styles.circle}>
-                <UIIcon name={MODULE_ICON_MAP[m.iconType] ?? 'clipboard'} color="#595959" size={18} />
-              </View>
-              <Text style={[styles.name, dyn.name]} numberOfLines={1}>{m.name}</Text>
+              {({ pressed }) => (
+                <>
+                  <View style={[styles.circle, pressed && styles.circleActive]}>
+                    <UIIcon name={MODULE_ICON_MAP[m.iconType] ?? 'clipboard'} color={pressed ? '#FFFFFF' : '#595959'} size={18} />
+                  </View>
+                  <Text style={[styles.name, dyn.name, { opacity: pressed ? 1 : 0 }]} numberOfLines={1}>{m.name}</Text>
+                </>
+              )}
             </Pressable>
           ))}
         </ScrollView>
@@ -165,27 +169,31 @@ const styles = StyleSheet.create({
 
   scroll: { gap: ITEM_GAP, paddingBottom: 2, paddingHorizontal: 4 },
 
-  item: { alignItems: 'center', gap: 3, width: ITEM_WIDTH },
-  itemPressed: { transform: [{ scale: 0.88 }], opacity: 0.7 },
+  item: { alignItems: 'center', gap: 3, width: ITEM_WIDTH, height: 68 },
+  itemPressed: { transform: [{ scale: 0.92 }] },
   circle: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#F0F0F0',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
     shadowColor: '#595959',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 1,
   },
+  circleActive: {
+    backgroundColor: Colors.primaryHighlight,
+    shadowOpacity: 0.18,
+    elevation: 3,
+  },
   name: {
     fontFamily: QA_FONT,
     fontSize: 9,
-    fontWeight: '400',
+    fontWeight: '500',
     letterSpacing: 0,
     textAlign: 'center',
-    display: 'none',
+    width: ITEM_WIDTH,
   },
 
   arrowBtn: {

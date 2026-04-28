@@ -378,6 +378,12 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
     <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
       <View style={s.modalOverlay}>
         <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+          <View style={s.cardWrapper}>
+            {/* Close button sits centred on the card's top border */}
+            <Pressable onPress={onClose} style={({pressed})=>[s.closeBtn,pressed&&{opacity:0.6}]} hitSlop={16}>
+              <View style={s.xL}/><View style={s.xR}/>
+            </Pressable>
+
           <View style={s.container}>
 
           {/* ── Header ── */}
@@ -390,9 +396,6 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
               <Text style={s.titleTxt}>{isEdit ? 'Update Human' : isView ? 'View Human' : 'Create Human'}</Text>
               <Text style={s.stepIndicator}>Step {step} of {STEP_COUNT} — {stepTitles[step-1]}</Text>
             </View>
-            <Pressable onPress={onClose} style={({pressed})=>[s.closeBtn,pressed&&{opacity:0.6}]} hitSlop={12}>
-              <View style={s.xL}/><View style={s.xR}/>
-            </Pressable>
           </View>
 
           {/* ── Progress bar ── */}
@@ -489,7 +492,8 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
                 : null}
           </View>
 
-        </View>
+          </View>{/* container */}
+          </View>{/* cardWrapper */}
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -504,15 +508,20 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-start',
-    paddingTop: 120,
+    paddingTop: 100,
     paddingHorizontal: 12,
+  },
+
+  cardWrapper: {
+    flex: 1,
+    maxHeight: '92%',
+    width: '100%',
   },
 
   container: {
     flex: 1,
     backgroundColor: '#F5F5F7',
     borderRadius: 10,
-    maxHeight: '92%',
     width: '100%',
     overflow: 'hidden',
   },
@@ -525,9 +534,16 @@ const s = StyleSheet.create({
   headerTitle: { flex:1 },
   titleTxt: { fontFamily:FontFamily.bold, fontSize:FontSize.lg, fontWeight:FontWeight.bold, color:DARK, letterSpacing:0.2 },
   stepIndicator: { fontFamily:FontFamily.regular, fontSize:FontSize.xs, color:Colors.placeholder, marginTop:2 },
-  closeBtn: { width:32, height:32, borderRadius:16, backgroundColor:'#F0F0F5', alignItems:'center', justifyContent:'center' },
-  xL: { position:'absolute', width:14, height:2, backgroundColor:'#888', borderRadius:1, transform:[{rotate:'45deg'}] },
-  xR: { position:'absolute', width:14, height:2, backgroundColor:'#888', borderRadius:1, transform:[{rotate:'-45deg'}] },
+  closeBtn: {
+    position: 'absolute', top: -18, right: -5, zIndex: 10,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#1C1C1E',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25, shadowRadius: 4, elevation: 8,
+  },
+  xL: { position:'absolute', width:14, height:2, backgroundColor:'#FFFFFF', borderRadius:1, transform:[{rotate:'45deg'}] },
+  xR: { position:'absolute', width:14, height:2, backgroundColor:'#FFFFFF', borderRadius:1, transform:[{rotate:'-45deg'}] },
 
   // Step pills
   stepRow: { flexDirection:'row', alignItems:'flex-start', justifyContent:'center', backgroundColor:'#FFFFFF', paddingHorizontal:Spacing.xl, paddingVertical:Spacing.sm, borderBottomWidth:1, borderBottomColor:'#EBEBEB' },
