@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, FontWeight } from '../../constants/theme';
 import { useNavigation } from '../../context/NavigationContext';
@@ -43,16 +43,9 @@ export function Breadcrumbs({ variant = 'light' }: BreadcrumbsProps) {
     return { screen, label, stackIdx };
   });
 
-  const uniqueBreadcrumbs = breadcrumbs.reduce((acc, current, idx) => {
-    if (idx === 0 || current.label !== breadcrumbs[idx - 1].label) {
-      acc.push(current);
-    }
-    return acc;
-  }, [] as typeof breadcrumbs);
-
   const dyn = useMemo(() => createDynamicStyles(variant, isDarkMode), [variant, isDarkMode]);
 
-  if (uniqueBreadcrumbs.length === 0) return null;
+  if (breadcrumbs.length === 0) return null;
 
   const iconColor = variant === 'dark' ? '#FFFFFF' : (isDarkMode ? '#FFFFFF' : '#3A3A3C');
 
@@ -66,29 +59,35 @@ export function Breadcrumbs({ variant = 'light' }: BreadcrumbsProps) {
         hitSlop={14}>
         <MaterialCommunityIcons name="chevron-left" size={22} color={iconColor} />
       </Pressable>
-      {uniqueBreadcrumbs.map((crumb, idx) => {
-        const isLast = idx === uniqueBreadcrumbs.length - 1;
-        return (
-          <Pressable
-            key={`${crumb.label}-${idx}`}
-            onPress={() => navigateTo(crumb.screen as any)}
-            style={({ pressed }) => [
-              styles.item,
-              isLast && styles.active,
-              pressed && styles.pressed,
-            ]}>
-            <Text
-              style={[
-                styles.text,
-                dyn.text,
-                isLast && [styles.textActive, dyn.textActive],
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.scrollRow}
+        contentContainerStyle={styles.scrollContent}>
+        {breadcrumbs.map((crumb, idx) => {
+          const isLast = idx === breadcrumbs.length - 1;
+          return (
+            <Pressable
+              key={`${crumb.label}-${idx}`}
+              onPress={() => navigateTo(crumb.screen as any)}
+              style={({ pressed }) => [
+                styles.item,
+                isLast && styles.active,
+                pressed && styles.pressed,
               ]}>
-              {crumb.label}
-            </Text>
-            {!isLast && <Text style={[styles.separator, dyn.separator]}> / </Text>}
-          </Pressable>
-        );
-      })}
+              <Text
+                style={[
+                  styles.text,
+                  dyn.text,
+                  isLast && [styles.textActive, dyn.textActive],
+                ]}>
+                {crumb.label}
+              </Text>
+              {!isLast && <Text style={[styles.separator, dyn.separator]}> / </Text>}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
@@ -114,10 +113,16 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    flexWrap: 'wrap',
     paddingHorizontal: 10,
     paddingVertical: 8,
+  },
+  scrollRow: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   backIconBtn: {
     padding: 4,

@@ -215,7 +215,12 @@ export function Footer() {
     <>
       <View style={[styles.footer, dyn.footer]}>
 
-        {/* Home logo */}
+        {/* Left side */}
+        <View style={styles.footerSide}>
+          <FooterTabItem icon="cog-outline" label="Settings" onPress={() => {}} />
+        </View>
+
+        {/* Center logo */}
         <Pressable
           style={({ pressed }) => [styles.logoContainer, pressed && styles.logoContainerPressed]}
           onPress={() => navigate('Dashboard')}
@@ -230,25 +235,23 @@ export function Footer() {
           </View>
         </Pressable>
 
-        {/* Settings */}
-        <FooterTabItem icon="cog-outline" label="Settings" onPress={() => {}} />
-
-        {/* Search — hidden on Dashboard (search already lives in the header there) */}
-        {!isDashboard && (
+        {/* Right side */}
+        <View style={styles.footerSide}>
+          {/* Search — hidden on Dashboard (search already lives in the header there) */}
+          {!isDashboard && (
+            <FooterTabItem
+              icon="magnify"
+              label="Search"
+              active={isSearchVisible}
+              onPress={() => setIsSearchVisible(true)}
+            />
+          )}
           <FooterTabItem
-            icon="magnify"
-            label="Search"
-            active={isSearchVisible}
-            onPress={() => setIsSearchVisible(true)}
+            icon="account-circle-outline"
+            label="Profile"
+            onPress={() => setShowProfile(true)}
           />
-        )}
-
-        {/* Profile */}
-        <FooterTabItem
-          icon="account-circle-outline"
-          label="Profile"
-          onPress={() => setShowProfile(true)}
-        />
+        </View>
       </View>
 
       {/* Search modal */}
@@ -309,6 +312,9 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: Colors.primaryHighlight,
   },
   logoImage: { width: 32, height: 32 },
+  footerSide: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
+  },
   tabItem: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 6, paddingHorizontal: 4, gap: 3, borderRadius: 8,
