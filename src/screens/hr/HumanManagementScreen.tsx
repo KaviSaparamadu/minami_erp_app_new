@@ -11,9 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
-import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
 import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
 import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { DashboardView } from '../../components/dashboard/DashboardView';
@@ -28,8 +26,6 @@ import { useNavigation } from '../../context/NavigationContext';
 import type { Country, Human } from '../../types/hr';
 import { fetchHumanList, HumanRow } from '../../api/humanApi';
 
-let nextId = 1;
-const genId = () => String(nextId++);
 
 function mapRowToHuman(row: HumanRow): Human {
   const country: Country = row.t2name === 'Japan' ? 'Japan' : 'Sri Lanka';
@@ -51,6 +47,24 @@ type Tab = 'dashboard' | 'modules' | 'submodules';
 type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
 const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
+
+function calcHumanHealth(human: Human): number {
+  const isSL = human.country === 'Sri Lanka';
+  const fields = isSL
+    ? [human.country, human.nic, human.dateOfBirth, human.gender,
+       human.title, human.fullName, human.surname, human.firstName,
+       human.province, human.district, human.gnDivision]
+    : [human.country, human.title, human.fullName, human.surname,
+       human.firstName, human.prefecture, human.city, human.townDistrict];
+  return Math.round((fields.filter(Boolean).length / fields.length) * 100);
+}
+
+function humanRingColor(pct: number): string {
+  if (pct < 25) return '#E53935';
+  if (pct < 50) return '#FB8C00';
+  if (pct < 75) return '#FDD835';
+  return '#30A84B';
+}
 
 // ─── Human card components ───────────────────────────────────────────────────
 function InfoChip({ label, value }: { label: string; value: string }) {
@@ -83,6 +97,8 @@ function HumanCard({
   const initial = (human.fullName || '?').charAt(0).toUpperCase();
   const isSL = human.country === 'Sri Lanka';
   const avatarBg = AVATAR_COLORS[index % AVATAR_COLORS.length];
+  const pct       = calcHumanHealth(human);
+  const ringColor = humanRingColor(pct);
   const dob = human.dateOfBirth
     ? human.dateOfBirth.split('T')[0].split(' ')[0]
     : '—';
@@ -95,8 +111,15 @@ function HumanCard({
       <View style={hc.inner}>
         {/* Header row */}
         <View style={hc.header}>
-          <View style={[hc.avatar, { backgroundColor: avatarBg }]}>
-            <Text style={hc.avatarTxt}>{initial}</Text>
+          <View style={hc.avatarWrap}>
+            <View style={[hc.avatarRing, { borderColor: ringColor }]}>
+              <View style={[hc.avatar, { backgroundColor: avatarBg }]}>
+                <Text style={hc.avatarTxt}>{initial}</Text>
+              </View>
+            </View>
+            <View style={[hc.pctBadge, { backgroundColor: ringColor }]}>
+              <Text style={hc.pctTxt}>{pct}%</Text>
+            </View>
           </View>
           <View style={hc.nameBlock}>
             <Text style={[hc.name, { color: colors.primaryText }]} numberOfLines={1}>
@@ -360,8 +383,6 @@ function ModulesView({ onModulePress, refreshing, onRefresh }: { onModulePress: 
 export function HumanManagementScreen() {
   const { colors, isDarkMode } = useTheme();
   const { navigate } = useNavigation();
-  const { width } = useWindowDimensions();
-  const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
 
   const [tab,          setTab]          = useState<Tab>('submodules');
   const [rows,         setRows]         = useState<HumanRow[]>([]);
@@ -389,8 +410,6 @@ export function HumanManagementScreen() {
   useEffect(() => {
     loadHumans();
   }, [loadHumans]);
-
-  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   const countryFiltered = filter === 'All'
     ? rows
@@ -944,14 +963,11 @@ const hc = StyleSheet.create({
     paddingBottom: 10,
     gap: 12,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
+  avatarWrap: { alignItems: 'center', gap: 4, flexShrink: 0 },
+  avatarRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  avatar:     { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  pctBadge:   { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, alignItems: 'center', minWidth: 34 },
+  pctTxt:     { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#FFF' },
   avatarTxt: {
     fontFamily: FontFamily.bold,
     fontSize: 18,

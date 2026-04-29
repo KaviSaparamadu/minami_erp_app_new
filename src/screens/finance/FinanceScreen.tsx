@@ -25,8 +25,7 @@ const GRID_COLS = 3;
 
 type Tab = 'dashboard' | 'modules' | 'submodules';
 
-// ─── Sub-module definitions ───────────────────────────────────────────────────
-const UM_SUBMODULES: {
+const FINANCE_SUBMODULES: {
   id: string;
   screen: ScreenName;
   name: string;
@@ -37,43 +36,33 @@ const UM_SUBMODULES: {
 }[] = [
   {
     id: '1',
-    screen: 'CreateSystemUsers',
-    name: 'Create System Users',
-    value: '24',
-    valueLabel: 'Active Users',
-    description: 'Add accounts, set credentials and configure login access for staff members.',
-    iconType: 'user-add',
+    screen: 'FinanceUtilities',
+    name: 'Finance Utilities',
+    value: '18',
+    valueLabel: 'Tools',
+    description: 'Currency conversion, tax calculators, and financial utility tools.',
+    iconType: 'finance-utilities',
   },
   {
     id: '2',
-    screen: 'AssignUserPermission',
-    name: 'Assign User Permission',
-    value: '18',
-    valueLabel: 'Configured',
-    description: 'Grant or revoke individual module permissions per user.',
-    iconType: 'key',
+    screen: 'LedgerManagement',
+    name: 'Ledger Management',
+    value: '245',
+    valueLabel: 'Entries',
+    description: 'Manage general ledger, chart of accounts, and journal entries.',
+    iconType: 'ledger',
   },
   {
     id: '3',
-    screen: 'CreateUserRole',
-    name: 'Create User Role',
-    value: '7',
-    valueLabel: 'Roles',
-    description: 'Define reusable role profiles that bundle a set of permissions.',
-    iconType: 'badge',
-  },
-  {
-    id: '4',
-    screen: 'AssignUserRolePermission',
-    name: 'Assign Role Permission',
-    value: '12',
-    valueLabel: 'Assignments',
-    description: 'Map permissions to roles and assign roles to users system-wide.',
-    iconType: 'sliders',
+    screen: 'FinanceOperation',
+    name: 'Finance Operation',
+    value: '64',
+    valueLabel: 'Txns',
+    description: 'Handle accounts payable, receivable, payments, and day-to-day transactions.',
+    iconType: 'finance-operation',
   },
 ];
 
-// ─── Submodules list ──────────────────────────────────────────────────────────
 function SubmodulesView({
   onPress,
   refreshing,
@@ -91,8 +80,8 @@ function SubmodulesView({
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primaryHighlight} />
       }>
-      <Text style={[styles.sectionTitle, { color: colors.primaryText }]}>User Management</Text>
-      {UM_SUBMODULES.map(mod => (
+      <Text style={[styles.sectionTitle, { color: colors.primaryText }]}>Finance</Text>
+      {FINANCE_SUBMODULES.map(mod => (
         <SubmoduleDetailCard
           key={mod.id}
           submodule={{ id: mod.id, name: mod.name, value: mod.value, valueLabel: mod.valueLabel }}
@@ -105,7 +94,6 @@ function SubmodulesView({
   );
 }
 
-// ─── Modules grid ─────────────────────────────────────────────────────────────
 function ModulesView({
   onModulePress,
   refreshing,
@@ -146,8 +134,7 @@ function ModulesView({
   );
 }
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
-export function UserManagementScreen() {
+export function FinanceScreen() {
   const { navigate } = useNavigation();
   const [tab, setTab] = useState<Tab>('submodules');
   const [refreshing, setRefreshing] = useState(false);
@@ -168,7 +155,7 @@ export function UserManagementScreen() {
 
   return (
     <SubModuleLayout
-      title="User Management"
+      title="Finance"
       showBack={true}
       activeTab={tab}
       onTabChange={setTab}

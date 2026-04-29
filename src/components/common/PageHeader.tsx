@@ -21,6 +21,7 @@ interface PageHeaderProps {
   searchValue?: string;
   onSearchChange?: (query: string) => void;
   hideSearchBar?: boolean; // hides search bar even if dashboardSearch is true
+  hideSearchIcon?: boolean; // hides the magnify icon in the header top row
 }
 
 interface BackArrowProps {
@@ -81,6 +82,7 @@ export function PageHeader({
   searchValue = '',
   onSearchChange = () => {},
   hideSearchBar = false,
+  hideSearchIcon = false,
 }: PageHeaderProps) {
   const { goBack, stack, navigateTo, openSidebar, paramsStack } = useNavigation();
   const { user, logout } = useAuth();
@@ -156,7 +158,7 @@ export function PageHeader({
         <View style={styles.spacer} />
 
         {/* Search icon — non-dashboard screens only */}
-        {!showBrand && (
+        {!showBrand && !hideSearchIcon && (
           <Pressable
             onPress={() => setIsSearchVisible(true)}
             style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}

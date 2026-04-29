@@ -1,162 +1,390 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { PageHeader } from '../../components/common/PageHeader';
+import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
+import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
+import { ModuleCard } from '../../components/dashboard/ModuleCard';
+import { DashboardView } from '../../components/dashboard/DashboardView';
+import { UIIcon } from '../../components/common/UIIcon';
+import { TableIcons } from '../../components/common/DataTable';
 import { EmployeeFormModal, EmployeeModalMode } from '../../components/hr/EmployeeFormModal';
-import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
+import { MODULES } from '../../constants/modules';
+import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
+import { useNavigation } from '../../context/NavigationContext';
 import type { Employee } from '../../types/hr';
 
 let nextId = 1;
 const genId = () => String(nextId++);
 
-const AVATAR_COLORS = ['#E91E63', '#9C27B0', '#3F51B5', '#009688', '#FF5722', '#607D8B'];
+const H_PAD = 6;
+const GRID_GAP = 10;
+const GRID_COLS = 3;
 
-// ─── Row action icons ─────────────────────────────────────────────────────────
-function EyeIcon() {
-  return (
-    <View style={ai.wrap}>
-      <View style={ai.eyeOval} /><View style={ai.eyeDot} />
-    </View>
-  );
-}
-function EditIcon() {
-  return (
-    <View style={ai.wrap}>
-      <View style={ai.penBody} /><View style={ai.penLine} />
-    </View>
-  );
-}
-function TrashIcon() {
-  return (
-    <View style={ai.wrap}>
-      <View style={ai.lidBar} /><View style={ai.binBody} />
-      <View style={ai.binL} /><View style={ai.binR} />
-    </View>
-  );
+type Tab = 'dashboard' | 'modules' | 'submodules';
+type Filter = 'All' | 'Permanent' | 'Contract' | 'Casual';
+const FILTERS: Filter[] = ['All', 'Permanent', 'Contract', 'Casual'];
+const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
+
+const HEALTH_FIELDS: (keyof Employee)[] = [
+  'employeeName', 'salaryBoard', 'designationCategory', 'designation',
+  'designationGrade', 'employeeType', 'entity', 'workBranch', 'department',
+];
+
+function calcHealth(emp: Employee): number {
+  const filled = HEALTH_FIELDS.filter(f => !!emp[f]).length;
+  return Math.round((filled / HEALTH_FIELDS.length) * 100);
 }
 
-// ─── Table row ────────────────────────────────────────────────────────────────
-function TableRow({
-  employee, index, onView, onEdit, onDelete,
+function healthRingColor(pct: number): string {
+  if (pct < 25) return '#E53935';
+  if (pct < 50) return '#FB8C00';
+  if (pct < 75) return '#FDD835';
+  return '#30A84B';
+}
+
+// ─── Info chip ────────────────────────────────────────────────────────────────
+function InfoChip({ label, value }: { label: string; value: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={ec.chip}>
+      <Text style={ec.chipLabel}>{label}</Text>
+      <Text style={[ec.chipValue, { color: colors.primaryText }]} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+// ─── Employee card ────────────────────────────────────────────────────────────
+function EmployeeCard({
+  employee,
+  index,
+  onView,
+  onEdit,
+  onDelete,
 }: {
-  employee: Employee; index: number;
-  onView(): void; onEdit(): void; onDelete(): void;
+  employee: Employee;
+  index: number;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { colors, isDarkMode } = useTheme();
+  const initial = (employee.employeeName || '?').charAt(0).toUpperCase();
+  const avatarBg = AVATAR_COLORS[index % AVATAR_COLORS.length];
+  const pct       = calcHealth(employee);
+  const ringColor = healthRingColor(pct);
+
+  return (
+    <View style={[ec.card, isDarkMode && ec.cardDark]}>
+      <View style={[ec.accent, { backgroundColor: '#595959' }]} />
+      <View style={ec.inner}>
+        {/* Header */}
+        <View style={ec.header}>
+          <View style={ec.avatarWrap}>
+            <View style={[ec.avatarRing, { borderColor: ringColor }]}>
+              <View style={[ec.avatar, { backgroundColor: avatarBg }]}>
+                <Text style={ec.avatarTxt}>{initial}</Text>
+              </View>
+            </View>
+            <View style={[ec.pctBadge, { backgroundColor: ringColor }]}>
+              <Text style={ec.pctTxt}>{pct}%</Text>
+            </View>
+          </View>
+          <View style={ec.nameBlock}>
+            <Text style={[ec.name, { color: colors.primaryText }]} numberOfLines={1}>
+              {employee.employeeName || '—'}
+            </Text>
+            {employee.designationGrade ? (
+              <View style={ec.badge}>
+                <Text style={ec.badgeTxt}>{employee.designationGrade}</Text>
+              </View>
+            ) : null}
+          </View>
+          <Text style={[ec.idx, { color: colors.placeholder }]}>#{index + 1}</Text>
+        </View>
+
+        <View style={[ec.divider, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F0F0F5' }]} />
+
+        {/* Meta chips */}
+        <View style={ec.chips}>
+          <InfoChip label="Dept"  value={employee.department     ?? '—'} />
+          <View style={[ec.chipSep, { backgroundColor: isDarkMode ? '#2C2C2E' : '#EBEBF0' }]} />
+          <InfoChip label="Type"  value={employee.employeeType   ?? '—'} />
+          <View style={[ec.chipSep, { backgroundColor: isDarkMode ? '#2C2C2E' : '#EBEBF0' }]} />
+          <InfoChip label="Grade" value={employee.designation    ?? '—'} />
+        </View>
+
+        {/* Actions */}
+        <View style={[ec.actions, { borderTopColor: isDarkMode ? '#2C2C2E' : '#F0F0F5' }]}>
+          <Pressable onPress={onView}   style={({ pressed }) => [ec.btn, ec.btnView,   pressed && ec.btnPressed]} hitSlop={4}>
+            <TableIcons.Eye />
+            <Text style={ec.btnTxt}>View</Text>
+          </Pressable>
+          <Pressable onPress={onEdit}   style={({ pressed }) => [ec.btn, ec.btnEdit,   pressed && ec.btnPressed]} hitSlop={4}>
+            <TableIcons.Edit />
+            <Text style={ec.btnTxt}>Edit</Text>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <Pressable onPress={onDelete} style={({ pressed }) => [ec.btn, ec.btnDelete, pressed && ec.btnPressed]} hitSlop={4}>
+            <TableIcons.Trash />
+            <Text style={ec.btnDelTxt}>Delete</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Submodules (list) tab ────────────────────────────────────────────────────
+function EmployeeListView({
+  counts,
+  filter,
+  setFilter,
+  searchQuery,
+  setSearchQuery,
+  onOpenCreate,
+  onView,
+  onEdit,
+  onDelete,
+  filteredEmployees,
+  loading,
+  onRefresh,
+}: {
+  counts: Record<Filter, number>;
+  filter: Filter;
+  setFilter: (f: Filter) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  onOpenCreate: () => void;
+  onView: (e: Employee) => void;
+  onEdit: (e: Employee) => void;
+  onDelete: (e: Employee) => void;
+  filteredEmployees: Employee[];
+  loading: boolean;
+  onRefresh: () => Promise<void> | void;
+}) {
+  const { colors, isDarkMode } = useTheme();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh();
+    setRefreshing(false);
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={lv.scroll}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#595959" />
+        }>
+
+        {/* Section title */}
+        <View style={lv.sectionHeader}>
+          <Text style={[lv.sectionTitle, { color: colors.primaryText }]}>Employee Records</Text>
+        </View>
+
+        {/* Search + filter */}
+        <View style={lv.searchFilterContainer}>
+          <View style={lv.searchAndFilterRow}>
+            <View style={[lv.searchWrapper, dyn.searchWrapper]}>
+              <View style={[lv.searchBar, dyn.searchBar]}>
+                <UIIcon name="search" size={16} color="#8E8E93" />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search by name, dept, type…"
+                  placeholderTextColor="#8E8E93"
+                  style={[lv.searchInput, dyn.searchInput]}
+                  autoCapitalize="none"
+                  returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                  <Pressable onPress={() => setSearchQuery('')} style={lv.clearBtn} hitSlop={8}>
+                    <View style={[lv.clearX1, { backgroundColor: colors.placeholder }]} />
+                    <View style={[lv.clearX2, { backgroundColor: colors.placeholder }]} />
+                  </Pressable>
+                )}
+              </View>
+              <Pressable
+                onPress={onOpenCreate}
+                style={({ pressed }) => [lv.addBtn, pressed && lv.addBtnPressed]}
+                accessibilityRole="button">
+                <View style={lv.addBtnIcon} />
+                <View style={lv.addBtnIconV} />
+              </Pressable>
+            </View>
+
+            {/* Filter pills */}
+            <View style={lv.pillRow}>
+              {FILTERS.map(f => {
+                const active = filter === f;
+                return (
+                  <Pressable key={f} onPress={() => setFilter(f)} style={[lv.pill, active && lv.pillActive]}>
+                    <Text style={[lv.pillTxt, dyn.pillTxt, active && lv.pillTxtActive]}>{f}</Text>
+                    <View style={[lv.pillBadge, active && lv.pillBadgeActive]}>
+                      <Text style={[lv.pillBadgeTxt, active && lv.pillBadgeTxtActive]}>{counts[f]}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
+        {/* Card list */}
+        {loading ? (
+          <View style={ec.emptyWrap}>
+            <ActivityIndicator size="large" color={Colors.primaryHighlight} />
+            <Text style={[ec.emptySubText, { color: colors.placeholder, marginTop: 12 }]}>
+              Loading records…
+            </Text>
+          </View>
+        ) : filteredEmployees.length === 0 ? (
+          <View style={ec.emptyWrap}>
+            <View style={ec.emptyIcon}>
+              <View style={ec.emptyHead} />
+              <View style={ec.emptyBody} />
+            </View>
+            <Text style={[ec.emptyTitle, { color: colors.primaryText }]}>
+              {searchQuery.trim() ? 'No matches found'
+                : filter === 'All' ? 'No employees yet' : `No ${filter} employees`}
+            </Text>
+            <Text style={[ec.emptySubText, { color: colors.placeholder }]}>
+              {searchQuery.trim()
+                ? `Nothing matched "${searchQuery}"`
+                : 'Tap + to add your first record'}
+            </Text>
+            {searchQuery.trim().length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={ec.clearBtn}>
+                <Text style={ec.clearBtnTxt}>Clear search</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : (
+          <View style={ec.list}>
+            {filteredEmployees.map((emp, idx) => (
+              <EmployeeCard
+                key={emp.id}
+                employee={emp}
+                index={idx}
+                onView={() => onView(emp)}
+                onEdit={() => onEdit(emp)}
+                onDelete={() => onDelete(emp)}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ─── Modules tab ──────────────────────────────────────────────────────────────
+function ModulesView({
+  onModulePress,
+  refreshing,
+  onRefresh,
+}: {
+  onModulePress: (module: AppModule) => void;
+  refreshing: boolean;
+  onRefresh: () => void;
 }) {
   const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
-  const initial = (employee.employeeName ?? 'E').charAt(0).toUpperCase();
-  const isEven  = index % 2 === 0;
+  const { width } = useWindowDimensions();
+  const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
 
   return (
-    <View style={[tr.row, isEven && tr.rowEven]}>
-      {/* # */}
-      <View style={tr.colIdx}><Text style={[tr.idxText, dynamicStyles.idxText]}>{index + 1}</Text></View>
-
-      {/* Avatar + name */}
-      <View style={tr.colName}>
-        <View style={[tr.avatar, { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] }]}>
-          <Text style={tr.avatarTxt}>{initial}</Text>
-        </View>
-        <View style={tr.nameBlock}>
-          <Text style={[tr.nameText, dynamicStyles.nameText]} numberOfLines={1}>{employee.employeeName ?? '—'}</Text>
-          {employee.designationGrade ? (
-            <View style={tr.gradeBadge}>
-              <Text style={tr.gradeText}>{employee.designationGrade}</Text>
-            </View>
-          ) : null}
-        </View>
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: Spacing.sm, gap: 8 }}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#595959" />
+      }>
+      <View style={{ paddingHorizontal: 8 }}>
+        <Text style={{ fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', color: colors.primaryText, marginBottom: 12 }}>
+          Available Modules
+        </Text>
       </View>
-
-      {/* Dept / Type */}
-      <View style={tr.colMeta}>
-        <Text style={[tr.metaText, dynamicStyles.metaText]} numberOfLines={1}>{employee.department ?? '—'}</Text>
-        <Text style={[tr.metaSub, dynamicStyles.metaSub]} numberOfLines={1}>{employee.employeeType ?? ''}</Text>
-      </View>
-
-      {/* Actions */}
-      <View style={tr.colActions}>
-        <Pressable onPress={onView}   style={[tr.btn, tr.btnView]}   hitSlop={6}><EyeIcon /></Pressable>
-        <Pressable onPress={onEdit}   style={[tr.btn, tr.btnEdit]}   hitSlop={6}><EditIcon /></Pressable>
-        <Pressable onPress={onDelete} style={[tr.btn, tr.btnDelete]} hitSlop={6}><TrashIcon /></Pressable>
-      </View>
-    </View>
+      <ModulesGrid
+        data={MODULES}
+        cardWidth={cardWidth}
+        numColumns={GRID_COLS}
+        gap={GRID_GAP}
+        hPad={0}
+        renderItem={(module, width) => (
+          <ModuleCard
+            key={module.id}
+            module={module}
+            width={width}
+            onPress={() => onModulePress(module)}
+          />
+        )}
+      />
+    </ScrollView>
   );
 }
 
-// ─── No results ───────────────────────────────────────────────────────────────
-function NoResults({ query, onClear }: { query: string; onClear(): void }) {
-  const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
-
-  return (
-    <View style={nr.wrap}>
-      <View style={nr.iconWrap}>
-        <View style={nr.glass} /><View style={nr.handle} />
-        <View style={nr.cross1} /><View style={nr.cross2} />
-      </View>
-      <Text style={[nr.title, dynamicStyles.noResultsTitle]}>No results found</Text>
-      <Text style={[nr.sub, dynamicStyles.noResultsSub]}>Nothing matched <Text style={[nr.query, dynamicStyles.noResultsQuery]}>"{query}"</Text></Text>
-      <Pressable onPress={onClear} style={({ pressed }) => [nr.btn, { borderColor: colors.primaryText }, pressed && { opacity: 0.8 }]}>
-        <Text style={[nr.btnTxt, dynamicStyles.noResultsBtn]}>Clear search</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-function EmptyState({ onAdd }: { onAdd(): void }) {
-  const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
-
-  return (
-    <View style={es.wrap}>
-      <View style={es.iconCircle}>
-        <View style={es.head} /><View style={es.body} />
-        <View style={es.plusH} /><View style={es.plusV} />
-      </View>
-      <Text style={[es.title, dynamicStyles.emptyTitle]}>No employees yet</Text>
-      <Text style={[es.sub, dynamicStyles.emptySub]}>Tap + to add your first employee record</Text>
-      <Pressable onPress={onAdd} style={({ pressed }) => [es.btn, pressed && { opacity: 0.85 }]}>
-        <Text style={[es.btnTxt, dynamicStyles.emptyBtn]}>+ Create Employee</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-// ─── Screen ──────────────────────────────────────────────────────────────────
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export function EmployeeManagementScreen() {
+  const { navigate } = useNavigation();
+
+  const [tab,          setTab]          = useState<Tab>('submodules');
   const [employees,    setEmployees]    = useState<Employee[]>([]);
+  const [loading]                       = useState(false);
+  const [filter,       setFilter]       = useState<Filter>('All');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<EmployeeModalMode>('create');
   const [selected,     setSelected]     = useState<Employee | null>(null);
   const [refreshing,   setRefreshing]   = useState(false);
-  const { colors } = useTheme();
-  const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
+
+  const typeFiltered = filter === 'All'
+    ? employees
+    : employees.filter(e => e.employeeType === filter);
 
   const q = searchQuery.trim().toLowerCase();
-  const filtered = q === ''
-    ? employees
-    : employees.filter(e =>
+  const filteredEmployees = q === ''
+    ? typeFiltered
+    : typeFiltered.filter(e =>
         [e.employeeName, e.employeeNumber, e.designation, e.designationCategory,
          e.department, e.subDepartment, e.employeeType, e.salaryBoard,
          e.entity, e.workBranch, e.section]
           .some(v => v?.toLowerCase().includes(q)),
       );
 
+  const counts: Record<Filter, number> = {
+    All:       employees.length,
+    Permanent: employees.filter(e => e.employeeType === 'Permanent').length,
+    Contract:  employees.filter(e => e.employeeType === 'Contract').length,
+    Casual:    employees.filter(e => e.employeeType === 'Casual').length,
+  };
+
   function openCreate() { setSelected(null); setModalMode('create'); setModalVisible(true); }
-  function openEdit(e: Employee) { setSelected(e); setModalMode('edit');   setModalVisible(true); }
-  function openView(e: Employee) { setSelected(e); setModalMode('view');   setModalVisible(true); }
+  function openEdit(e: Employee) { setSelected(e); setModalMode('edit'); setModalVisible(true); }
+  function openView(e: Employee) { setSelected(e); setModalMode('view'); setModalVisible(true); }
 
   function handleDelete(e: Employee) {
     Alert.alert('Delete Employee', `Remove "${e.employeeName ?? 'this employee'}"?`, [
@@ -171,116 +399,63 @@ export function EmployeeManagementScreen() {
     setModalVisible(false);
   }
 
-  const handleRefresh = async () => {
+  function handleQuickAccess(module: AppModule) {
+    navigate('ModuleDetail', { moduleId: module.id });
+  }
+
+  function handleModulePress(module: AppModule) {
+    navigate('ModuleDetail', { moduleId: module.id });
+  }
+
+  async function handleDashboardRefresh() {
     setRefreshing(true);
-    // Simulate data refresh (1.5 seconds)
-    await new Promise<void>(resolve => setTimeout(resolve, 1500));
+    await new Promise<void>(resolve => setTimeout(resolve, 800));
     setRefreshing(false);
-  };
+  }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-
-      {/* Dark band */}
-      <View style={styles.darkBand}>
-        <PageHeader title="Employee Management" showBack={true} />
-
-        {/* Stats chips */}
-        <View style={styles.statsRow}>
-          <View style={styles.statChip}>
-            <Text style={styles.statValue}>{employees.length}</Text>
-            <Text style={styles.statLabel}>Total</Text>
-          </View>
-          <View style={styles.statChip}>
-            <Text style={styles.statValue}>
-              {employees.filter(e => e.employeeType === 'Permanent').length}
-            </Text>
-            <Text style={styles.statLabel}>Permanent</Text>
-          </View>
-          <View style={styles.statChip}>
-            <Text style={styles.statValue}>
-              {employees.filter(e => e.employeeType === 'Contract').length}
-            </Text>
-            <Text style={styles.statLabel}>Contract</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Light sheet */}
-      <View style={styles.sheet}>
-
-        {/* Search bar */}
-        {employees.length > 0 && (
-          <View style={sb.wrap}>
-            <View style={sb.iconWrap}>
-              <View style={[sb.glass, { borderColor: colors.placeholder }]} /><View style={[sb.handle, { backgroundColor: colors.placeholder }]} />
-            </View>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name, department, type…"
-              placeholderTextColor={colors.placeholder}
-              style={[sb.input, { color: colors.primaryText }]}
-              autoCapitalize="none"
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} style={sb.clearBtn} hitSlop={8}>
-                <View style={[sb.clearX1, { backgroundColor: colors.placeholder }]} /><View style={[sb.clearX2, { backgroundColor: colors.placeholder }]} />
-              </Pressable>
-            )}
-          </View>
-        )}
-
-        {/* Table header */}
-        {filtered.length > 0 && (
-          <View style={th.row}>
-            <View style={th.colIdx}><Text style={[th.txt, dynamicStyles.headerTxt]}>#</Text></View>
-            <View style={th.colName}><Text style={[th.txt, dynamicStyles.headerTxt]}>Employee</Text></View>
-            <View style={th.colMeta}><Text style={[th.txt, dynamicStyles.headerTxt]}>Dept / Type</Text></View>
-            <View style={th.colActions}><Text style={[th.txt, dynamicStyles.headerTxt, { textAlign: 'center' }]}>Actions</Text></View>
-          </View>
-        )}
-
-        {filtered.length === 0 && employees.length === 0 ? (
-          <EmptyState onAdd={openCreate} />
-        ) : filtered.length === 0 ? (
-          <NoResults query={searchQuery} onClear={() => setSearchQuery('')} />
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={e => e.id}
-            renderItem={({ item, index }) => (
-              <TableRow
-                employee={item} index={index}
-                onView={() => openView(item)}
-                onEdit={() => openEdit(item)}
-                onDelete={() => handleDelete(item)}
-              />
-            )}
+    <>
+      <SubModuleLayout
+        title="Employee Management"
+        showBack={true}
+        activeTab={tab}
+        onTabChange={setTab}
+        onModulePress={handleQuickAccess}
+        showSubmodulesTab={false}
+        showSubTab={true}
+        subTabLabel="Create Employee"
+      >
+        {tab === 'dashboard' ? (
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.contentScrollContent}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 100 }}
             refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor="#E91E63"
-                colors={['#E91E63']}
-              />
-            }
+              <RefreshControl refreshing={refreshing} onRefresh={handleDashboardRefresh} tintColor="#595959" />
+            }>
+            <View style={styles.dashboardContent}>
+              <DashboardView />
+            </View>
+          </ScrollView>
+        ) : tab === 'modules' ? (
+          <ModulesView onModulePress={handleModulePress} refreshing={refreshing} onRefresh={handleDashboardRefresh} />
+        ) : (
+          <EmployeeListView
+            counts={counts}
+            filter={filter}
+            setFilter={setFilter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onOpenCreate={openCreate}
+            onView={openView}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+            filteredEmployees={filteredEmployees}
+            loading={loading}
+            onRefresh={handleDashboardRefresh}
           />
         )}
-
-        {/* FAB */}
-        <Pressable
-          onPress={openCreate}
-          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-          accessibilityLabel="Create employee"
-          accessibilityRole="button">
-          <View style={styles.fabH} />
-          <View style={styles.fabV} />
-        </Pressable>
-      </View>
+      </SubModuleLayout>
 
       <EmployeeFormModal
         visible={modalVisible}
@@ -289,157 +464,115 @@ export function EmployeeManagementScreen() {
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
       />
-    </SafeAreaView>
+    </>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const DARK  = '#1C1C1E';
-const LIGHT = '#F2F2F7';
-
-function createDynamicStyles(colors: any) {
+// ─── Dynamic styles ───────────────────────────────────────────────────────────
+function createDynamicStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
-    txt: { color: colors.placeholder },
-    idxText: { color: colors.placeholder },
-    nameText: { color: colors.primaryText },
-    metaText: { color: colors.primaryText },
-    metaSub: { color: colors.placeholder },
-    sub: { color: colors.placeholder },
-    title: { color: colors.primaryText },
-    headerTxt: { color: colors.placeholder },
-    searchIcon: { borderColor: colors.placeholder, backgroundColor: colors.placeholder },
-    searchInput: { color: colors.primaryText },
-    clearIcon: { backgroundColor: colors.placeholder },
-    noResultsTitle: { color: colors.primaryText },
-    noResultsSub: { color: colors.placeholder },
-    noResultsQuery: { color: colors.primaryText },
-    noResultsBtn: { borderColor: colors.primaryText, color: colors.primaryText },
-    emptyTitle: { color: colors.primaryText },
-    emptySub: { color: colors.placeholder },
-    emptyBtn: { color: '#FFF' },
+    searchBar:    { backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF', borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA' },
+    searchInput:  { color: colors.primaryText },
+    searchWrapper:{ backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF' },
+    pillTxt:      { color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#5A5A62' },
   });
 }
 
 const styles = StyleSheet.create({
-  safe:     { flex: 1, backgroundColor: DARK },
-  darkBand: { backgroundColor: DARK, paddingBottom: 24 },
-  sheet: {
-    flex: 1, backgroundColor: LIGHT,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    marginTop: -28, overflow: 'hidden',
-  },
-  statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
-  statChip: {
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 6, alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', minWidth: 64,
-  },
-  statValue: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
-  statLabel: { fontFamily: FontFamily.regular, fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
-  fab: {
-    position: 'absolute', bottom: 28, right: 20,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: Colors.primaryHighlight,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: Colors.primaryHighlight, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45, shadowRadius: 14, elevation: 10,
-  },
-  fabPressed: { transform: [{ scale: 0.93 }], opacity: 0.88 },
-  fabH: { position: 'absolute', width: 24, height: 3, borderRadius: 1.5, backgroundColor: '#FFF' },
-  fabV: { position: 'absolute', width: 3, height: 24, borderRadius: 1.5, backgroundColor: '#FFF' },
+  dashboardContent:      { flex: 1 },
+  contentScroll:         { flex: 1 },
+  contentScrollContent:  { flexGrow: 1 },
 });
 
-const th = StyleSheet.create({
-  row: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing.md, paddingVertical: 8,
-    backgroundColor: '#FFF', borderBottomWidth: 1.5, borderBottomColor: '#E8E8F0',
+// ─── List view styles ─────────────────────────────────────────────────────────
+const lv = StyleSheet.create({
+  scroll: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 100, gap: 0 },
+
+  sectionHeader: { paddingHorizontal: Spacing.md, paddingTop: 0, paddingBottom: 2 },
+  sectionTitle:  { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700' },
+
+  searchFilterContainer: { paddingHorizontal: Spacing.md, paddingVertical: 6 },
+  searchAndFilterRow:    { flexDirection: 'column', gap: 6 },
+
+  searchWrapper: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 4, backgroundColor: 'transparent',
   },
-  txt: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, textTransform: 'uppercase', letterSpacing: 0.6 },
-  colIdx:    { width: 28 },
-  colName:   { flex: 1 },
-  colMeta:   { width: 80 },
-  colActions:{ width: 96 },
-});
-
-const tr = StyleSheet.create({
-  row: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing.md, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#F0F0F5', backgroundColor: '#FFF',
+  searchBar: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 12, height: 40, borderRadius: 10,
+    borderWidth: 1, borderColor: '#E5E5E5',
   },
-  rowEven: { backgroundColor: '#FAFAFA' },
-  colIdx:     { width: 28 },
-  colName:    { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  colMeta:    { width: 80 },
-  colActions: { width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
+  searchInput: { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.sm, paddingVertical: 0 },
+  clearBtn:    { width: 18, height: 18, borderRadius: 9, backgroundColor: '#E0E0E8', alignItems: 'center', justifyContent: 'center' },
+  clearX1:     { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  clearX2:     { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
 
-  idxText: { fontFamily: FontFamily.regular, fontSize: FontSize.xs },
-  avatar:  { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: FontWeight.bold, color: '#FFF' },
-  nameBlock: { flex: 1, gap: 2 },
-  nameText: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: FontWeight.medium },
-  gradeBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(233,30,99,0.08)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-  gradeText:  { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: FontWeight.bold, color: Colors.primaryHighlight, letterSpacing: 0.5 },
-  metaText: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: FontWeight.medium },
-  metaSub:  { fontFamily: FontFamily.regular, fontSize: 9, marginTop: 1 },
+  addBtn:        { width: 40, height: 40, borderRadius: 10, backgroundColor: '#E91E63', alignItems: 'center', justifyContent: 'center' },
+  addBtnPressed: { opacity: 0.8, transform: [{ scale: 0.95 }] },
+  addBtnIcon:    { position: 'absolute', width: 14, height: 2, borderRadius: 1, backgroundColor: '#FFF' },
+  addBtnIconV:   { position: 'absolute', width: 2, height: 14, borderRadius: 1, backgroundColor: '#FFF' },
 
-  btn:       { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  btnView:   { backgroundColor: 'rgba(63,81,181,0.1)' },
-  btnEdit:   { backgroundColor: 'rgba(255,152,0,0.1)' },
-  btnDelete: { backgroundColor: 'rgba(211,47,47,0.1)' },
+  pillRow:         { flexDirection: 'row', gap: 6 },
+  pill:            { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: '#F8F8F8', borderWidth: 1, borderColor: '#E0E0E0' },
+  pillActive:      { backgroundColor: '#E91E63', borderColor: 'transparent' },
+  pillTxt:         { fontFamily: FontFamily.regular, fontSize: 11, fontWeight: '500' },
+  pillTxtActive:   { color: '#FFFFFF', fontFamily: FontFamily.bold, fontWeight: '600' },
+  pillBadge:       { backgroundColor: '#D0D0D0', borderRadius: 8, paddingHorizontal: 5, minWidth: 16, alignItems: 'center' },
+  pillBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  pillBadgeTxt:    { fontFamily: FontFamily.regular, fontSize: 9, fontWeight: '600', color: '#666666' },
+  pillBadgeTxtActive: { color: '#FFF', fontWeight: '700' },
 });
 
-const es = StyleSheet.create({
-  wrap:       { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xl, paddingBottom: 60, gap: Spacing.md },
-  iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(233,30,99,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  head:  { position: 'absolute', top: 12, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(233,30,99,0.3)' },
-  body:  { position: 'absolute', bottom: 14, width: 28, height: 16, borderTopLeftRadius: 14, borderTopRightRadius: 14, backgroundColor: 'rgba(233,30,99,0.3)' },
-  plusH: { position: 'absolute', bottom: 10, right: 8, width: 14, height: 3, borderRadius: 1.5, backgroundColor: Colors.primaryHighlight },
-  plusV: { position: 'absolute', bottom: 4, right: 14, width: 3, height: 14, borderRadius: 1.5, backgroundColor: Colors.primaryHighlight },
-  title:  { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold },
-  sub:    { fontFamily: FontFamily.regular, fontSize: FontSize.sm, textAlign: 'center', lineHeight: 18 },
-  btn:    { marginTop: Spacing.sm, backgroundColor: Colors.primaryHighlight, borderRadius: 12, paddingHorizontal: Spacing.xl, paddingVertical: 12 },
-  btnTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: '#FFF' },
-});
+// ─── Employee card styles ─────────────────────────────────────────────────────
+const ec = StyleSheet.create({
+  list: { paddingHorizontal: Spacing.md, paddingTop: 8, paddingBottom: 28, gap: 10 },
 
-const sb = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: Spacing.lg, marginTop: Spacing.md, marginBottom: 2,
-    paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', gap: 8,
+  card: {
+    flexDirection: 'row', backgroundColor: '#FFFFFF',
+    borderRadius: 16, borderWidth: 1, borderColor: '#EAEAF0',
+    shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3, overflow: 'hidden',
   },
-  iconWrap: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
-  glass:  { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, position: 'absolute', top: 0, left: 0 },
-  handle: { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  input:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.sm, paddingVertical: 0 },
-  clearBtn: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#E0E0E8', alignItems: 'center', justifyContent: 'center' },
-  clearX1: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  clearX2: { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-});
+  cardDark: { backgroundColor: '#1C1C1E', borderColor: '#2A2A2C' },
+  accent:   { width: 4 },
+  inner:    { flex: 1 },
 
-const nr = StyleSheet.create({
-  wrap:     { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60, gap: Spacing.md },
-  iconWrap: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#F0F0F5', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  glass:    { width: 26, height: 26, borderRadius: 14, borderWidth: 2.5, borderColor: '#C0C0CC', position: 'absolute', top: 10, left: 10 },
-  handle:   { position: 'absolute', bottom: 11, right: 10, width: 11, height: 2.5, backgroundColor: '#C0C0CC', borderRadius: 1.5, transform: [{ rotate: '45deg' }] },
-  cross1:   { position: 'absolute', top: 12, left: 22, width: 10, height: 2, backgroundColor: '#D32F2F', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  cross2:   { position: 'absolute', top: 12, left: 22, width: 10, height: 2, backgroundColor: '#D32F2F', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  title:    { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold },
-  sub:      { fontFamily: FontFamily.regular, fontSize: FontSize.sm, textAlign: 'center' },
-  query:    { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
-  btn:      { marginTop: 4, paddingHorizontal: Spacing.lg, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, backgroundColor: '#FFF' },
-  btnTxt:   { fontFamily: FontFamily.medium, fontSize: FontSize.sm },
-});
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 12 },
+  avatarWrap: { alignItems: 'center', gap: 4, flexShrink: 0 },
+  avatarRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  avatar:     { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  pctBadge:   { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, alignItems: 'center', minWidth: 34 },
+  pctTxt:     { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#FFF' },
+  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  nameBlock: { flex: 1, gap: 4 },
+  name:      { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', lineHeight: 20 },
+  badge:     { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(233,30,99,0.10)' },
+  badgeTxt:  { fontFamily: FontFamily.medium, fontSize: 10, fontWeight: '600', color: Colors.primaryHighlight },
+  idx:       { fontFamily: FontFamily.regular, fontSize: 11, fontWeight: '500', alignSelf: 'flex-start', marginTop: 2 },
 
-const ai = StyleSheet.create({
-  wrap:    { width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
-  eyeOval: { position: 'absolute', width: 14, height: 9, borderRadius: 5, borderWidth: 1.5, borderColor: '#3F51B5' },
-  eyeDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: '#3F51B5' },
-  penBody: { position: 'absolute', width: 9, height: 3, backgroundColor: '#FF9800', borderRadius: 1, transform: [{ rotate: '-45deg' }], top: 2, left: 1 },
-  penLine: { position: 'absolute', bottom: 0, width: 8, height: 1.5, backgroundColor: '#FF9800', borderRadius: 1 },
-  lidBar:  { position: 'absolute', top: 0, width: 12, height: 2, borderRadius: 1, backgroundColor: '#D32F2F' },
-  binBody: { position: 'absolute', bottom: 0, width: 10, height: 10, borderBottomLeftRadius: 2, borderBottomRightRadius: 2, borderWidth: 1.5, borderColor: '#D32F2F', borderTopWidth: 0 },
-  binL:    { position: 'absolute', bottom: 2, left: 4, width: 1.5, height: 6, backgroundColor: '#D32F2F', borderRadius: 1 },
-  binR:    { position: 'absolute', bottom: 2, right: 4, width: 1.5, height: 6, backgroundColor: '#D32F2F', borderRadius: 1 },
+  divider:  { height: 1 },
+  chips:    { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 12, alignItems: 'center' },
+  chip:     { flex: 1, gap: 4 },
+  chipLabel: { fontFamily: FontFamily.regular, fontSize: 9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, color: '#9090A0' },
+  chipValue: { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600' },
+  chipSep:   { width: 1, height: 34, marginHorizontal: 10 },
+
+  actions:    { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingHorizontal: 10, paddingVertical: 8, gap: 6 },
+  btn:        { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8 },
+  btnView:    { backgroundColor: 'rgba(89,89,89,0.08)' },
+  btnEdit:    { backgroundColor: 'rgba(89,89,89,0.08)' },
+  btnDelete:  { backgroundColor: 'rgba(233,30,99,0.08)' },
+  btnPressed: { opacity: 0.7, transform: [{ scale: 0.97 }] },
+  btnTxt:     { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#595959' },
+  btnDelTxt:  { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#E91E63' },
+
+  emptyWrap:    { alignItems: 'center', paddingVertical: 50, paddingHorizontal: Spacing.xl, gap: 8 },
+  emptyIcon:    { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(89,89,89,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  emptyHead:    { position: 'absolute', top: 12, width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(89,89,89,0.25)' },
+  emptyBody:    { position: 'absolute', bottom: 12, width: 26, height: 14, borderTopLeftRadius: 13, borderTopRightRadius: 13, backgroundColor: 'rgba(89,89,89,0.25)' },
+  emptyTitle:   { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', textAlign: 'center' },
+  emptySubText: { fontFamily: FontFamily.regular, fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  clearBtn:     { marginTop: 8, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.primaryHighlight },
+  clearBtnTxt:  { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '700', color: Colors.primaryHighlight },
 });

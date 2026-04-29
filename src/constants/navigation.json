@@ -55,17 +55,110 @@
     {
       "id": "system-admin",
       "name": "System Admin",
-      "icon": "admin"
+      "icon": "admin",
+      "screen": "SystemAdmin",
+      "children": [
+        {
+          "id": "sa-system-settings",
+          "name": "System Settings",
+          "icon": "sys-settings",
+          "screen": "SystemSettings"
+        },
+        {
+          "id": "sa-general-settings",
+          "name": "General Settings",
+          "icon": "gen-settings",
+          "screen": "GeneralSettings"
+        },
+        {
+          "id": "sa-default-settings",
+          "name": "System Default Settings",
+          "icon": "sys-defaults",
+          "screen": "SystemDefaultSettings",
+          "children": [
+            {
+              "id": "sa-workflow",
+              "name": "System Work Flow",
+              "icon": "workflow",
+              "screen": "SystemWorkFlow"
+            }
+          ]
+        },
+        {
+          "id": "sa-support-ticket",
+          "name": "Support Ticket",
+          "icon": "support-ticket",
+          "screen": "SupportTicket"
+        },
+        {
+          "id": "sa-activity-log",
+          "name": "Activity Log",
+          "icon": "activity-log",
+          "screen": "ActivityLog"
+        }
+      ]
     },
     {
       "id": "finance",
       "name": "Finance",
-      "icon": "finance"
+      "icon": "finance",
+      "screen": "Finance",
+      "children": [
+        {
+          "id": "finance-utilities",
+          "name": "Finance Utilities",
+          "icon": "finance-utilities",
+          "screen": "FinanceUtilities",
+          "children": [
+            { "id": "fu-entities",       "name": "Entities",                 "icon": "fu-entities",       "screen": "FinanceEntities" },
+            { "id": "fu-biz",            "name": "Business Structure",        "icon": "fu-biz-structure",  "screen": "BusinessStructure" },
+            { "id": "fu-institutes",     "name": "Finance Institutes & Acc",  "icon": "fu-fin-institutes", "screen": "FinanceInstitutesAcc" },
+            { "id": "fu-books",          "name": "Books & Accounts",          "icon": "fu-books",          "screen": "BooksAndAccounts" },
+            { "id": "fu-utility",        "name": "Utility Service",           "icon": "fu-utility",        "screen": "UtilityService" },
+            { "id": "fu-provider",       "name": "Service Provider",          "icon": "fu-provider",       "screen": "ServiceProvider" },
+            { "id": "fu-tax",            "name": "Tax Settings",              "icon": "fu-tax",            "screen": "TaxSettings" },
+            { "id": "fu-pos",            "name": "POS",                       "icon": "fu-pos",            "screen": "POS" },
+            { "id": "fu-bank-card",      "name": "Create Bank Card Machine",  "icon": "fu-bank-card",      "screen": "BankCardMachine" },
+            { "id": "fu-loyalty",        "name": "Loyalty Points",            "icon": "fu-loyalty",        "screen": "LoyaltyPoints" }
+          ]
+        },
+        {
+          "id": "finance-ledger",
+          "name": "Ledger Management",
+          "icon": "ledger",
+          "screen": "LedgerManagement",
+          "children": [
+            { "id": "lm-coa",      "name": "Chart of Accounts Manager",  "icon": "lm-coa",         "screen": "ChartOfAccounts" },
+            { "id": "lm-reports",  "name": "Finance Reports Generator",  "icon": "lm-reports",     "screen": "FinanceReportsGenerator" },
+            { "id": "lm-connect",  "name": "Ledger Connection Console",  "icon": "lm-connect",     "screen": "LedgerConnectionConsole" },
+            { "id": "lm-opening",  "name": "Opening Balance Console",    "icon": "lm-opening-bal", "screen": "OpeningBalanceConsole" },
+            { "id": "lm-journal",  "name": "Journal Entry",              "icon": "lm-journal",     "screen": "JournalEntry" }
+          ]
+        },
+        {
+          "id": "finance-operation",
+          "name": "Finance Operation",
+          "icon": "finance-operation",
+          "screen": "FinanceOperation",
+          "children": [
+            { "id": "fo-pos",       "name": "POS",                      "icon": "fo-pos",       "screen": "POS" },
+            { "id": "fo-points",    "name": "Manage POS Points",         "icon": "fo-pos-points","screen": "ManagePOSPoints" },
+            { "id": "fo-invoice",   "name": "Simple Invoice",            "icon": "fo-invoice",   "screen": "SimpleInvoice" },
+            { "id": "fo-bank-card", "name": "Manage Bank Card Machine",  "icon": "fo-bank-card", "screen": "ManageBankCardMachine" }
+          ]
+        }
+      ]
     },
     {
       "id": "procurement",
       "name": "Procurement",
-      "icon": "procurement"
+      "icon": "procurement",
+      "screen": "Procurement",
+      "children": [
+        { "id": "proc-purchasing", "name": "Purchasing",          "icon": "proc-purchasing", "screen": "Purchasing" },
+        { "id": "proc-stores",     "name": "Stores & Inventory",  "icon": "proc-stores",     "screen": "StoresInventory" },
+        { "id": "proc-logistics",  "name": "Logistics",           "icon": "proc-logistics",  "screen": "Logistics" }
+      ]
     },
     {
       "id": "operation",

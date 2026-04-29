@@ -35,13 +35,23 @@ export function Breadcrumbs({ variant = 'light' }: BreadcrumbsProps) {
     return 'ModuleDetail';
   };
 
-  const breadcrumbs = stack.slice(1).map((screen, i) => {
-    const stackIdx = i + 1;
+  // Always start from after the last Dashboard so switching modules resets the crumb
+  const lastDashIdx = stack.reduce((last, s, i) => (s === 'Dashboard' ? i : last), 0);
+  const currentSegment = stack.slice(lastDashIdx + 1);
+
+  const seen = new Set<string>();
+  const breadcrumbs = currentSegment.reduce((acc, screen, i) => {
+    const stackIdx = lastDashIdx + 1 + i;
     const label = screen === 'ModuleDetail'
       ? getModuleNameForIdx(stackIdx)
       : (SCREEN_LABELS[screen] || screen);
-    return { screen, label, stackIdx };
-  });
+    const key = screen === 'ModuleDetail' ? `ModuleDetail:${label}` : screen;
+    if (!seen.has(key)) {
+      seen.add(key);
+      acc.push({ screen, label, stackIdx });
+    }
+    return acc;
+  }, [] as { screen: string; label: string; stackIdx: number }[]);
 
   const dyn = useMemo(() => createDynamicStyles(variant, isDarkMode), [variant, isDarkMode]);
 

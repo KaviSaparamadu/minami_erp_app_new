@@ -25,8 +25,7 @@ const GRID_COLS = 3;
 
 type Tab = 'dashboard' | 'modules' | 'submodules';
 
-// ─── Sub-module definitions ───────────────────────────────────────────────────
-const UM_SUBMODULES: {
+const SA_SUBMODULES: {
   id: string;
   screen: ScreenName;
   name: string;
@@ -37,43 +36,51 @@ const UM_SUBMODULES: {
 }[] = [
   {
     id: '1',
-    screen: 'CreateSystemUsers',
-    name: 'Create System Users',
-    value: '24',
-    valueLabel: 'Active Users',
-    description: 'Add accounts, set credentials and configure login access for staff members.',
-    iconType: 'user-add',
+    screen: 'SystemSettings',
+    name: 'System Settings',
+    value: '12',
+    valueLabel: 'Configs',
+    description: 'Configure system-wide parameters, integrations, and environment options.',
+    iconType: 'settings',
   },
   {
     id: '2',
-    screen: 'AssignUserPermission',
-    name: 'Assign User Permission',
-    value: '18',
-    valueLabel: 'Configured',
-    description: 'Grant or revoke individual module permissions per user.',
-    iconType: 'key',
+    screen: 'GeneralSettings',
+    name: 'General Settings',
+    value: '8',
+    valueLabel: 'Options',
+    description: 'Manage general application preferences, language, and display settings.',
+    iconType: 'sliders',
   },
   {
     id: '3',
-    screen: 'CreateUserRole',
-    name: 'Create User Role',
-    value: '7',
-    valueLabel: 'Roles',
-    description: 'Define reusable role profiles that bundle a set of permissions.',
-    iconType: 'badge',
+    screen: 'SystemDefaultSettings',
+    name: 'System Default Settings',
+    value: '6',
+    valueLabel: 'Defaults',
+    description: 'Set factory defaults for forms, workflows, and data entry templates.',
+    iconType: 'defaults',
   },
   {
     id: '4',
-    screen: 'AssignUserRolePermission',
-    name: 'Assign Role Permission',
-    value: '12',
-    valueLabel: 'Assignments',
-    description: 'Map permissions to roles and assign roles to users system-wide.',
-    iconType: 'sliders',
+    screen: 'SupportTicket',
+    name: 'Support Ticket',
+    value: '34',
+    valueLabel: 'Open',
+    description: 'Raise, track, and resolve internal IT and system support requests.',
+    iconType: 'ticket',
+  },
+  {
+    id: '5',
+    screen: 'ActivityLog',
+    name: 'Activity Log',
+    value: '1.2K',
+    valueLabel: 'Events',
+    description: 'Review a full audit trail of user actions and system events.',
+    iconType: 'log',
   },
 ];
 
-// ─── Submodules list ──────────────────────────────────────────────────────────
 function SubmodulesView({
   onPress,
   refreshing,
@@ -91,8 +98,8 @@ function SubmodulesView({
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primaryHighlight} />
       }>
-      <Text style={[styles.sectionTitle, { color: colors.primaryText }]}>User Management</Text>
-      {UM_SUBMODULES.map(mod => (
+      <Text style={[styles.sectionTitle, { color: colors.primaryText }]}>System Admin</Text>
+      {SA_SUBMODULES.map(mod => (
         <SubmoduleDetailCard
           key={mod.id}
           submodule={{ id: mod.id, name: mod.name, value: mod.value, valueLabel: mod.valueLabel }}
@@ -105,7 +112,6 @@ function SubmodulesView({
   );
 }
 
-// ─── Modules grid ─────────────────────────────────────────────────────────────
 function ModulesView({
   onModulePress,
   refreshing,
@@ -146,8 +152,7 @@ function ModulesView({
   );
 }
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
-export function UserManagementScreen() {
+export function SystemAdminScreen() {
   const { navigate } = useNavigation();
   const [tab, setTab] = useState<Tab>('submodules');
   const [refreshing, setRefreshing] = useState(false);
@@ -168,7 +173,7 @@ export function UserManagementScreen() {
 
   return (
     <SubModuleLayout
-      title="User Management"
+      title="System Admin"
       showBack={true}
       activeTab={tab}
       onTabChange={setTab}

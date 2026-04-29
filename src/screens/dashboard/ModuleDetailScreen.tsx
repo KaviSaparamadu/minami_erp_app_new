@@ -74,7 +74,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
 
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
-      <PageHeader showBack={true} showBrand={false} title={module.name} showBreadcrumbs={false} />
+      <PageHeader showBack={true} showBrand={false} title={module.name} showBreadcrumbs={false} hideSearchIcon={true} />
 
       <View style={styles.whiteSection}>
         {/* Quick Access - Fixed in white area */}
@@ -164,7 +164,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
                   <SubmoduleDetailCard
                     key={submodule.id}
                     submodule={submodule}
-                    iconType="hr"
+                    iconType={submodule.iconType ?? 'hr'}
                     description={submodule.description}
                     onPress={() => {
                       if (submodule.name === 'Human Management') {
@@ -173,6 +173,22 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
                         navigate('EmployeeManagement');
                       } else if (submodule.name === 'User Management') {
                         navigate('UserManagement');
+                      } else if (submodule.name === 'System Settings') {
+                        navigate('SystemSettings');
+                      } else if (submodule.name === 'General Settings') {
+                        navigate('GeneralSettings');
+                      } else if (submodule.name === 'System Default Settings') {
+                        navigate('SystemDefaultSettings');
+                      } else if (submodule.name === 'Support Ticket') {
+                        navigate('SupportTicket');
+                      } else if (submodule.name === 'Activity Log') {
+                        navigate('ActivityLog');
+                      } else if (submodule.name === 'Finance Utilities') {
+                        navigate('FinanceUtilities');
+                      } else if (submodule.name === 'Ledger Management') {
+                        navigate('LedgerManagement');
+                      } else if (submodule.name === 'Finance Operation') {
+                        navigate('FinanceOperation');
                       }
                     }}
                   />
@@ -190,21 +206,6 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
   );
 }
 
-function ModuleSubmoduleCard({ submodule, width }: { submodule: any; width: number }) {
-  const { colors, isDarkMode } = useTheme();
-  const dyn = useMemo(() => createSubmoduleStyles(colors, isDarkMode), [colors, isDarkMode]);
-
-  return (
-    <View style={[styles.submoduleCard, dyn.submoduleCard, { width }]}>
-      <Text style={[styles.submoduleName, dyn.submoduleName]} numberOfLines={2}>
-        {submodule.name}
-      </Text>
-      <Text style={[styles.submoduleValue, dyn.submoduleValue]} numberOfLines={1}>
-        {submodule.value} {submodule.valueLabel}
-      </Text>
-    </View>
-  );
-}
 
 function createDynamicStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
@@ -227,15 +228,6 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
   });
 }
 
-function createSubmoduleStyles(colors: any, isDarkMode: boolean) {
-  return StyleSheet.create({
-    submoduleCard: {
-      backgroundColor: isDarkMode ? '#2A2A2E' : '#F2F2F5',
-    },
-    submoduleName: { color: colors.primaryText },
-    submoduleValue: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
-  });
-}
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
@@ -316,29 +308,6 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
 
-  submoduleCard: {
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  submoduleName: {
-    fontFamily: FontFamily.bold,
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 0.1,
-    marginBottom: 8,
-  },
-
-  submoduleValue: {
-    fontFamily: FontFamily.regular,
-    fontSize: 9,
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
 
   dashboardContent: {
     paddingBottom: 40,

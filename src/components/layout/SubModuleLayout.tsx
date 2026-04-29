@@ -63,11 +63,11 @@ export function SubModuleLayout({
   showSubTab = false,
   subTabLabel = 'Sub Tab',
 }: SubModuleLayoutProps) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [tab, setTab] = useState<Tab>(activeTab);
   const [refreshing, setRefreshing] = useState(false);
 
-  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+  const dyn = useMemo(() => createDynamicStyles(isDarkMode), [isDarkMode]);
 
   const handleTabChange = (newTab: Tab) => {
     setTab(newTab);
@@ -84,7 +84,7 @@ export function SubModuleLayout({
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
       {/* Header */}
-      <PageHeader showBack={showBack} title={title} showBreadcrumbs={false} />
+      <PageHeader showBack={showBack} title={title} showBreadcrumbs={false} hideSearchIcon={true} />
 
       {/* White section with scrollable content */}
       <View style={styles.whiteSection}>
@@ -159,7 +159,7 @@ export function SubModuleLayout({
   );
 }
 
-function createDynamicStyles(colors: any, isDarkMode: boolean) {
+function createDynamicStyles(isDarkMode: boolean) {
   return StyleSheet.create({
     safe: { backgroundColor: '#5A5A5A' },
     tabsBorder: {

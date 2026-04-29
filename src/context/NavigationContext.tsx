@@ -6,6 +6,18 @@ export type ScreenName =
   | 'UserManagement'
   | 'CreateSystemUsers' | 'AssignUserPermission'
   | 'CreateUserRole'    | 'AssignUserRolePermission'
+  | 'SystemAdmin'
+  | 'SystemSettings' | 'GeneralSettings'
+  | 'SystemDefaultSettings' | 'SupportTicket' | 'ActivityLog'
+  | 'SystemWorkFlow'
+  | 'Finance' | 'FinanceUtilities' | 'LedgerManagement' | 'FinanceOperation'
+  | 'FinanceEntities' | 'BusinessStructure' | 'FinanceInstitutesAcc'
+  | 'BooksAndAccounts' | 'UtilityService' | 'ServiceProvider'
+  | 'TaxSettings' | 'POS' | 'BankCardMachine' | 'LoyaltyPoints'
+  | 'ChartOfAccounts' | 'FinanceReportsGenerator'
+  | 'LedgerConnectionConsole' | 'OpeningBalanceConsole' | 'JournalEntry'
+  | 'ManagePOSPoints' | 'SimpleInvoice' | 'ManageBankCardMachine'
+  | 'Procurement' | 'Purchasing' | 'StoresInventory' | 'Logistics'
   | 'ModuleDetail';
 
 interface NavigationContextValue {

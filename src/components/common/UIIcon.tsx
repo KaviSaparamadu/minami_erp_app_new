@@ -18,7 +18,14 @@ export type IconName =
   | 'pin'
   | 'headset'
   | 'building'
-  | 'briefcase';
+  | 'briefcase'
+  | 'key'
+  | 'badge'
+  | 'sliders'
+  | 'calendar'
+  | 'chart'
+  | 'ticket'
+  | 'log';
 
 interface Props {
   name: IconName;
@@ -53,6 +60,13 @@ function render(name: IconName, c: string, s: number) {
     case 'headset':    return <HeadsetG   color={c} s={s} />;
     case 'building':   return <BuildingG  color={c} s={s} />;
     case 'briefcase':  return <BriefcaseG color={c} s={s} />;
+    case 'key':        return <KeyG       color={c} s={s} />;
+    case 'badge':      return <BadgeG     color={c} s={s} />;
+    case 'sliders':    return <SlidersG   color={c} s={s} />;
+    case 'calendar':   return <CalendarG  color={c} s={s} />;
+    case 'chart':      return <ChartG     color={c} s={s} />;
+    case 'ticket':     return <TicketG    color={c} s={s} />;
+    case 'log':        return <LogG       color={c} s={s} />;
   }
 }
 
@@ -470,6 +484,218 @@ function GearG({ color, s }: { color: string; s: number }) {
         width: s * 0.22, height: s * 0.22, borderRadius: s * 0.11,
         borderWidth: 1.3, borderColor: color,
       }} />
+    </>
+  );
+}
+
+// Key: oval ring on left + horizontal shaft + two downward notches
+function KeyG({ color, s }: { color: string; s: number }) {
+  return (
+    <>
+      <View style={{
+        position: 'absolute', top: s * 0.26, left: s * 0.04,
+        width: s * 0.38, height: s * 0.38, borderRadius: s * 0.19,
+        borderWidth: 1.8, borderColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.35, left: s * 0.16,
+        width: s * 0.18, height: s * 0.18, borderRadius: s * 0.09,
+        borderWidth: 1.4, borderColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.43, left: s * 0.36,
+        width: s * 0.58, height: 2, backgroundColor: color, borderRadius: 1,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.43, right: s * 0.24,
+        width: 2, height: s * 0.14, backgroundColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.43, right: s * 0.12,
+        width: 2, height: s * 0.1, backgroundColor: color,
+      }} />
+    </>
+  );
+}
+
+// Badge: ID card with photo circle + two text lines
+function BadgeG({ color, s }: { color: string; s: number }) {
+  return (
+    <>
+      <View style={{
+        position: 'absolute', top: s * 0.1, left: s * 0.15,
+        width: s * 0.7, height: s * 0.8,
+        borderRadius: 4, borderWidth: 1.6, borderColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.04, left: s * 0.36,
+        width: s * 0.28, height: s * 0.14,
+        borderRadius: 2, borderWidth: 1.4, borderColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.24, left: s * 0.39,
+        width: s * 0.22, height: s * 0.22, borderRadius: s * 0.11,
+        borderWidth: 1.4, borderColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.55, left: s * 0.27,
+        width: s * 0.46, height: 2, backgroundColor: color, borderRadius: 1,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.65, left: s * 0.33,
+        width: s * 0.34, height: 1.5, backgroundColor: color, borderRadius: 1,
+      }} />
+    </>
+  );
+}
+
+// Sliders: three horizontal tracks with knobs at different positions
+function SlidersG({ color, s }: { color: string; s: number }) {
+  const rows: { top: number; knob: number }[] = [
+    { top: s * 0.14, knob: s * 0.58 },
+    { top: s * 0.43, knob: s * 0.26 },
+    { top: s * 0.72, knob: s * 0.48 },
+  ];
+  return (
+    <>
+      {rows.map((r, i) => (
+        <React.Fragment key={i}>
+          <View style={{
+            position: 'absolute', top: r.top + s * 0.04, left: s * 0.08,
+            width: s * 0.84, height: 2, backgroundColor: color, borderRadius: 1, opacity: 0.4,
+          }} />
+          <View style={{
+            position: 'absolute', top: r.top, left: r.knob - s * 0.06,
+            width: s * 0.12, height: s * 0.12, borderRadius: s * 0.06,
+            backgroundColor: color,
+          }} />
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
+
+// Calendar: box + header strip + knobs + date dots
+function CalendarG({ color, s }: { color: string; s: number }) {
+  return (
+    <>
+      <View style={{
+        position: 'absolute', top: s * 0.16, left: s * 0.1,
+        width: s * 0.8, height: s * 0.72,
+        borderRadius: 3, borderWidth: 1.6, borderColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.16, left: s * 0.1,
+        width: s * 0.8, height: s * 0.2,
+        backgroundColor: color,
+        borderTopLeftRadius: 2, borderTopRightRadius: 2,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.07, left: s * 0.28,
+        width: 2.5, height: s * 0.16, backgroundColor: color, borderRadius: 1.5,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.07, right: s * 0.28,
+        width: 2.5, height: s * 0.16, backgroundColor: color, borderRadius: 1.5,
+      }} />
+      {[
+        { t: s * 0.47, l: s * 0.22 }, { t: s * 0.47, l: s * 0.46 }, { t: s * 0.47, l: s * 0.68 },
+        { t: s * 0.63, l: s * 0.22 }, { t: s * 0.63, l: s * 0.46 },
+      ].map((p, i) => (
+        <View key={i} style={{
+          position: 'absolute', top: p.t, left: p.l,
+          width: s * 0.1, height: s * 0.1, borderRadius: s * 0.05,
+          backgroundColor: color,
+        }} />
+      ))}
+    </>
+  );
+}
+
+// Chart: y-axis + x-axis + three ascending bars
+function ChartG({ color, s }: { color: string; s: number }) {
+  const bars = [
+    { h: s * 0.34, l: s * 0.18 },
+    { h: s * 0.52, l: s * 0.42 },
+    { h: s * 0.66, l: s * 0.66 },
+  ];
+  return (
+    <>
+      <View style={{
+        position: 'absolute', top: s * 0.1, left: s * 0.12,
+        width: 2, height: s * 0.72, backgroundColor: color,
+      }} />
+      <View style={{
+        position: 'absolute', bottom: s * 0.1, left: s * 0.12,
+        width: s * 0.8, height: 2, backgroundColor: color,
+      }} />
+      {bars.map((b, i) => (
+        <View key={i} style={{
+          position: 'absolute', bottom: s * 0.12, left: b.l,
+          width: s * 0.16, height: b.h,
+          backgroundColor: color,
+          borderTopLeftRadius: 2, borderTopRightRadius: 2,
+        }} />
+      ))}
+    </>
+  );
+}
+
+// Ticket: left half + right half + perforation dots
+function TicketG({ color, s }: { color: string; s: number }) {
+  return (
+    <>
+      <View style={{
+        position: 'absolute', top: s * 0.22, left: s * 0.06,
+        width: s * 0.4, height: s * 0.56,
+        borderTopLeftRadius: 3, borderBottomLeftRadius: 3,
+        borderWidth: 1.6, borderColor: color, borderRightWidth: 0,
+      }} />
+      <View style={{
+        position: 'absolute', top: s * 0.22, right: s * 0.06,
+        width: s * 0.4, height: s * 0.56,
+        borderTopRightRadius: 3, borderBottomRightRadius: 3,
+        borderWidth: 1.6, borderColor: color, borderLeftWidth: 0,
+      }} />
+      {[0, 1, 2, 3].map(i => (
+        <View key={i} style={{
+          position: 'absolute', top: s * 0.3 + i * s * 0.12,
+          left: s * 0.48, width: 2.5, height: s * 0.06,
+          backgroundColor: color, borderRadius: 1,
+        }} />
+      ))}
+      <View style={{
+        position: 'absolute', top: s * 0.4, left: s * 0.16,
+        width: s * 0.12, height: s * 0.12, borderRadius: 2,
+        backgroundColor: color,
+      }} />
+    </>
+  );
+}
+
+// Log: document outline + 4 bullet+line rows
+function LogG({ color, s }: { color: string; s: number }) {
+  const rows = [s * 0.24, s * 0.4, s * 0.56, s * 0.72];
+  return (
+    <>
+      <View style={{
+        position: 'absolute', top: s * 0.1, left: s * 0.14,
+        width: s * 0.72, height: s * 0.8,
+        borderRadius: 3, borderWidth: 1.6, borderColor: color,
+      }} />
+      {rows.map((t, i) => (
+        <React.Fragment key={i}>
+          <View style={{
+            position: 'absolute', top: t + s * 0.02, left: s * 0.24,
+            width: s * 0.07, height: s * 0.07, borderRadius: s * 0.035,
+            backgroundColor: color,
+          }} />
+          <View style={{
+            position: 'absolute', top: t + s * 0.04, left: s * 0.35,
+            width: s * 0.38, height: 1.5, backgroundColor: color, borderRadius: 1,
+          }} />
+        </React.Fragment>
+      ))}
     </>
   );
 }
