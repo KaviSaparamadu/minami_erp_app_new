@@ -15,7 +15,7 @@ export function GeneralSettingsScreen() {
   };
 
   return (
-    <SubModuleLayout title="General Settings" showBack={true}>
+    <SubModuleLayout parentModuleId="2" title="General Settings" showBack={true}>
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.subScroll}>

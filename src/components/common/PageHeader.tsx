@@ -22,6 +22,7 @@ interface PageHeaderProps {
   onSearchChange?: (query: string) => void;
   hideSearchBar?: boolean; // hides search bar even if dashboardSearch is true
   hideSearchIcon?: boolean; // hides the magnify icon in the header top row
+  hideGreeting?: boolean; // shows brand logo without the greeting/search block (compact logo-only mode)
 }
 
 interface BackArrowProps {
@@ -83,6 +84,7 @@ export function PageHeader({
   onSearchChange = () => {},
   hideSearchBar = false,
   hideSearchIcon = false,
+  hideGreeting = false,
 }: PageHeaderProps) {
   const { goBack, stack, navigateTo, openSidebar, paramsStack } = useNavigation();
   const { user, logout } = useAuth();
@@ -178,8 +180,8 @@ export function PageHeader({
         </View>
       </View>
 
-      {/* ── Bottom Row: Greeting (only on brand) ── */}
-      {showBrand && (
+      {/* ── Bottom Row: Greeting (only on brand, hidden in logo-only mode) ── */}
+      {showBrand && !hideGreeting && (
         <View style={styles.greetingSection}>
           <Text style={[styles.greetingSubtitle, dynamicStyles.greetingSubtitle]}>{greeting} {greetingEmoji}</Text>
           <Text style={[styles.greetingTitle, dynamicStyles.greetingTitle]}>{fullName}</Text>
@@ -188,7 +190,7 @@ export function PageHeader({
       )}
 
       {/* Dashboard Search Bar with Everything Search */}
-      {dashboardSearch && showBrand && !hideSearchBar && (
+      {dashboardSearch && showBrand && !hideGreeting && !hideSearchBar && (
         <View>
           <View style={[styles.dashboardSearchBar, dynamicStyles.dashboardSearchBar]}>
             <MaterialCommunityIcons name="magnify" size={16} color="#8E8E93" />

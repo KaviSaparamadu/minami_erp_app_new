@@ -1,35 +1,29 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
 import { Breadcrumbs } from '../../components/common/Breadcrumbs';
 import { TabsSection } from '../../components/dashboard/TabsSection';
-import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
 import { DashboardView } from '../../components/dashboard/DashboardView';
-import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
+import { FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { UIIcon } from '../../components/common/UIIcon';
+import { MODULE_ICON_MAP } from '../../components/dashboard/ModuleIcon';
 import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
-import { ModuleCard } from '../../components/dashboard/ModuleCard';
-import { SubmoduleDetailCard } from '../../components/dashboard/SubmoduleDetailCard';
+import { ModuleTreeView } from '../../components/dashboard/ModuleTreeView';
 import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
-import { UIIcon } from '../../components/common/UIIcon';
-import { MODULE_ICON_MAP } from '../../components/dashboard/ModuleIcon';
 
 const H_PAD = 6;
-const GAP = 10;
-const NUM_COLS = 3;
 
-type Tab = 'dashboard' | 'modules' | 'submodules';
+type Tab = 'dashboard' | 'modules';
 
 interface ModuleDetailScreenProps {
   moduleId?: string;
@@ -37,14 +31,13 @@ interface ModuleDetailScreenProps {
 
 export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
   const { navigate } = useNavigation();
-  const { width } = useWindowDimensions();
   const { colors, isDarkMode } = useTheme();
-  const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
-  const [tab, setTab] = useState<Tab>('submodules');
+  const [tab, setTab] = useState<Tab>('modules');
+  const [submodulesOpen, setSubmodulesOpen] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+  const dyn = useMemo(() => createDynamicStyles(isDarkMode), [isDarkMode]);
 
   const module = MODULES.find(m => m.id === moduleId);
 
@@ -52,9 +45,18 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
     navigate('ModuleDetail', { moduleId: mod.id });
   };
 
+  const handleTabChange = (newTab: string) => {
+    if (newTab === 'Modules') {
+      setTab('modules');
+      setSubmodulesOpen(true);
+    } else {
+      setTab('dashboard');
+      setSubmodulesOpen(false);
+    }
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate data refresh (1.5 seconds)
     await new Promise<void>(resolve => setTimeout(resolve, 1500));
     setRefreshing(false);
   };
@@ -62,7 +64,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
   if (!moduleId || !module) {
     return (
       <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
-        <PageHeader showBack={true} showBrand={false} />
+        <PageHeader showBack={true} showBrand={true} hideGreeting={true} showBreadcrumbs={false} hideSearchIcon={true} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Module not found</Text>
         </View>
@@ -74,61 +76,27 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
 
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
-      <PageHeader showBack={true} showBrand={false} title={module.name} showBreadcrumbs={false} hideSearchIcon={true} />
+      <PageHeader showBack={true} showBrand={true} hideGreeting={true} showBreadcrumbs={false} hideSearchIcon={true} />
 
       <View style={styles.whiteSection}>
-        {/* Quick Access - Fixed in white area */}
+        {/* Quick Access */}
         <View style={styles.quickWrap}>
-          <QuickAccessRow onPress={handleModulePress} />
+          <QuickAccessRow onPress={handleModulePress} selectedModuleId={module.id} />
         </View>
 
-        {/* Tabs - Fixed in white area (Submodules removed) */}
+        {/* Tabs */}
         <TabsSection
-          tabs={['Dashboard' as const, 'Modules' as const]}
+          tabs={['Modules' as const, 'Dashboard' as const]}
           activeTab={tab === 'modules' ? 'Modules' : 'Dashboard'}
-          onTabChange={(newTab) => {
-            if (newTab === 'Modules') setTab('modules');
-            else setTab('dashboard');
-          }}
+          onTabChange={handleTabChange}
           colors={colors}
           isDarkMode={isDarkMode}
         />
 
-        {/* Sub-tab - Compact modern design, right-aligned */}
-        {tab !== 'submodules' && (
-          <Pressable
-            onPress={() => setTab('submodules')}
-            style={({ pressed }) => [
-              styles.subTabMinimal,
-              dyn.subTabMinimal,
-              pressed && styles.subTabMinimalPressed,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="View submodules">
-            <View style={styles.subTabMinimalContent}>
-              <Text
-                style={[styles.subTabMinimalText, dyn.subTabMinimalText]}
-                numberOfLines={1}>
-                {module.name}
-              </Text>
-              <Text style={[styles.subTabMinimalLabel, dyn.subTabMinimalLabel]}>
-                Submodules
-              </Text>
-            </View>
-            <View style={[styles.subTabMinimalIcon, dyn.subTabMinimalIcon]}>
-              <UIIcon
-                name={MODULE_ICON_MAP[module.iconType] ?? 'clipboard'}
-                color={Colors.primaryHighlight}
-                size={12}
-              />
-            </View>
-          </Pressable>
-        )}
-
-        {/* Breadcrumbs - under the tab section */}
+        {/* Breadcrumb with inline dropdown */}
         <Breadcrumbs variant="light" />
 
-        {/* Scrollable content only */}
+        {/* Scrollable content */}
         <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentScrollContent}
@@ -137,68 +105,57 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={isDarkMode ? '#E91E63' : '#E91E63'}
+              tintColor="#E91E63"
               colors={['#E91E63']}
             />
           }>
 
-          {tab === 'dashboard' ? (
-            <View style={styles.dashboardContent}>
-              <DashboardView />
-            </View>
-          ) : tab === 'modules' ? (
-            <ModulesGrid
-              data={MODULES}
-              renderItem={(mod: AppModule, width) => (
-                <ModuleCard module={mod} width={width} onPress={handleModulePress} />
-              )}
-              cardWidth={cardWidth}
-              numColumns={NUM_COLS}
-              gap={GAP}
-              hPad={H_PAD}
-            />
-          ) : (
+          {submodulesOpen ? (
             submodules.length > 0 ? (
               <View style={styles.submodulesContainer}>
-                {submodules.map((submodule) => (
-                  <SubmoduleDetailCard
-                    key={submodule.id}
-                    submodule={submodule}
-                    iconType={submodule.iconType ?? 'hr'}
-                    description={submodule.description}
-                    onPress={() => {
-                      if (submodule.name === 'Human Management') {
-                        navigate('HumanManagement');
-                      } else if (submodule.name === 'Employee Management') {
-                        navigate('EmployeeManagement');
-                      } else if (submodule.name === 'User Management') {
-                        navigate('UserManagement');
-                      } else if (submodule.name === 'System Settings') {
-                        navigate('SystemSettings');
-                      } else if (submodule.name === 'General Settings') {
-                        navigate('GeneralSettings');
-                      } else if (submodule.name === 'System Default Settings') {
-                        navigate('SystemDefaultSettings');
-                      } else if (submodule.name === 'Support Ticket') {
-                        navigate('SupportTicket');
-                      } else if (submodule.name === 'Activity Log') {
-                        navigate('ActivityLog');
-                      } else if (submodule.name === 'Finance Utilities') {
-                        navigate('FinanceUtilities');
-                      } else if (submodule.name === 'Ledger Management') {
-                        navigate('LedgerManagement');
-                      } else if (submodule.name === 'Finance Operation') {
-                        navigate('FinanceOperation');
-                      }
-                    }}
-                  />
-                ))}
+                <ModuleTreeView module={module} />
               </View>
             ) : (
               <View style={styles.emptyState}>
                 <Text style={[styles.emptyText, dyn.emptyText]}>No submodules available</Text>
               </View>
             )
+          ) : (
+            <View style={styles.dashboardContent}>
+
+              {/* Hero banner */}
+              <View style={styles.hero}>
+                <View style={styles.heroCircle1} />
+                <View style={styles.heroCircle2} />
+
+                <View style={styles.heroIconWrap}>
+                  <UIIcon
+                    name={MODULE_ICON_MAP[module.iconType] ?? 'clipboard'}
+                    color="#FFFFFF"
+                    size={28}
+                  />
+                </View>
+
+                <Text style={styles.heroName}>{module.name}</Text>
+                <Text style={styles.heroDesc} numberOfLines={4}>
+                  {module.description ?? `Manage your ${module.name.toLowerCase()} operations efficiently.`}
+                </Text>
+
+                <View style={styles.heroStats}>
+                  <View style={styles.heroStat}>
+                    <Text style={styles.heroStatValue}>{module.value}</Text>
+                    <Text style={styles.heroStatLabel}>{module.valueLabel}</Text>
+                  </View>
+                  <View style={styles.heroStatDivider} />
+                  <View style={styles.heroStat}>
+                    <Text style={styles.heroStatValue}>{module.submodules?.length ?? 0}</Text>
+                    <Text style={styles.heroStatLabel}>Submodules</Text>
+                  </View>
+                </View>
+              </View>
+
+              <DashboardView />
+            </View>
           )}
         </ScrollView>
       </View>
@@ -207,24 +164,16 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
 }
 
 
-function createDynamicStyles(colors: any, isDarkMode: boolean) {
+function createDynamicStyles(isDarkMode: boolean) {
   return StyleSheet.create({
     safe: { backgroundColor: '#5A5A5A' },
-    moduleHeader: {
-      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.15)',
-      borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.2)',
-    },
-    moduleName: { color: '#FFFFFF' },
-    moduleValue: { color: 'rgba(255, 255, 255, 0.8)' },
     emptyText: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
-    subTabMinimal: {
-      backgroundColor: isDarkMode ? 'rgba(233, 30, 99, 0.08)' : '#FFF5F9',
+    card: {
+      backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
+      borderColor: isDarkMode ? '#3A3A3C' : '#ECECF0',
     },
-    subTabMinimalText: { color: colors.primaryText },
-    subTabMinimalLabel: { color: isDarkMode ? 'rgba(255,255,255,0.50)' : '#A0A0A0' },
-    subTabMinimalIcon: {
-      backgroundColor: isDarkMode ? 'rgba(233, 30, 99, 0.15)' : '#FFE1EC',
-    },
+    text: { color: isDarkMode ? '#FFFFFF' : '#1C1C1E' },
+    mutedText: { color: isDarkMode ? 'rgba(255,255,255,0.65)' : '#8E8E93' },
   });
 }
 
@@ -263,43 +212,7 @@ const styles = StyleSheet.create({
     marginTop: -10,
   },
 
-  contentScroll: {
-    flex: 1,
-  },
-
-  subTabMinimal: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 6,
-  },
-  subTabMinimalPressed: {
-    opacity: 0.75,
-  },
-  subTabMinimalContent: {
-    alignItems: 'flex-end',
-    gap: 1,
-  },
-  subTabMinimalText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  subTabMinimalLabel: {
-    fontFamily: FontFamily.regular,
-    fontSize: 9,
-    letterSpacing: 0.2,
-  },
-  subTabMinimalIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  contentScroll: { flex: 1 },
 
   contentScrollContent: {
     flexGrow: 1,
@@ -308,14 +221,9 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
 
+  dashboardContent: { paddingBottom: 40 },
 
-  dashboardContent: {
-    paddingBottom: 40,
-  },
-
-  submodulesContainer: {
-    paddingBottom: 40,
-  },
+  submodulesContainer: { paddingBottom: 40 },
 
   emptyState: {
     paddingVertical: 40,
@@ -326,5 +234,88 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: FontFamily.regular,
     fontSize: FontSize.sm,
+  },
+
+  hero: {
+    backgroundColor: '#FFF5F8',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#FFE0EE',
+  },
+  heroCircle1: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(233,30,99,0.05)',
+    top: -60,
+    right: -50,
+  },
+  heroCircle2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(233,30,99,0.04)',
+    bottom: -30,
+    left: -20,
+  },
+  heroIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#FFE4EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  heroName: {
+    fontFamily: FontFamily.bold,
+    fontSize: 22,
+    fontWeight: FontWeight.bold,
+    color: '#1C1C1E',
+    letterSpacing: 0.2,
+    marginBottom: 8,
+  },
+  heroDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    color: '#6B6B70',
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  heroStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#F0E6EA',
+  },
+  heroStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#EAD8DF',
+  },
+  heroStatValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: '#1C1C1E',
+  },
+  heroStatLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.xs,
+    color: '#8E8E93',
+    marginTop: 3,
   },
 });

@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function LedgerConnectionConsoleScreen() {
   return (
-    <SubModuleLayout title="Ledger Connection Console" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Ledger Connection Console" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Ledger Connection Console</Text>
         <Text style={styles.sub}>Coming soon</Text>

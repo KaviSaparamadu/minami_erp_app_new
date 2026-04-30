@@ -1,34 +1,62 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { FontFamily, FontSize, FontWeight, Spacing, Colors } from '../../constants/theme';
+import { FontSize, Colors } from '../../constants/theme';
 
-// Simple clean sans-serif: Helvetica Neue on iOS, Roboto light on Android.
 const QA_FONT = Platform.select({ ios: 'Helvetica Neue', android: 'sans-serif-light', default: undefined });
+
 import { MODULES } from '../../constants/modules';
 import { UIIcon } from '../common/UIIcon';
 import { MODULE_ICON_MAP } from './ModuleIcon';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
+import { useNavigation } from '../../context/NavigationContext';
 
 interface QuickAccessRowProps {
   onPress?: (module: AppModule) => void;
+  selectedModuleId?: string;
 }
 
-const ITEM_WIDTH = 60;
-const ITEM_GAP = 8;
-const MAX_ITEMS = 5;
-const STEP = (ITEM_WIDTH + ITEM_GAP) * 4;
+// Layout constants
+const VISIBLE_ITEMS = 5;
+const ITEM_GAP = 4;
+const ARROW_WIDTH = 18;
+const ROW_GAP = 4; // gap between each arrow and the ScrollView
 
-export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
+export function QuickAccessRow({ onPress, selectedModuleId }: QuickAccessRowProps) {
   const { colors, isDarkMode } = useTheme();
+  const { lastModuleId } = useNavigation();
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
   const scrollRef = useRef<ScrollView>(null);
   const offsetRef = useRef(0);
   const contentWidthRef = useRef(0);
   const layoutWidthRef = useRef(0);
 
+  // Measured width of the rowWithArrows container
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // itemWidth fills the row with exactly VISIBLE_ITEMS items
+  // rowWithArrows = [ArrowLeft] [gap] [ScrollView] [gap] [ArrowRight]
+  // scrollViewWidth = containerWidth - 2*ARROW_WIDTH - 2*ROW_GAP
+  // itemWidth = (scrollViewWidth - (VISIBLE_ITEMS-1)*ITEM_GAP) / VISIBLE_ITEMS
+  const itemWidth = containerWidth > 0
+    ? Math.floor(
+        (containerWidth - 2 * ARROW_WIDTH - 2 * ROW_GAP - (VISIBLE_ITEMS - 1) * ITEM_GAP) / VISIBLE_ITEMS
+      )
+    : 60;
+
+  // Scroll by one full page (5 items)
+  const step = itemWidth * VISIBLE_ITEMS + ITEM_GAP * (VISIBLE_ITEMS - 1);
+
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(true);
+
+  const orderedModules = useMemo(() => {
+    const activeModuleId = selectedModuleId ?? lastModuleId;
+    if (!activeModuleId) return MODULES;
+    const selected = MODULES.find(m => m.id === activeModuleId);
+    if (!selected) return MODULES;
+    return [selected, ...MODULES.filter(m => m.id !== activeModuleId)];
+  }, [selectedModuleId, lastModuleId]);
 
   function scrollTo(x: number) {
     const max = Math.max(0, contentWidthRef.current - layoutWidthRef.current);
@@ -41,6 +69,12 @@ export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
     setCanLeft(x > 2);
     setCanRight(x < max - 2);
   }
+
+  const activeModuleId = selectedModuleId ?? lastModuleId;
+
+  useEffect(() => {
+    if (activeModuleId) scrollTo(0);
+  }, [activeModuleId]);
 
   function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     offsetRef.current = e.nativeEvent.contentOffset.x;
@@ -57,50 +91,79 @@ export function QuickAccessRow({ onPress }: QuickAccessRowProps) {
         <Text style={[styles.seeAll, dyn.seeAll]}>See all</Text>
       </View>
 
-      <View style={styles.rowWithArrows}>
-        <ArrowButton direction="left" disabled={!canLeft} onPress={() => scrollTo(offsetRef.current - STEP)} />
+      <View
+        style={styles.rowWithArrows}
+        onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}>
+        <ArrowButton
+          direction="left"
+          disabled={!canLeft}
+          onPress={() => scrollTo(offsetRef.current - step)}
+        />
 
         <ScrollView
           ref={scrollRef}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { gap: ITEM_GAP }]}
           onScroll={onScroll}
           scrollEventThrottle={16}
-          onContentSizeChange={(w) => {
+          onContentSizeChange={w => {
             contentWidthRef.current = w;
             updateArrows(offsetRef.current);
+            if (activeModuleId) scrollTo(0);
           }}
-          onLayout={(e) => {
+          onLayout={e => {
             layoutWidthRef.current = e.nativeEvent.layout.width;
             updateArrows(offsetRef.current);
+            if (activeModuleId) scrollTo(0);
           }}>
-          {MODULES.map(m => (
+          {orderedModules.map(m => (
             <Pressable
               key={m.id}
-              style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
+              style={({ pressed }) => [styles.item, { width: itemWidth }, pressed && styles.itemPressed]}
               onPress={() => onPress?.(m)}
               accessibilityRole="button"
               accessibilityLabel={m.name}>
-              {({ pressed }) => (
-                <>
-                  <View style={[styles.circle, pressed && styles.circleActive]}>
-                    <UIIcon name={MODULE_ICON_MAP[m.iconType] ?? 'clipboard'} color={pressed ? '#FFFFFF' : '#595959'} size={18} />
-                  </View>
-                  <Text style={[styles.name, dyn.name, { opacity: pressed ? 1 : 0 }]} numberOfLines={1}>{m.name}</Text>
-                </>
-              )}
+              {({ pressed }) => {
+                const isActive = activeModuleId === m.id;
+                return (
+                  <>
+                    <View style={[styles.circle, pressed && styles.circleActive, isActive && styles.circleSelected]}>
+                      <UIIcon
+                        name={MODULE_ICON_MAP[m.iconType] ?? 'clipboard'}
+                        color={pressed || isActive ? '#FFFFFF' : '#595959'}
+                        size={18}
+                      />
+                    </View>
+                    <Text style={[styles.name, dyn.name, { width: itemWidth, opacity: pressed ? 1 : 0 }]} numberOfLines={1}>
+                      {m.name}
+                    </Text>
+                  </>
+                );
+              }}
             </Pressable>
           ))}
         </ScrollView>
 
-        <ArrowButton direction="right" disabled={!canRight} onPress={() => scrollTo(offsetRef.current + STEP)} />
+        <ArrowButton
+          direction="right"
+          disabled={!canRight}
+          onPress={() => scrollTo(offsetRef.current + step)}
+        />
       </View>
     </View>
   );
 }
 
-function ArrowButton({ direction, disabled, onPress }: { direction: 'left' | 'right'; disabled: boolean; onPress: () => void }) {
+function ArrowButton({
+  direction,
+  disabled,
+  onPress,
+}: {
+  direction: 'left' | 'right';
+  disabled: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -133,7 +196,7 @@ function createDynamicStyles(colors: any, _isDarkMode: boolean) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingTop: Spacing.md,
+    paddingTop: 8,
     backgroundColor: '#FFFFFF',
   },
 
@@ -141,7 +204,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: 8,
   },
   titleLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   titleAccent: {
@@ -164,13 +227,14 @@ const styles = StyleSheet.create({
   rowWithArrows: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: ROW_GAP,
   },
 
-  scroll: { gap: ITEM_GAP, paddingBottom: 2, paddingHorizontal: 4 },
+  scroll: { paddingBottom: 2 },
 
-  item: { alignItems: 'center', gap: 3, width: ITEM_WIDTH, height: 68 },
+  item: { alignItems: 'center', gap: 3, height: 64 },
   itemPressed: { transform: [{ scale: 0.92 }] },
+
   circle: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#F0F0F0',
@@ -187,17 +251,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     elevation: 3,
   },
+  circleSelected: {
+    backgroundColor: Colors.primaryHighlight,
+    shadowColor: Colors.primaryHighlight,
+    shadowOpacity: 0.35,
+    elevation: 4,
+  },
   name: {
     fontFamily: QA_FONT,
     fontSize: 9,
     fontWeight: '500',
     letterSpacing: 0,
     textAlign: 'center',
-    width: ITEM_WIDTH,
   },
 
   arrowBtn: {
-    width: 28, height: 44,
+    width: ARROW_WIDTH,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function BankCardMachineScreen() {
   return (
-    <SubModuleLayout title="Create Bank Card Machine" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Create Bank Card Machine" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Create Bank Card Machine</Text>
         <Text style={styles.sub}>Coming soon</Text>

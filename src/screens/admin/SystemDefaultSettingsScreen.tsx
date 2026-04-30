@@ -47,7 +47,7 @@ export function SystemDefaultSettingsScreen() {
   }
 
   return (
-    <SubModuleLayout
+    <SubModuleLayout parentModuleId="2"
       title="System Default Settings"
       showBack={true}
       activeTab={tab}

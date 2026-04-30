@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { FontFamily, FontSize, FontWeight, Spacing, Colors } from '../../constants/theme';
-import { ModuleIcon } from './ModuleIcon';
+import { FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { UIIcon } from '../common/UIIcon';
+import { MODULE_ICON_MAP } from './ModuleIcon';
 import { useTheme } from '../../hooks/useTheme';
 
 interface SubmoduleDetailCardProps {
@@ -25,6 +26,8 @@ export function SubmoduleDetailCard({
   const { colors, isDarkMode } = useTheme();
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
+  const iconName = MODULE_ICON_MAP[iconType] ?? 'clipboard';
+
   return (
     <Pressable
       style={({ pressed }) => [styles.card, dyn.card, pressed && styles.pressed]}
@@ -33,33 +36,33 @@ export function SubmoduleDetailCard({
       accessibilityRole="button"
       accessibilityLabel={submodule.name}>
 
-      <View style={styles.iconContainer}>
-        <View style={[styles.iconBox, { backgroundColor: Colors.primaryHighlight }]}>
-          <ModuleIcon type={iconType} size={32} />
-        </View>
+      {/* Icon */}
+      <View style={[styles.iconBox, dyn.iconBox]}>
+        <UIIcon name={iconName} color={isDarkMode ? '#AEAEB2' : '#3C3C43'} size={22} />
       </View>
 
-      <View style={styles.contentContainer}>
+      {/* Content */}
+      <View style={styles.content}>
         <Text style={[styles.title, dyn.title]} numberOfLines={1}>
           {submodule.name}
         </Text>
-        {description && (
+        {description ? (
           <Text style={[styles.description, dyn.description]} numberOfLines={2}>
             {description}
           </Text>
-        )}
-        <View style={styles.valueContainer}>
-          <View style={[styles.valueBadge, dyn.valueBadge]}>
-            <View style={styles.dot} />
-            <Text style={[styles.value, dyn.value]}>
-              {submodule.value} {submodule.valueLabel}
-            </Text>
-          </View>
+        ) : null}
+        <View style={[styles.chip, dyn.chip]}>
+          <View style={styles.chipDot} />
+          <Text style={[styles.chipText, dyn.chipText]}>
+            {submodule.value}
+            <Text style={[styles.chipLabel, dyn.chipLabel]}> {submodule.valueLabel}</Text>
+          </Text>
         </View>
       </View>
 
-      <View style={styles.arrow}>
-        <Text style={[styles.arrowText, { color: Colors.primaryHighlight }]}>›</Text>
+      {/* Chevron */}
+      <View style={styles.chevronWrap}>
+        <View style={[styles.chevron, dyn.chevron]} />
       </View>
     </Pressable>
   );
@@ -69,14 +72,23 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
     card: {
       backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
-      borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
+      borderColor: isDarkMode ? '#3A3A3C' : '#EDEDF0',
+      shadowColor: isDarkMode ? '#000' : '#8E8E9340',
     },
-    title: { color: colors.primaryText },
-    description: { color: isDarkMode ? 'rgba(255,255,255,0.6)' : '#8E8E93' },
-    valueBadge: {
-      backgroundColor: isDarkMode ? 'rgba(233, 30, 99, 0.2)' : 'rgba(233, 30, 99, 0.1)',
+    iconBox: {
+      backgroundColor: isDarkMode ? '#3A3A3C' : '#F2F2F7',
     },
-    value: { color: isDarkMode ? 'rgba(255,255,255,0.8)' : '#8E8E93' },
+    title: { color: isDarkMode ? '#FFFFFF' : '#1C1C1E' },
+    description: { color: isDarkMode ? 'rgba(255,255,255,0.5)' : '#8E8E93' },
+    chip: {
+      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.07)' : '#F5F5F8',
+    },
+    chipText: { color: isDarkMode ? 'rgba(255,255,255,0.75)' : '#3C3C43' },
+    chipLabel: { color: isDarkMode ? 'rgba(255,255,255,0.45)' : '#8E8E93' },
+    chevron: {
+      borderTopColor: isDarkMode ? '#6C6C70' : '#C7C7CC',
+      borderRightColor: isDarkMode ? '#6C6C70' : '#C7C7CC',
+    },
   });
 }
 
@@ -84,84 +96,92 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    gap: 14,
+    paddingVertical: 14,
     paddingHorizontal: Spacing.lg,
     marginHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    marginBottom: 10,
     borderRadius: 16,
     borderWidth: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
   pressed: {
-    opacity: 0.7,
+    opacity: 0.8,
     transform: [{ scale: 0.98 }],
   },
 
-  iconContainer: {
-    marginRight: Spacing.lg,
-  },
-
   iconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
 
-  contentContainer: {
+  content: {
     flex: 1,
-    gap: Spacing.sm,
+    gap: 4,
   },
 
   title: {
     fontFamily: FontFamily.bold,
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
 
   description: {
     fontFamily: FontFamily.regular,
-    fontSize: FontSize.sm,
-    letterSpacing: 0.1,
+    fontSize: FontSize.xs,
+    lineHeight: 16,
   },
 
-  valueContainer: {
-    marginTop: Spacing.sm,
-  },
-
-  valueBadge: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    gap: 6,
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+    borderRadius: 10,
+    marginTop: 2,
   },
 
-  dot: {
-    width: 6,
-    height: 6,
+  chipDot: {
+    width: 5,
+    height: 5,
     borderRadius: 3,
-    backgroundColor: Colors.primaryHighlight,
+    backgroundColor: '#30D158',
   },
 
-  value: {
-    fontFamily: FontFamily.regular,
+  chipText: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSize.xs,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 
-  arrow: {
-    paddingLeft: Spacing.lg,
+  chipLabel: {
+    fontFamily: FontFamily.regular,
+    fontWeight: '400',
+  },
+
+  chevronWrap: {
+    width: 20,
+    alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
 
-  arrowText: {
-    fontSize: 32,
-    fontWeight: '300',
-    marginTop: -4,
+  chevron: {
+    width: 7,
+    height: 7,
+    borderTopWidth: 1.5,
+    borderRightWidth: 1.5,
+    transform: [{ rotate: '45deg' }, { translateX: -1 }],
   },
 });

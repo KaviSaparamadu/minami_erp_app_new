@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function UtilityServiceScreen() {
   return (
-    <SubModuleLayout title="Utility Service" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Utility Service" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Utility Service</Text>
         <Text style={styles.sub}>Coming soon</Text>

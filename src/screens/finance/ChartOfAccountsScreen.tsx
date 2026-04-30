@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function ChartOfAccountsScreen() {
   return (
-    <SubModuleLayout title="Chart of Accounts Manager" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Chart of Accounts Manager" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Chart of Accounts Manager</Text>
         <Text style={styles.sub}>Coming soon</Text>

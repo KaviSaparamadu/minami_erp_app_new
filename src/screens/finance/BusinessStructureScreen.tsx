@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function BusinessStructureScreen() {
   return (
-    <SubModuleLayout title="Business Structure" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Business Structure" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Business Structure</Text>
         <Text style={styles.sub}>Coming soon</Text>

@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function FinanceReportsGeneratorScreen() {
   return (
-    <SubModuleLayout title="Finance Reports Generator" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Finance Reports Generator" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Finance Reports Generator</Text>
         <Text style={styles.sub}>Coming soon</Text>

@@ -74,9 +74,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   name: {
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.regular,
     fontSize: 11,
-    fontWeight: FontWeight.bold,
+    fontWeight: '400',
     textAlign: 'center',
     letterSpacing: 0.2,
     marginBottom: 4,

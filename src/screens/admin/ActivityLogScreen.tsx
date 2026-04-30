@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function ActivityLogScreen() {
   return (
-    <SubModuleLayout title="Activity Log" showBack={true}>
+    <SubModuleLayout parentModuleId="2" title="Activity Log" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Activity Log</Text>
         <Text style={styles.sub}>Coming soon</Text>

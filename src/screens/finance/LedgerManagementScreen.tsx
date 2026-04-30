@@ -63,7 +63,7 @@ export function LedgerManagementScreen() {
   }
 
   return (
-    <SubModuleLayout
+    <SubModuleLayout parentModuleId="3"
       title="Ledger Management"
       showBack={true}
       activeTab={tab}

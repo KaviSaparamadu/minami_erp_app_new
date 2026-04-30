@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function OpeningBalanceConsoleScreen() {
   return (
-    <SubModuleLayout title="Opening Balance Console" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Opening Balance Console" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Opening Balance Console</Text>
         <Text style={styles.sub}>Coming soon</Text>

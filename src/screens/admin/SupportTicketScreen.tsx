@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function SupportTicketScreen() {
   return (
-    <SubModuleLayout title="Support Ticket" showBack={true}>
+    <SubModuleLayout parentModuleId="2" title="Support Ticket" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Support Ticket</Text>
         <Text style={styles.sub}>Coming soon</Text>

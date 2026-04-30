@@ -463,7 +463,7 @@ export function HumanManagementScreen() {
 
   return (
     <>
-      <SubModuleLayout
+      <SubModuleLayout parentModuleId="1"
         title="Human Management"
         showBack={true}
         activeTab={tab}

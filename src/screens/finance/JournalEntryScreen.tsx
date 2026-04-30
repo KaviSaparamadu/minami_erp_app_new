@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function JournalEntryScreen() {
   return (
-    <SubModuleLayout title="Journal Entry" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Journal Entry" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Journal Entry</Text>
         <Text style={styles.sub}>Coming soon</Text>

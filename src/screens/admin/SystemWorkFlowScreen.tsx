@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function SystemWorkFlowScreen() {
   return (
-    <SubModuleLayout title="System Work Flow" showBack={true}>
+    <SubModuleLayout parentModuleId="2" title="System Work Flow" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>System Work Flow</Text>
         <Text style={styles.sub}>Coming soon</Text>

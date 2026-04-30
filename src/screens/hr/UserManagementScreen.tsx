@@ -167,7 +167,7 @@ export function UserManagementScreen() {
   }
 
   return (
-    <SubModuleLayout
+    <SubModuleLayout parentModuleId="1"
       title="User Management"
       showBack={true}
       activeTab={tab}

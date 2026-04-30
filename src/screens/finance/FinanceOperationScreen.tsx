@@ -56,7 +56,7 @@ export function FinanceOperationScreen() {
   }
 
   return (
-    <SubModuleLayout
+    <SubModuleLayout parentModuleId="3"
       title="Finance Operation"
       showBack={true}
       activeTab={tab}

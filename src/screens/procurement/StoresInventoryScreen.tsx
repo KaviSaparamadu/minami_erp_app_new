@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function StoresInventoryScreen() {
   return (
-    <SubModuleLayout title="Stores & Inventory" showBack={true}>
+    <SubModuleLayout parentModuleId="4" title="Stores & Inventory" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Stores & Inventory</Text>
         <Text style={styles.sub}>Coming soon</Text>

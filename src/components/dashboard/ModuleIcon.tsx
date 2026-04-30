@@ -80,10 +80,10 @@ export function ModuleIcon({ type, size = 48 }: ModuleIconProps) {
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: '#FCE4EC',
+        backgroundColor: '#F0F0F0',
       },
     ]}>
-      <UIIcon name={iconName} color="#E91E63" size={glyphSize} />
+      <UIIcon name={iconName} color="#595959" size={glyphSize} />
     </View>
   );
 }

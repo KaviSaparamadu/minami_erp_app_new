@@ -415,7 +415,7 @@ export function EmployeeManagementScreen() {
 
   return (
     <>
-      <SubModuleLayout
+      <SubModuleLayout parentModuleId="1"
         title="Employee Management"
         showBack={true}
         activeTab={tab}

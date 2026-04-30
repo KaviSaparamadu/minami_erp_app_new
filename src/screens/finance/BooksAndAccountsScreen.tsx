@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function BooksAndAccountsScreen() {
   return (
-    <SubModuleLayout title="Books & Accounts" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Books & Accounts" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Books & Accounts</Text>
         <Text style={styles.sub}>Coming soon</Text>

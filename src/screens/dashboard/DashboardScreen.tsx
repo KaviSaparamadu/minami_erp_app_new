@@ -96,16 +96,16 @@ export function DashboardScreen() {
         {/* Tabs - Fixed in white area */}
         <View style={[styles.tabsContainer, dyn.tabsBorder]}>
           <TabButton
-            label="Dashboard"
-            active={tab === 'dashboard'}
-            onPress={() => setTab('dashboard')}
+            label="Modules"
+            active={tab === 'modules'}
+            onPress={() => setTab('modules')}
             dyn={dyn}
             isFirst
           />
           <TabButton
-            label="Modules"
-            active={tab === 'modules'}
-            onPress={() => setTab('modules')}
+            label="Dashboard"
+            active={tab === 'dashboard'}
+            onPress={() => setTab('dashboard')}
             dyn={dyn}
             isLast
           />

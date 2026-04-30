@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function POSScreen() {
   return (
-    <SubModuleLayout title="POS" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="POS" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>POS</Text>
         <Text style={styles.sub}>Coming soon</Text>

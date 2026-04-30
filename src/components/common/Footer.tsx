@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -218,26 +217,24 @@ export function Footer() {
         {/* Left side */}
         <View style={styles.footerSide}>
           <FooterTabItem icon="cog-outline" label="Settings" onPress={() => {}} />
+          {!isDashboard && (
+            <FooterTabItem icon="bell-outline" label="Alerts" onPress={() => {}} />
+          )}
         </View>
 
-        {/* Center logo */}
+        {/* Center home button */}
         <Pressable
           style={({ pressed }) => [styles.logoContainer, pressed && styles.logoContainerPressed]}
           onPress={() => navigate('Dashboard')}
           accessibilityRole="button"
           accessibilityLabel="Home">
           <View style={styles.logoBorder}>
-            <Image
-              source={require('../../../assets/images/logo.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            <MaterialCommunityIcons name="home" size={24} color={Colors.primaryHighlight} />
           </View>
         </Pressable>
 
         {/* Right side */}
         <View style={styles.footerSide}>
-          {/* Search — hidden on Dashboard (search already lives in the header there) */}
           {!isDashboard && (
             <FooterTabItem
               icon="magnify"
@@ -297,10 +294,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: Spacing.md,
     width: '100%',
-    height: 62,
+    height: 50,
     backgroundColor: '#FFFFFF',
   },
   logoContainer: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
@@ -311,7 +308,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF5FA',
     borderWidth: 2, borderColor: Colors.primaryHighlight,
   },
-  logoImage: { width: 32, height: 32 },
   footerSide: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
   },

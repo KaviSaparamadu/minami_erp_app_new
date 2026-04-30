@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function ManagePOSPointsScreen() {
   return (
-    <SubModuleLayout title="Manage POS Points" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Manage POS Points" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Manage POS Points</Text>
         <Text style={styles.sub}>Coming soon</Text>

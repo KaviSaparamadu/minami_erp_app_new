@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function TaxSettingsScreen() {
   return (
-    <SubModuleLayout title="Tax Settings" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Tax Settings" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Tax Settings</Text>
         <Text style={styles.sub}>Coming soon</Text>

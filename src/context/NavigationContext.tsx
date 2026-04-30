@@ -33,6 +33,7 @@ interface NavigationContextValue {
   sidebarOpen: boolean;
   openSidebar: () => void;
   closeSidebar: () => void;
+  lastModuleId?: string;
 }
 
 const NavigationContext = createContext<NavigationContextValue | undefined>(undefined);
@@ -44,6 +45,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const [paramsStack, setParamsStack] = useState<Array<Record<string, any> | null>>([null]);
   const [navigating,  setNavigating]  = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [lastModuleId, setLastModuleId] = useState<string | undefined>(undefined);
 
   const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
@@ -53,6 +55,9 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setTimeout(() => {
       setStack(prev => [...prev, screen]);
       setParamsStack(prev => [...prev, navParams || null]);
+      if (screen === 'ModuleDetail' && navParams?.moduleId) {
+        setLastModuleId(navParams.moduleId);
+      }
       setNavigating(false);
     }, NAV_DELAY);
   }, []);
@@ -86,7 +91,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const params = paramsStack[paramsStack.length - 1];
 
   return (
-    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating, stack, params, paramsStack, navigateTo, sidebarOpen, openSidebar, closeSidebar }}>
+    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating, stack, params, paramsStack, navigateTo, sidebarOpen, openSidebar, closeSidebar, lastModuleId }}>
       {children}
     </NavigationContext.Provider>
   );

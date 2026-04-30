@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function SimpleInvoiceScreen() {
   return (
-    <SubModuleLayout title="Simple Invoice" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Simple Invoice" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Simple Invoice</Text>
         <Text style={styles.sub}>Coming soon</Text>

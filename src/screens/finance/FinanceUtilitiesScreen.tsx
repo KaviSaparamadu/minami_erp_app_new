@@ -38,7 +38,7 @@ export function FinanceUtilitiesScreen() {
   }
 
   return (
-    <SubModuleLayout
+    <SubModuleLayout parentModuleId="3"
       title="Finance Utilities"
       showBack={true}
       activeTab={tab}

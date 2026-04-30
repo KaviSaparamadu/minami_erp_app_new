@@ -5,7 +5,7 @@ import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 export function LoyaltyPointsScreen() {
   return (
-    <SubModuleLayout title="Loyalty Points" showBack={true}>
+    <SubModuleLayout parentModuleId="3" title="Loyalty Points" showBack={true}>
       <View style={styles.center}>
         <Text style={styles.label}>Loyalty Points</Text>
         <Text style={styles.sub}>Coming soon</Text>
