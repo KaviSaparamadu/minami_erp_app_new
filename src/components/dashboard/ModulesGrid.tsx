@@ -41,7 +41,7 @@ export function ModulesGrid({
 const styles = StyleSheet.create({
   row: {
     justifyContent: 'center',
-    marginBottom: GAP,
+    marginBottom: 12,
   },
   list: {
     paddingTop: Spacing.md,

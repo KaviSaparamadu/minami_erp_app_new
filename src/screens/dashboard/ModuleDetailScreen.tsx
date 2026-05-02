@@ -20,6 +20,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import { ModuleTreeView } from '../../components/dashboard/ModuleTreeView';
 import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
+import { RecentPageTabs } from '../../components/common/RecentPageTabs';
 
 const H_PAD = 6;
 
@@ -30,8 +31,8 @@ interface ModuleDetailScreenProps {
 }
 
 export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
-  const { navigate } = useNavigation();
   const { colors, isDarkMode } = useTheme();
+  const { navigate } = useNavigation();
 
   const [tab, setTab] = useState<Tab>('modules');
   const [submodulesOpen, setSubmodulesOpen] = useState(true);
@@ -41,9 +42,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
 
   const module = MODULES.find(m => m.id === moduleId);
 
-  const handleModulePress = (mod: AppModule) => {
-    navigate('ModuleDetail', { moduleId: mod.id });
-  };
+  const handleModulePress = (mod: AppModule) => navigate('ModuleDetail', { moduleId: mod.id });
 
   const handleTabChange = (newTab: string) => {
     if (newTab === 'Modules') {
@@ -84,6 +83,8 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
           <QuickAccessRow onPress={handleModulePress} selectedModuleId={module.id} />
         </View>
 
+        <RecentPageTabs />
+
         {/* Tabs */}
         <TabsSection
           tabs={['Modules' as const, 'Dashboard' as const]}
@@ -93,7 +94,7 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
           isDarkMode={isDarkMode}
         />
 
-        {/* Breadcrumb with inline dropdown */}
+        {/* Breadcrumb navigation */}
         <Breadcrumbs variant="light" />
 
         {/* Scrollable content */}
@@ -181,6 +182,13 @@ function createDynamicStyles(isDarkMode: boolean) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
 
+  quickWrap: {
+    paddingHorizontal: H_PAD,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+    backgroundColor: '#FFFFFF',
+  },
+
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -193,13 +201,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: '#8E8E93',
     textAlign: 'center',
-  },
-
-  quickWrap: {
-    paddingHorizontal: H_PAD,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
-    backgroundColor: '#FFFFFF',
   },
 
   whiteSection: {

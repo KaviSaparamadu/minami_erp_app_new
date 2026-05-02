@@ -8,18 +8,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
-import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
-import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { HumanFormModal, ModalMode } from '../../components/hr/HumanFormModal';
 import { TableIcons } from '../../components/common/DataTable';
 import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
-import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
@@ -40,10 +36,14 @@ function mapRowToHuman(row: HumanRow): Human {
 }
 
 const H_PAD = 6;
-const GRID_GAP = 10;
-const GRID_COLS = 3;
 
-type Tab = 'dashboard' | 'modules' | 'submodules';
+type Tab = 'dashboard' | 'modules';
+type PageTab = 'createHuman' | 'createHuman2';
+
+const PAGE_TABS: { key: PageTab; label: string }[] = [
+  { key: 'createHuman',  label: 'Create Human'   },
+  { key: 'createHuman2', label: 'Create Human 2'  },
+];
 type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
 const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
@@ -64,6 +64,20 @@ function humanRingColor(pct: number): string {
   if (pct < 50) return '#FB8C00';
   if (pct < 75) return '#FDD835';
   return '#30A84B';
+}
+
+function humanBadgeBg(pct: number): string {
+  if (pct < 25) return 'rgba(229,57,53,0.12)';
+  if (pct < 50) return 'rgba(251,140,0,0.12)';
+  if (pct < 75) return 'rgba(253,216,53,0.15)';
+  return 'rgba(48,168,75,0.12)';
+}
+
+function humanTextColor(pct: number): string {
+  if (pct < 25) return '#B71C1C';
+  if (pct < 50) return '#E65100';
+  if (pct < 75) return '#F57F17';
+  return '#2E7D32';
 }
 
 // ─── Human card components ───────────────────────────────────────────────────
@@ -117,8 +131,9 @@ function HumanCard({
                 <Text style={hc.avatarTxt}>{initial}</Text>
               </View>
             </View>
-            <View style={[hc.pctBadge, { backgroundColor: ringColor }]}>
-              <Text style={hc.pctTxt}>{pct}%</Text>
+            <View style={[hc.pctBadge, { backgroundColor: humanBadgeBg(pct) }]}>
+              <Text style={[hc.pctTxt, hc.pctLabel, { color: humanTextColor(pct) }]}>Health </Text>
+              <Text style={[hc.pctTxt, { color: humanTextColor(pct) }]}>{pct}%</Text>
             </View>
           </View>
           <View style={hc.nameBlock}>
@@ -163,6 +178,57 @@ function HumanCard({
           </Pressable>
         </View>
       </View>
+    </View>
+  );
+}
+
+// ─── Page tab bar ────────────────────────────────────────────────────────────
+function PageTabBar({ active, onChange }: { active: PageTab; onChange: (t: PageTab) => void }) {
+  return (
+    <View style={pt.bar}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={pt.barContent}>
+        {PAGE_TABS.map(({ key, label }, idx) => {
+          const isActive = active === key;
+          return (
+            <Pressable
+              key={key}
+              onPress={() => onChange(key)}
+              style={({ pressed }) => [pt.tab, pressed && pt.tabPressed]}>
+              <View style={pt.tabInner}>
+                <Text style={[pt.label, isActive && pt.labelActive]}>{label}</Text>
+                <View style={[pt.badge, isActive && pt.badgeActive]}>
+                  <Text style={[pt.badgeText, isActive && pt.badgeTextActive]}>
+                    {idx + 1}
+                  </Text>
+                </View>
+              </View>
+              {isActive && <View style={pt.indicator} />}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ─── Create Human 2 placeholder ──────────────────────────────────────────────
+function CreateHuman2View() {
+  const { colors } = useTheme();
+  return (
+    <View style={ph.wrap}>
+      <View style={ph.iconCircle}>
+        <View style={ph.iconHead} />
+        <View style={ph.iconBody} />
+        <View style={ph.iconPlus}>
+          <View style={ph.plusH} />
+          <View style={ph.plusV} />
+        </View>
+      </View>
+      <Text style={[ph.title, { color: colors.primaryText }]}>Create Human 2</Text>
+      <Text style={[ph.sub, { color: colors.placeholder }]}>This section is under construction.</Text>
     </View>
   );
 }
@@ -337,54 +403,13 @@ function HumanDashboardView({
   );
 }
 
-// ─── Modules tab content ──────────────────────────────────────────────────────
-function ModulesView({ onModulePress, refreshing, onRefresh }: { onModulePress: (module: AppModule) => void; refreshing: boolean; onRefresh: () => void }) {
-  const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
-
-  return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={[{ paddingHorizontal: 8, paddingVertical: Spacing.sm, gap: 8 }]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#595959"
-        />
-      }>
-      <View style={[{ paddingHorizontal: 8 }]}>
-        <Text style={[{ fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', color: colors.primaryText, marginBottom: 12 }]}>
-          Available Modules
-        </Text>
-      </View>
-      <ModulesGrid
-        data={MODULES}
-        cardWidth={cardWidth}
-        numColumns={GRID_COLS}
-        gap={GRID_GAP}
-        hPad={0}
-        renderItem={(module, width) => (
-          <ModuleCard
-            key={module.id}
-            module={module}
-            width={width}
-            onPress={() => onModulePress(module)}
-          />
-        )}
-      />
-    </ScrollView>
-  );
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function HumanManagementScreen() {
   const { colors, isDarkMode } = useTheme();
   const { navigate } = useNavigation();
 
-  const [tab,          setTab]          = useState<Tab>('submodules');
+  const [tab,          setTab]          = useState<Tab>('modules');
+  const [pageTab,      setPageTab]      = useState<PageTab>('createHuman');
   const [rows,         setRows]         = useState<HumanRow[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [filter,       setFilter]       = useState<Filter>('All');
@@ -451,9 +476,6 @@ export function HumanManagementScreen() {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
-  function handleModulePress(module: AppModule) {
-    navigate('ModuleDetail', { moduleId: module.id });
-  }
 
   async function handleDashboardRefresh() {
     setRefreshing(true);
@@ -489,24 +511,29 @@ export function HumanManagementScreen() {
               <DashboardView />
             </View>
           </ScrollView>
-        ) : tab === 'modules' ? (
-          <ModulesView onModulePress={handleModulePress} refreshing={refreshing} onRefresh={handleDashboardRefresh} />
         ) : (
-          <HumanDashboardView
-            counts={counts}
-            filter={filter}
-            setFilter={setFilter}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onOpenCreate={openCreate}
-            onView={openView}
-            onEdit={openEdit}
-            onDelete={handleDelete}
-            filteredRows={filteredRows}
-            loading={loading}
-            onRefresh={loadHumans}
-            loadError={loadError}
-          />
+          <View style={{ flex: 1 }}>
+            <PageTabBar active={pageTab} onChange={setPageTab} />
+            {pageTab === 'createHuman' ? (
+              <HumanDashboardView
+                counts={counts}
+                filter={filter}
+                setFilter={setFilter}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onOpenCreate={openCreate}
+                onView={openView}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+                filteredRows={filteredRows}
+                loading={loading}
+                onRefresh={loadHumans}
+                loadError={loadError}
+              />
+            ) : (
+              <CreateHuman2View />
+            )}
+          </View>
         )}
       </SubModuleLayout>
 
@@ -966,8 +993,9 @@ const hc = StyleSheet.create({
   avatarWrap: { alignItems: 'center', gap: 4, flexShrink: 0 },
   avatarRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   avatar:     { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  pctBadge:   { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, alignItems: 'center', minWidth: 34 },
-  pctTxt:     { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#FFF' },
+  pctBadge:   { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: 'rgba(48,168,75,0.12)' },
+  pctTxt:     { fontFamily: FontFamily.bold, fontSize: 7, fontWeight: '700', color: '#2E7D32' },
+  pctLabel:   { fontStyle: 'italic', fontWeight: '400' },
   avatarTxt: {
     fontFamily: FontFamily.bold,
     fontSize: 18,
@@ -1120,5 +1148,151 @@ const hc = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: '700',
     color: Colors.primaryHighlight,
+  },
+});
+
+// ─── Page tab bar styles ──────────────────────────────────────────────────────
+const pt = StyleSheet.create({
+  bar: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+    flexShrink: 0,
+  },
+  barContent: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  tabPressed: {
+    opacity: 0.55,
+  },
+  tabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  label: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSize.sm,
+    color: '#ACACB8',
+  },
+  labelActive: {
+    fontFamily: FontFamily.bold,
+    fontWeight: '700',
+    color: Colors.primaryHighlight,
+  },
+  badge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#EBEBF0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeActive: {
+    backgroundColor: 'rgba(233,30,99,0.12)',
+  },
+  badgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#ACACB8',
+  },
+  badgeTextActive: {
+    color: Colors.primaryHighlight,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 10,
+    right: 10,
+    height: 3,
+    borderRadius: 3,
+    backgroundColor: Colors.primaryHighlight,
+  },
+});
+
+// ─── Create Human 2 placeholder styles ───────────────────────────────────────
+const ph = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    gap: 10,
+  },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(233,30,99,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  iconHead: {
+    position: 'absolute',
+    top: 14,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(233,30,99,0.35)',
+  },
+  iconBody: {
+    position: 'absolute',
+    bottom: 14,
+    width: 28,
+    height: 14,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+    backgroundColor: 'rgba(233,30,99,0.35)',
+  },
+  iconPlus: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.primaryHighlight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusH: {
+    position: 'absolute',
+    width: 9,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  plusV: {
+    position: 'absolute',
+    width: 2,
+    height: 9,
+    borderRadius: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  title: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  sub: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

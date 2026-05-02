@@ -16,7 +16,6 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
 import { DashboardView } from '../../components/dashboard/DashboardView';
-import { TabsSection } from '../../components/dashboard/TabsSection';
 import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
 import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
 import { MODULES } from '../../constants/modules';
@@ -24,7 +23,7 @@ import type { AppModule } from '../../constants/modules';
 import { useNavigation } from '../../context/NavigationContext';
 import { useTheme } from '../../hooks/useTheme';
 
-const H_PAD = 6;
+const H_PAD = 12;
 const GAP = 10;
 const NUM_COLS = 3;
 
@@ -46,10 +45,10 @@ export function DashboardScreen() {
   useEffect(() => {
     panResponder.current = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (evt: GestureResponderEvent, state: PanResponderGestureState) => {
+      onMoveShouldSetPanResponder: (_evt: GestureResponderEvent, state: PanResponderGestureState) => {
         return Math.abs(state.dx) > 10 && Math.abs(state.dy) < 10;
       },
-      onPanResponderRelease: (evt: GestureResponderEvent, state: PanResponderGestureState) => {
+      onPanResponderRelease: (_evt: GestureResponderEvent, state: PanResponderGestureState) => {
         const threshold = 50;
         // Swipe right (from left to right) - go to dashboard
         if (state.dx > threshold && tab !== 'dashboard') {
@@ -157,7 +156,7 @@ function TabButton({ label, active, onPress, dyn, isFirst, isLast }: { label: st
   );
 }
 
-function createDynamicStyles(colors: any, isDarkMode: boolean) {
+function createDynamicStyles(_colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
     safe: { backgroundColor: '#5A5A5A' },
     tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },

@@ -71,9 +71,9 @@ export const MODULES: AppModule[] = [
     value: '47',
     valueLabel: 'PO Pending',
     submodules: [
-      { id: '4-1', name: 'Purchase Orders', value: '47', valueLabel: 'Pending', iconType: 'defaults' },
-      { id: '4-2', name: 'Vendors',         value: '23', valueLabel: 'Active',  iconType: 'vendor' },
-      { id: '4-3', name: 'Requisitions',    value: '15', valueLabel: 'Open',    iconType: 'procurement' },
+      { id: '4-1', name: 'Purchasing',         value: '47', valueLabel: 'Pending', description: 'Manage purchase orders, supplier quotes, and procurement workflows.', iconType: 'proc-purchasing' },
+      { id: '4-2', name: 'Stores & Inventory', value: '23', valueLabel: 'Items',   description: 'Track stock levels, warehouse management, and inventory control.',    iconType: 'proc-stores' },
+      { id: '4-3', name: 'Logistics',          value: '15', valueLabel: 'Active',  description: 'Coordinate deliveries, shipments, and supply chain logistics.',       iconType: 'proc-logistics' },
     ],
   },
   {

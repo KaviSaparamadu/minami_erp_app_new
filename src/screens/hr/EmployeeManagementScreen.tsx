@@ -8,18 +8,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
-import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
-import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { TableIcons } from '../../components/common/DataTable';
 import { EmployeeFormModal, EmployeeModalMode } from '../../components/hr/EmployeeFormModal';
 import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
-import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
@@ -28,11 +24,7 @@ import type { Employee } from '../../types/hr';
 let nextId = 1;
 const genId = () => String(nextId++);
 
-const H_PAD = 6;
-const GRID_GAP = 10;
-const GRID_COLS = 3;
-
-type Tab = 'dashboard' | 'modules' | 'submodules';
+type Tab = 'dashboard' | 'modules';
 type Filter = 'All' | 'Permanent' | 'Contract' | 'Casual';
 const FILTERS: Filter[] = ['All', 'Permanent', 'Contract', 'Casual'];
 const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
@@ -52,6 +44,20 @@ function healthRingColor(pct: number): string {
   if (pct < 50) return '#FB8C00';
   if (pct < 75) return '#FDD835';
   return '#30A84B';
+}
+
+function healthBadgeBg(pct: number): string {
+  if (pct < 25) return 'rgba(229,57,53,0.12)';
+  if (pct < 50) return 'rgba(251,140,0,0.12)';
+  if (pct < 75) return 'rgba(253,216,53,0.15)';
+  return 'rgba(48,168,75,0.12)';
+}
+
+function healthTextColor(pct: number): string {
+  if (pct < 25) return '#B71C1C';
+  if (pct < 50) return '#E65100';
+  if (pct < 75) return '#F57F17';
+  return '#2E7D32';
 }
 
 // ─── Info chip ────────────────────────────────────────────────────────────────
@@ -99,8 +105,9 @@ function EmployeeCard({
                 <Text style={ec.avatarTxt}>{initial}</Text>
               </View>
             </View>
-            <View style={[ec.pctBadge, { backgroundColor: ringColor }]}>
-              <Text style={ec.pctTxt}>{pct}%</Text>
+            <View style={[ec.pctBadge, { backgroundColor: healthBadgeBg(pct) }]}>
+              <Text style={[ec.pctTxt, ec.pctLabel, { color: healthTextColor(pct) }]}>Health </Text>
+              <Text style={[ec.pctTxt, { color: healthTextColor(pct) }]}>{pct}%</Text>
             </View>
           </View>
           <View style={ec.nameBlock}>
@@ -301,57 +308,11 @@ function EmployeeListView({
   );
 }
 
-// ─── Modules tab ──────────────────────────────────────────────────────────────
-function ModulesView({
-  onModulePress,
-  refreshing,
-  onRefresh,
-}: {
-  onModulePress: (module: AppModule) => void;
-  refreshing: boolean;
-  onRefresh: () => void;
-}) {
-  const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
-
-  return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: Spacing.sm, gap: 8 }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#595959" />
-      }>
-      <View style={{ paddingHorizontal: 8 }}>
-        <Text style={{ fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', color: colors.primaryText, marginBottom: 12 }}>
-          Available Modules
-        </Text>
-      </View>
-      <ModulesGrid
-        data={MODULES}
-        cardWidth={cardWidth}
-        numColumns={GRID_COLS}
-        gap={GRID_GAP}
-        hPad={0}
-        renderItem={(module, width) => (
-          <ModuleCard
-            key={module.id}
-            module={module}
-            width={width}
-            onPress={() => onModulePress(module)}
-          />
-        )}
-      />
-    </ScrollView>
-  );
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function EmployeeManagementScreen() {
   const { navigate } = useNavigation();
 
-  const [tab,          setTab]          = useState<Tab>('submodules');
+  const [tab,          setTab]          = useState<Tab>('modules');
   const [employees,    setEmployees]    = useState<Employee[]>([]);
   const [loading]                       = useState(false);
   const [filter,       setFilter]       = useState<Filter>('All');
@@ -403,10 +364,6 @@ export function EmployeeManagementScreen() {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
-  function handleModulePress(module: AppModule) {
-    navigate('ModuleDetail', { moduleId: module.id });
-  }
-
   async function handleDashboardRefresh() {
     setRefreshing(true);
     await new Promise<void>(resolve => setTimeout(resolve, 800));
@@ -437,8 +394,6 @@ export function EmployeeManagementScreen() {
               <DashboardView />
             </View>
           </ScrollView>
-        ) : tab === 'modules' ? (
-          <ModulesView onModulePress={handleModulePress} refreshing={refreshing} onRefresh={handleDashboardRefresh} />
         ) : (
           <EmployeeListView
             counts={counts}
@@ -542,8 +497,9 @@ const ec = StyleSheet.create({
   avatarWrap: { alignItems: 'center', gap: 4, flexShrink: 0 },
   avatarRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   avatar:     { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  pctBadge:   { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, alignItems: 'center', minWidth: 34 },
-  pctTxt:     { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#FFF' },
+  pctBadge:   { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: 'rgba(48,168,75,0.12)' },
+  pctTxt:     { fontFamily: FontFamily.bold, fontSize: 7, fontWeight: '700', color: '#2E7D32' },
+  pctLabel:   { fontStyle: 'italic', fontWeight: '400' },
   avatarTxt: { fontFamily: FontFamily.bold, fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
   nameBlock: { flex: 1, gap: 4 },
   name:      { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', lineHeight: 20 },

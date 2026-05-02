@@ -5,121 +5,145 @@ import { Colors, FontFamily, FontWeight } from '../../constants/theme';
 import { useNavigation } from '../../context/NavigationContext';
 import { useTheme } from '../../hooks/useTheme';
 import { MODULES } from '../../constants/modules';
+import { SidebarIcon } from '../layout/SidebarIcon';
+import { SCREEN_LABELS } from '../../constants/screenLabels';
 
 interface BreadcrumbsProps {
   variant?: 'light' | 'dark';
   style?: object;
 }
 
-type NavChild = { label: string; screen: string };
+type NavChild = { label: string; screen: string; icon?: string };
 
-const SCREEN_LABELS: Record<string, string> = {
-  Dashboard: 'Dashboard',
-  HR: 'Human Resources',
-  HumanManagement: 'Human Management',
-  EmployeeManagement: 'Employee Management',
-  UserManagement: 'User Management',
-  CreateSystemUsers: 'Create System Users',
-  AssignUserPermission: 'Assign User Permission',
-  CreateUserRole: 'Create User Role',
-  AssignUserRolePermission: 'Assign User Role Permission',
+// ── Static parent hierarchy ────────────────────────────────────────────────────
+// Determines the breadcrumb path purely from screen identity, not nav history.
+const SCREEN_PARENT: Record<string, string> = {
+  // HR
+  HR:                       'Dashboard',
+  HumanManagement:          'HR',
+  EmployeeManagement:       'HR',
+  UserManagement:           'HR',
+  CreateSystemUsers:        'UserManagement',
+  AssignUserPermission:     'UserManagement',
+  CreateUserRole:           'UserManagement',
+  AssignUserRolePermission: 'UserManagement',
+  // System Admin
+  SystemAdmin:              'Dashboard',
+  SystemSettings:           'SystemAdmin',
+  GeneralSettings:          'SystemAdmin',
+  SystemDefaultSettings:    'SystemAdmin',
+  SupportTicket:            'SystemAdmin',
+  ActivityLog:              'SystemAdmin',
+  SystemWorkFlow:           'SystemDefaultSettings',
+  // Finance
+  Finance:                  'Dashboard',
+  FinanceUtilities:         'Finance',
+  LedgerManagement:         'Finance',
+  FinanceOperation:         'Finance',
+  // Procurement
+  Procurement:              'Dashboard',
+  Purchasing:               'Procurement',
+  StoresInventory:          'Procurement',
+  Logistics:                'Procurement',
 };
 
-// Children for each screen that has navigable sub-screens
+function buildPath(screen: string): string[] {
+  const path: string[] = [];
+  let cur: string | undefined = screen;
+  while (cur && cur !== 'Dashboard') {
+    path.unshift(cur);
+    cur = SCREEN_PARENT[cur];
+  }
+  return path;
+}
+
+// ── Dropdown children per screen ───────────────────────────────────────────────
 const CRUMB_CHILDREN: Record<string, NavChild[]> = {
   HR: [
-    { label: 'Human Management',   screen: 'HumanManagement' },
-    { label: 'Employee Management', screen: 'EmployeeManagement' },
-    { label: 'User Management',    screen: 'UserManagement' },
+    { label: 'Human Management',    screen: 'HumanManagement',   icon: 'human' },
+    { label: 'Employee Management', screen: 'EmployeeManagement', icon: 'employee' },
+    { label: 'User Management',     screen: 'UserManagement',     icon: 'user' },
   ],
   UserManagement: [
-    { label: 'Create System Users',    screen: 'CreateSystemUsers' },
-    { label: 'Assign User Permission', screen: 'AssignUserPermission' },
-    { label: 'Create User Role',       screen: 'CreateUserRole' },
-    { label: 'Assign Role Permission', screen: 'AssignUserRolePermission' },
+    { label: 'Create System Users',    screen: 'CreateSystemUsers',        icon: 'user-plus' },
+    { label: 'Assign User Permission', screen: 'AssignUserPermission',     icon: 'user-key' },
+    { label: 'Create User Role',       screen: 'CreateUserRole',           icon: 'user-role' },
+    { label: 'Assign Role Permission', screen: 'AssignUserRolePermission', icon: 'user-role-key' },
   ],
   SystemAdmin: [
-    { label: 'System Settings',         screen: 'SystemSettings' },
-    { label: 'General Settings',        screen: 'GeneralSettings' },
-    { label: 'System Default Settings', screen: 'SystemDefaultSettings' },
-    { label: 'Support Ticket',          screen: 'SupportTicket' },
-    { label: 'Activity Log',            screen: 'ActivityLog' },
+    { label: 'System Settings',         screen: 'SystemSettings',        icon: 'sys-settings' },
+    { label: 'General Settings',        screen: 'GeneralSettings',       icon: 'gen-settings' },
+    { label: 'System Default Settings', screen: 'SystemDefaultSettings', icon: 'sys-defaults' },
+    { label: 'Support Ticket',          screen: 'SupportTicket',         icon: 'support-ticket' },
+    { label: 'Activity Log',            screen: 'ActivityLog',           icon: 'activity-log' },
   ],
   SystemDefaultSettings: [
-    { label: 'System Work Flow', screen: 'SystemWorkFlow' },
+    { label: 'System Work Flow', screen: 'SystemWorkFlow', icon: 'workflow' },
   ],
   Finance: [
-    { label: 'Finance Utilities',  screen: 'FinanceUtilities' },
-    { label: 'Ledger Management',  screen: 'LedgerManagement' },
-    { label: 'Finance Operation',  screen: 'FinanceOperation' },
+    { label: 'Finance Utilities', screen: 'FinanceUtilities', icon: 'finance-utilities' },
+    { label: 'Ledger Management', screen: 'LedgerManagement', icon: 'ledger' },
+    { label: 'Finance Operation', screen: 'FinanceOperation', icon: 'finance-operation' },
   ],
   Procurement: [
-    { label: 'Purchasing',          screen: 'Purchasing' },
-    { label: 'Stores & Inventory',  screen: 'StoresInventory' },
-    { label: 'Logistics',           screen: 'Logistics' },
+    { label: 'Purchasing',         screen: 'Purchasing',      icon: 'proc-purchasing' },
+    { label: 'Stores & Inventory', screen: 'StoresInventory', icon: 'proc-stores' },
+    { label: 'Logistics',          screen: 'Logistics',       icon: 'proc-logistics' },
   ],
 };
 
-// Maps submodule display name → screen name (for ModuleDetail crumbs)
-const SUBMODULE_SCREEN: Record<string, string> = {
-  'Human Management':          'HumanManagement',
-  'Employee Management':       'EmployeeManagement',
-  'User Management':           'UserManagement',
-  'System Settings':           'SystemSettings',
-  'General Settings':          'GeneralSettings',
-  'System Default Settings':   'SystemDefaultSettings',
-  'Support Ticket':            'SupportTicket',
-  'Activity Log':              'ActivityLog',
-  'Finance Utilities':         'FinanceUtilities',
-  'Ledger Management':         'LedgerManagement',
-  'Finance Operation':         'FinanceOperation',
+const SUBMODULE_ICON: Record<string, string> = {
+  'Human Management':        'human',
+  'Employee Management':     'employee',
+  'User Management':         'user',
+  'System Settings':         'sys-settings',
+  'General Settings':        'gen-settings',
+  'System Default Settings': 'sys-defaults',
+  'Support Ticket':          'support-ticket',
+  'Activity Log':            'activity-log',
+  'Finance Utilities':       'finance-utilities',
+  'Ledger Management':       'ledger',
+  'Finance Operation':       'finance-operation',
+  'Purchasing':              'proc-purchasing',
+  'Stores & Inventory':      'proc-stores',
+  'Logistics':               'proc-logistics',
 };
 
+const SUBMODULE_SCREEN: Record<string, string> = {
+  'Human Management':         'HumanManagement',
+  'Employee Management':      'EmployeeManagement',
+  'User Management':          'UserManagement',
+  'System Settings':          'SystemSettings',
+  'General Settings':         'GeneralSettings',
+  'System Default Settings':  'SystemDefaultSettings',
+  'Support Ticket':           'SupportTicket',
+  'Activity Log':             'ActivityLog',
+  'Finance Utilities':        'FinanceUtilities',
+  'Ledger Management':        'LedgerManagement',
+  'Finance Operation':        'FinanceOperation',
+};
+
+// ── Component ──────────────────────────────────────────────────────────────────
 export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
-  const { goBack, stack, navigateTo, paramsStack } = useNavigation();
+  const { goBack, stack, navigate, navigateTo, paramsStack } = useNavigation();
   const { isDarkMode } = useTheme();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  const getModuleNameForIdx = (idx: number) => {
-    const p = paramsStack[idx];
-    if (p && 'moduleId' in p) {
-      const mod = MODULES.find(m => m.id === p.moduleId);
-      return mod?.name || 'ModuleDetail';
-    }
-    return 'ModuleDetail';
-  };
+  const currentScreen = stack[stack.length - 1];
 
-  const getChildrenForCrumb = (screen: string, stackIdx: number): NavChild[] => {
-    if (screen === 'ModuleDetail') {
-      const p = paramsStack[stackIdx];
-      if (p && 'moduleId' in p) {
-        const mod = MODULES.find(m => m.id === p.moduleId);
-        return (mod?.submodules || []).map(sub => ({
-          label: sub.name,
-          screen: SUBMODULE_SCREEN[sub.name] ?? sub.name,
-        }));
-      }
-      return [];
+  // Build breadcrumb items from the static hierarchy, not the nav stack
+  const breadcrumbs = useMemo(() => {
+    if (currentScreen === 'ModuleDetail') {
+      const p = paramsStack[paramsStack.length - 1];
+      const mod = p?.moduleId ? MODULES.find(m => m.id === p.moduleId) : null;
+      if (!mod) return [];
+      return [{ screen: 'ModuleDetail', label: mod.name }];
     }
-    return CRUMB_CHILDREN[screen] ?? [];
-  };
-
-  const lastDashIdx = stack.reduce((last, s, i) => (s === 'Dashboard' ? i : last), 0);
-  const currentSegment = stack.slice(lastDashIdx + 1);
-
-  const seen = new Set<string>();
-  const breadcrumbs = currentSegment.reduce((acc, screen, i) => {
-    const stackIdx = lastDashIdx + 1 + i;
-    const label = screen === 'ModuleDetail'
-      ? getModuleNameForIdx(stackIdx)
-      : (SCREEN_LABELS[screen] || screen);
-    const key = screen === 'ModuleDetail' ? `ModuleDetail:${label}` : screen;
-    if (!seen.has(key)) {
-      seen.add(key);
-      acc.push({ screen, label, stackIdx });
-    }
-    return acc;
-  }, [] as { screen: string; label: string; stackIdx: number }[]);
+    return buildPath(currentScreen).map(screen => ({
+      screen,
+      label: SCREEN_LABELS[screen] ?? screen,
+    }));
+  }, [currentScreen, paramsStack]);
 
   const dyn = useMemo(() => createDynamicStyles(variant, isDarkMode), [variant, isDarkMode]);
 
@@ -130,11 +154,32 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
     ? 'rgba(255,255,255,0.55)'
     : (isDarkMode ? 'rgba(255,255,255,0.45)' : '#AEAEB2');
 
-  const activeEntry = activeDropdown
-    ? breadcrumbs.find(c => `${c.screen}-${c.stackIdx}` === activeDropdown)
-    : null;
-  const dropdownChildren: NavChild[] = activeEntry
-    ? getChildrenForCrumb(activeEntry.screen, activeEntry.stackIdx)
+  const getDropdownChildren = (screen: string): NavChild[] => {
+    if (screen === 'ModuleDetail') {
+      const p = paramsStack[paramsStack.length - 1];
+      const mod = p?.moduleId ? MODULES.find(m => m.id === p.moduleId) : null;
+      return (mod?.submodules ?? []).map(sub => ({
+        label: sub.name,
+        screen: SUBMODULE_SCREEN[sub.name] ?? sub.name,
+        icon: SUBMODULE_ICON[sub.name],
+      }));
+    }
+    return CRUMB_CHILDREN[screen] ?? [];
+  };
+
+  const handleCrumbPress = (screen: string) => {
+    setActiveDropdown(null);
+    // If the screen exists in the current stack, pop back to it; else push it
+    const idx = stack.indexOf(screen as any);
+    if (idx >= 0) {
+      navigateTo(screen as any);
+    } else {
+      navigate(screen as any);
+    }
+  };
+
+  const activeDropdownChildren = activeDropdown
+    ? getDropdownChildren(activeDropdown)
     : [];
 
   return (
@@ -148,7 +193,7 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
           accessibilityLabel="Go back"
           accessibilityRole="button"
           hitSlop={14}>
-          <MaterialCommunityIcons name="chevron-left" size={22} color={backIconColor} />
+          <MaterialCommunityIcons name="chevron-left" size={26} color={backIconColor} />
         </Pressable>
 
         <ScrollView
@@ -157,40 +202,31 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
           style={styles.scrollRow}
           contentContainerStyle={styles.scrollContent}>
           {breadcrumbs.map((crumb, idx) => {
-            const isLast     = idx === breadcrumbs.length - 1;
-            const crumbKey   = `${crumb.screen}-${crumb.stackIdx}`;
-            const children   = getChildrenForCrumb(crumb.screen, crumb.stackIdx);
+            const isLast      = idx === breadcrumbs.length - 1;
+            const children    = getDropdownChildren(crumb.screen);
             const hasChildren = children.length > 0;
-            const isOpen     = activeDropdown === crumbKey;
+            const isOpen      = activeDropdown === crumb.screen;
 
             return (
-              <View key={crumbKey} style={styles.crumbGroup}>
+              <View key={crumb.screen} style={styles.crumbGroup}>
 
                 {/* Label */}
                 <Pressable
-                  onPress={() => {
-                    setActiveDropdown(null);
-                    navigateTo(crumb.screen as any);
-                  }}
+                  onPress={() => handleCrumbPress(crumb.screen)}
                   style={({ pressed }) => [
                     styles.crumbLabel,
                     isLast && styles.crumbLabelActive,
                     pressed && styles.pressed,
                   ]}>
-                  <Text
-                    style={[
-                      styles.text,
-                      dyn.text,
-                      isLast && [styles.textActive, dyn.textActive],
-                    ]}>
+                  <Text style={[styles.text, dyn.text, isLast && [styles.textActive, dyn.textActive]]}>
                     {crumb.label}
                   </Text>
                 </Pressable>
 
-                {/* Inline dropdown chevron */}
+                {/* Dropdown chevron */}
                 {hasChildren && (
                   <Pressable
-                    onPress={() => setActiveDropdown(isOpen ? null : crumbKey)}
+                    onPress={() => setActiveDropdown(isOpen ? null : crumb.screen)}
                     hitSlop={6}
                     style={styles.chevronBtn}
                     accessibilityRole="button">
@@ -202,7 +238,7 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
                   </Pressable>
                 )}
 
-                {/* Separator between crumbs */}
+                {/* Separator */}
                 {!isLast && (
                   <Text style={[styles.separator, dyn.separator]}> / </Text>
                 )}
@@ -213,21 +249,21 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
       </View>
 
       {/* ── Dropdown panel ── */}
-      {activeDropdown && dropdownChildren.length > 0 && (
+      {activeDropdown && activeDropdownChildren.length > 0 && (
         <View style={[styles.dropdown, dyn.dropdown]}>
-          {dropdownChildren.map((child, idx) => (
+          {activeDropdownChildren.map((child, idx) => (
             <Pressable
               key={child.screen}
               style={({ pressed }) => [
                 styles.dropdownItem,
-                idx < dropdownChildren.length - 1 && [styles.dropdownItemBorder, dyn.dropdownItemBorder],
+                idx < activeDropdownChildren.length - 1 && [styles.dropdownItemBorder, dyn.dropdownItemBorder],
                 pressed && styles.dropdownItemPressed,
               ]}
               onPress={() => {
                 setActiveDropdown(null);
-                navigateTo(child.screen as any);
+                navigate(child.screen as any);
               }}>
-              <View style={[styles.dropdownDot, dyn.dropdownDot]} />
+              <SidebarIcon name={child.icon} color={Colors.primaryHighlight} size={16} />
               <Text style={[styles.dropdownItemText, dyn.dropdownItemText]} numberOfLines={1}>
                 {child.label}
               </Text>
@@ -267,15 +303,12 @@ function createDynamicStyles(variant: 'light' | 'dark', isDarkMode: boolean) {
       elevation:       6,
     },
     dropdownItemBorder: { borderBottomColor: itemBorderColor },
-    dropdownDot:        { backgroundColor: Colors.primaryHighlight },
     dropdownItemText:   { color: itemTextColor },
   });
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    // column — dropdown expands naturally below the bar
-  },
+  wrapper: {},
 
   crumbBar: {
     flexDirection: 'row',
@@ -292,10 +325,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
 
-  backIconBtn: {
-    padding: 4,
-    marginLeft: -4,
-  },
+  backIconBtn: { padding: 4, marginLeft: -4 },
   backIconBtnPressed: { opacity: 0.6 },
 
   crumbGroup: {
@@ -318,25 +348,23 @@ const styles = StyleSheet.create({
 
   pressed: { opacity: 0.7 },
 
-  chevronBtn: {
-    paddingHorizontal: 3,
-    paddingVertical: 2,
-  },
+  chevronBtn: { paddingHorizontal: 3, paddingVertical: 2 },
 
   text: {
     fontFamily: FontFamily.regular,
-    fontSize: 10,
+    fontSize: 9,
+    fontStyle: 'italic',
     paddingHorizontal: 3,
   },
 
   textActive: {
     fontFamily: FontFamily.bold,
     fontWeight: FontWeight.bold,
+    fontStyle: 'italic',
   },
 
-  separator: { fontSize: 10 },
+  separator: { fontSize: 9, fontStyle: 'italic' },
 
-  // Dropdown
   dropdown: {
     marginHorizontal: 10,
     marginBottom: 4,
@@ -353,17 +381,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  dropdownItemBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-
+  dropdownItemBorder: { borderBottomWidth: StyleSheet.hairlineWidth },
   dropdownItemPressed: { opacity: 0.7 },
-
-  dropdownDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
 
   dropdownItemText: {
     flex: 1,

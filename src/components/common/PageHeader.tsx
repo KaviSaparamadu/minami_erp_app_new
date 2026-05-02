@@ -7,7 +7,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useSearch } from '../../context/SearchContext';
 import { SearchResults } from './SearchResults';
-import { SearchSuggestions } from './SearchSuggestions';
 import { ProfileSheet } from '../dashboard/ProfileSheet';
 import { MODULES } from '../../constants/modules';
 
@@ -18,21 +17,9 @@ interface PageHeaderProps {
   showBrand?: boolean; // shows brand logo instead of title (for Dashboard)
   showBreadcrumbs?: boolean; // renders breadcrumbs inside the header (default true when !showBrand)
   dashboardSearch?: boolean; // shows dashboard search in header
-  searchValue?: string;
-  onSearchChange?: (query: string) => void;
   hideSearchBar?: boolean; // hides search bar even if dashboardSearch is true
   hideSearchIcon?: boolean; // hides the magnify icon in the header top row
   hideGreeting?: boolean; // shows brand logo without the greeting/search block (compact logo-only mode)
-}
-
-interface BackArrowProps {
-  color: string;
-}
-
-function BackArrow({ color }: BackArrowProps) {
-  return (
-    <MaterialCommunityIcons name="chevron-left" size={28} color={color} />
-  );
 }
 
 function MenuIcon({ color }: { color: string }) {
@@ -80,8 +67,6 @@ export function PageHeader({
   showBrand = false,
   showBreadcrumbs = true,
   dashboardSearch = false,
-  searchValue = '',
-  onSearchChange = () => {},
   hideSearchBar = false,
   hideSearchIcon = false,
   hideGreeting = false,
@@ -118,18 +103,9 @@ export function PageHeader({
   }, [] as typeof breadcrumbs);
   const dynamicStyles = useMemo(() => createDynamicStyles(colors), [colors]);
 
-  const fullName = user?.fullName ?? 'Administrator';
   const hour = new Date().getHours();
   const greetingEmoji = hour < 12 ? '☀️' : hour < 17 ? '👋' : '🌙';
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
-
-  const suggestions = [
-    { id: '1', title: 'Human Resources', icon: 'account-group' },
-    { id: '2', title: 'Employee Management', icon: 'briefcase' },
-    { id: '3', title: 'User Management', icon: 'account-multiple' },
-    { id: '4', title: 'Dashboard', icon: 'view-dashboard' },
-    { id: '5', title: 'Settings', icon: 'cog' },
-  ];
 
   return (
     <View>
@@ -184,8 +160,6 @@ export function PageHeader({
       {showBrand && !hideGreeting && (
         <View style={styles.greetingSection}>
           <Text style={[styles.greetingSubtitle, dynamicStyles.greetingSubtitle]}>{greeting} {greetingEmoji}</Text>
-          <Text style={[styles.greetingTitle, dynamicStyles.greetingTitle]}>{fullName}</Text>
-          <Text style={[styles.greetingWelcome, dynamicStyles.greetingWelcome]}>welcome</Text>
         </View>
       )}
 
@@ -549,12 +523,12 @@ const styles = StyleSheet.create({
   },
 
   greetingSubtitle: {
-    fontFamily: FontFamily.regular,
-    fontSize: 12,
+    fontFamily: FontFamily.bold,
+    fontSize: 22,
     letterSpacing: 0.3,
     marginBottom: 4,
     color: '#FFFFFF',
-    fontWeight: '500',
+    fontWeight: '700',
   },
 
   greetingTitle: {

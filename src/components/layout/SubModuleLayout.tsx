@@ -10,9 +10,7 @@ import { PageHeader } from '../common/PageHeader';
 import { QuickAccessRow } from '../dashboard/QuickAccessRow';
 import { Breadcrumbs } from '../common/Breadcrumbs';
 import { TabsSection } from '../dashboard/TabsSection';
-import { ModuleTreeView } from '../dashboard/ModuleTreeView';
 import { Spacing } from '../../constants/theme';
-import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -39,9 +37,7 @@ export function SubModuleLayout({
   activeTab = 'modules',
   onTabChange,
   onModulePress,
-  parentModuleId,
 }: SubModuleLayoutProps) {
-  const parentModule = parentModuleId ? MODULES.find(m => m.id === parentModuleId) : undefined;
   const { isDarkMode, colors } = useTheme();
   const [tab, setTab] = useState<Tab>(activeTab);
   const [refreshing, setRefreshing] = useState(false);
@@ -93,9 +89,7 @@ export function SubModuleLayout({
             />
           }>
           <View style={styles.content}>
-            {tab === 'modules' && parentModule
-              ? <ModuleTreeView module={parentModule} />
-              : children}
+            {children}
           </View>
         </ScrollView>
       </View>

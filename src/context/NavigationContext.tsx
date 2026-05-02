@@ -20,6 +20,14 @@ export type ScreenName =
   | 'Procurement' | 'Purchasing' | 'StoresInventory' | 'Logistics'
   | 'ModuleDetail';
 
+export interface RecentPage {
+  key: string;                          // unique: screen or 'ModuleDetail:moduleId'
+  screen: ScreenName;
+  params?: Record<string, any> | null;
+}
+
+const EXCLUDED_FROM_RECENT: ScreenName[] = ['Dashboard'];
+
 interface NavigationContextValue {
   currentScreen: ScreenName;
   navigate: (screen: ScreenName, params?: Record<string, any>) => void;
@@ -34,18 +42,21 @@ interface NavigationContextValue {
   openSidebar: () => void;
   closeSidebar: () => void;
   lastModuleId?: string;
+  recentPages: RecentPage[];
+  removeRecentPage: (key: string) => void;
 }
 
 const NavigationContext = createContext<NavigationContextValue | undefined>(undefined);
 
-const NAV_DELAY = 500; // ms — page transition loader duration
+const NAV_DELAY = 500;
 
 export function NavigationProvider({ children }: { children: React.ReactNode }) {
-  const [stack,       setStack]       = useState<ScreenName[]>(['Dashboard']);
-  const [paramsStack, setParamsStack] = useState<Array<Record<string, any> | null>>([null]);
-  const [navigating,  setNavigating]  = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [stack,        setStack]        = useState<ScreenName[]>(['Dashboard']);
+  const [paramsStack,  setParamsStack]  = useState<Array<Record<string, any> | null>>([null]);
+  const [navigating,   setNavigating]   = useState(false);
+  const [sidebarOpen,  setSidebarOpen]  = useState(false);
   const [lastModuleId, setLastModuleId] = useState<string | undefined>(undefined);
+  const [recentPages,  setRecentPages]  = useState<RecentPage[]>([]);
 
   const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
@@ -55,9 +66,22 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setTimeout(() => {
       setStack(prev => [...prev, screen]);
       setParamsStack(prev => [...prev, navParams || null]);
+
       if (screen === 'ModuleDetail' && navParams?.moduleId) {
         setLastModuleId(navParams.moduleId);
       }
+
+      if (!EXCLUDED_FROM_RECENT.includes(screen)) {
+        const key = screen === 'ModuleDetail' && navParams?.moduleId
+          ? `ModuleDetail:${navParams.moduleId}`
+          : screen;
+
+        setRecentPages(prev => {
+          const filtered = prev.filter(p => p.key !== key);
+          return [{ key, screen, params: navParams || null }, ...filtered].slice(0, 15);
+        });
+      }
+
       setNavigating(false);
     }, NAV_DELAY);
   }, []);
@@ -86,12 +110,21 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }, NAV_DELAY);
   }, []);
 
+  const removeRecentPage = useCallback((key: string) => {
+    setRecentPages(prev => prev.filter(p => p.key !== key));
+  }, []);
+
   const currentScreen = stack[stack.length - 1];
-  const canGoBack = stack.length > 1;
-  const params = paramsStack[paramsStack.length - 1];
+  const canGoBack     = stack.length > 1;
+  const params        = paramsStack[paramsStack.length - 1];
 
   return (
-    <NavigationContext.Provider value={{ currentScreen, navigate, goBack, canGoBack, navigating, stack, params, paramsStack, navigateTo, sidebarOpen, openSidebar, closeSidebar, lastModuleId }}>
+    <NavigationContext.Provider value={{
+      currentScreen, navigate, goBack, canGoBack, navigating,
+      stack, params, paramsStack, navigateTo,
+      sidebarOpen, openSidebar, closeSidebar, lastModuleId,
+      recentPages, removeRecentPage,
+    }}>
       {children}
     </NavigationContext.Provider>
   );
