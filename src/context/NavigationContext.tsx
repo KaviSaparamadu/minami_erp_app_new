@@ -31,6 +31,7 @@ const EXCLUDED_FROM_RECENT: ScreenName[] = ['Dashboard'];
 interface NavigationContextValue {
   currentScreen: ScreenName;
   navigate: (screen: ScreenName, params?: Record<string, any>) => void;
+  navigateInstant: (screen: ScreenName, params?: Record<string, any>) => void;
   goBack: () => void;
   canGoBack: boolean;
   navigating: boolean;
@@ -86,6 +87,26 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     }, NAV_DELAY);
   }, []);
 
+  const navigateInstant = useCallback((screen: ScreenName, navParams?: Record<string, any>) => {
+    setStack(prev => [...prev, screen]);
+    setParamsStack(prev => [...prev, navParams || null]);
+
+    if (screen === 'ModuleDetail' && navParams?.moduleId) {
+      setLastModuleId(navParams.moduleId);
+    }
+
+    if (!EXCLUDED_FROM_RECENT.includes(screen)) {
+      const key = screen === 'ModuleDetail' && navParams?.moduleId
+        ? `ModuleDetail:${navParams.moduleId}`
+        : screen;
+
+      setRecentPages(prev => {
+        const filtered = prev.filter(p => p.key !== key);
+        return [{ key, screen, params: navParams || null }, ...filtered].slice(0, 15);
+      });
+    }
+  }, []);
+
   const goBack = useCallback(() => {
     setNavigating(true);
     setTimeout(() => {
@@ -120,7 +141,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 
   return (
     <NavigationContext.Provider value={{
-      currentScreen, navigate, goBack, canGoBack, navigating,
+      currentScreen, navigate, navigateInstant, goBack, canGoBack, navigating,
       stack, params, paramsStack, navigateTo,
       sidebarOpen, openSidebar, closeSidebar, lastModuleId,
       recentPages, removeRecentPage,

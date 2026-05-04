@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../common/PageHeader';
 import { QuickAccessRow } from '../dashboard/QuickAccessRow';
 import { Breadcrumbs } from '../common/Breadcrumbs';
+import { RecentPageTabs } from '../common/RecentPageTabs';
 import { TabsSection } from '../dashboard/TabsSection';
 import { Spacing } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
@@ -20,6 +21,8 @@ interface SubModuleLayoutProps {
   title?: string;
   showBack?: boolean;
   children: React.ReactNode;
+  stickyContent?: React.ReactNode;
+  selfManagesScroll?: boolean;
   activeTab?: Tab;
   onTabChange?: (tab: Tab) => void;
   onModulePress?: (module: AppModule) => void;
@@ -34,6 +37,8 @@ interface SubModuleLayoutProps {
 export function SubModuleLayout({
   showBack = true,
   children,
+  stickyContent,
+  selfManagesScroll = false,
   activeTab = 'modules',
   onTabChange,
   onModulePress,
@@ -64,6 +69,8 @@ export function SubModuleLayout({
           <QuickAccessRow onPress={onModulePress} />
         </View>
 
+        <RecentPageTabs />
+
         <TabsSection
           tabs={['Modules', 'Dashboard']}
           activeTab={tab === 'modules' ? 'Modules' : 'Dashboard'}
@@ -76,22 +83,34 @@ export function SubModuleLayout({
           <Breadcrumbs variant="light" style={styles.crumbFlex} />
         </View>
 
-        <ScrollView
-          style={styles.contentScroll}
-          contentContainerStyle={styles.contentScrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#E91E63"
-              colors={['#E91E63']}
-            />
-          }>
-          <View style={styles.content}>
+        {stickyContent && (
+          <View style={styles.stickyWrap}>
+            {stickyContent}
+          </View>
+        )}
+
+        {selfManagesScroll ? (
+          <View style={styles.contentArea}>
             {children}
           </View>
-        </ScrollView>
+        ) : (
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.contentScrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#E91E63"
+                colors={['#E91E63']}
+              />
+            }>
+            <View style={styles.content}>
+              {children}
+            </View>
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -131,6 +150,17 @@ const styles = StyleSheet.create({
   },
 
   crumbFlex: {
+    flex: 1,
+  },
+
+  stickyWrap: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 8,
+    paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
+  },
+
+  contentArea: {
     flex: 1,
   },
 

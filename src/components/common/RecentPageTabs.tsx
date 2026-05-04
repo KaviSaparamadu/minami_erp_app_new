@@ -73,7 +73,7 @@ export function RecentPageTabs() {
   const { width } = useWindowDimensions();
   const {
     recentPages, removeRecentPage,
-    navigate, currentScreen, params: currentParams,
+    navigateInstant, currentScreen, params: currentParams,
   } = useNavigation();
 
   const scrollRef         = useRef<ScrollView>(null);
@@ -125,7 +125,7 @@ export function RecentPageTabs() {
                   <Pressable
                     onPress={() => {
                       setActiveSubmodule(null);
-                      navigate(page.screen, page.params ?? undefined);
+                      navigateInstant(page.screen, page.params ?? undefined);
                     }}
                     style={styles.tabLabelBtn}>
                     <Text style={[styles.tabText, isActive && styles.tabTextActive]} numberOfLines={1}>
@@ -181,7 +181,7 @@ export function RecentPageTabs() {
                 ]}
                 onPress={() => {
                   setActiveSubmodule(null);
-                  if (targetScreen) navigate(targetScreen);
+                  if (targetScreen) navigateInstant(targetScreen);
                 }}>
                 <View style={styles.subDot} />
                 <Text style={styles.subItemText} numberOfLines={1}>{sub.name}</Text>
@@ -247,7 +247,7 @@ export function RecentPageTabs() {
                               pressed && styles.cardPressed,
                             ]}
                             onPress={() => {
-                              navigate(page.screen, page.params ?? undefined);
+                              navigateInstant(page.screen, page.params ?? undefined);
                               setModalOpen(false);
                             }}>
 
