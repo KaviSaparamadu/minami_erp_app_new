@@ -23,6 +23,7 @@ import { AssignUserRolePermissionScreen } from './screens/user/AssignUserRolePer
 import { ModuleDetailScreen } from './screens/dashboard/ModuleDetailScreen';
 import { SystemAdminScreen } from './screens/admin/SystemAdminScreen';
 import { SystemSettingsScreen } from './screens/admin/SystemSettingsScreen';
+import { EmployeeSettingsScreen } from './screens/admin/EmployeeSettingsScreen';
 import { GeneralSettingsScreen } from './screens/admin/GeneralSettingsScreen';
 import { SystemDefaultSettingsScreen } from './screens/admin/SystemDefaultSettingsScreen';
 import { SupportTicketScreen } from './screens/admin/SupportTicketScreen';
@@ -98,7 +99,7 @@ function DottedLoader() {
 }
 
 function AppNavigator() {
-  const { currentScreen, navigating, sidebarOpen, closeSidebar, params } = useNavigation();
+  const { currentScreen, navigating, sidebarOpen, closeSidebar, params, screenRef } = useNavigation();
   useSearch();
 
   const screen = (() => {
@@ -113,6 +114,7 @@ function AppNavigator() {
       case 'AssignUserRolePermission':return <AssignUserRolePermissionScreen />;
       case 'SystemAdmin':             return <SystemAdminScreen />;
       case 'SystemSettings':          return <SystemSettingsScreen />;
+      case 'EmployeeSettings':        return <EmployeeSettingsScreen />;
       case 'GeneralSettings':         return <GeneralSettingsScreen />;
       case 'SystemDefaultSettings':   return <SystemDefaultSettingsScreen />;
       case 'SupportTicket':           return <SupportTicketScreen />;
@@ -155,7 +157,7 @@ function AppNavigator() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.screenContainer}>
+      <View ref={screenRef} style={styles.screenContainer}>
         {screen}
       </View>
       <Footer />

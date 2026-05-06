@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
 import { DEPARTMENTS } from '../../constants/employeeData';
 import { SYSTEM_ROLES } from '../../constants/userManagementData';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { SystemUser, UserStatus } from '../../types/hr';
 
@@ -37,7 +38,13 @@ function Dropdown({ label, value, options, onChange, disabled, required }: {
       <Pressable onPress={() => !disabled && setOpen(o => !o)}
         style={[dd.trigger, open && dd.open, disabled && dd.disabled]}>
         <Text style={[dd.val, !value && dd.ph]}>{value || `Select ${label}`}</Text>
-        {!disabled && <View style={[dd.chev, open && dd.chevUp]}><View style={dd.cL} /><View style={dd.cR} /></View>}
+        {!disabled && (
+          <MaterialCommunityIcons
+            name={open ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={Colors.placeholder}
+          />
+        )}
       </Pressable>
       {open && (
         <View style={dd.list}>
@@ -408,9 +415,6 @@ const dd = StyleSheet.create({
   open: { borderBottomColor: Colors.primaryText }, disabled: { opacity: 0.55 },
   val:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText },
   ph:   { color: Colors.placeholder },
-  chev: { width: 18, height: 10, alignItems: 'center', justifyContent: 'center' }, chevUp: { transform: [{ rotate: '180deg' }] },
-  cL: { position: 'absolute', left: 0, width: 9, height: 2, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '35deg' }, { translateY: -1 }] },
-  cR: { position: 'absolute', right: 0, width: 9, height: 2, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '-35deg' }, { translateY: -1 }] },
   list: { backgroundColor: '#FFF', borderRadius: 12, marginTop: 4, borderWidth: 1, borderColor: '#E5E5EA', overflow: 'hidden', elevation: 6 },
   opt: { paddingHorizontal: Spacing.lg, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
   optActive: { backgroundColor: 'rgba(94,53,177,0.05)' },

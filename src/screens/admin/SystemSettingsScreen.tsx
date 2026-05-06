@@ -3,20 +3,23 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { SubmoduleDetailCard } from '../../components/dashboard/SubmoduleDetailCard';
 import { SYSTEM_SETTINGS } from '../../constants/modules';
-import { Colors, Spacing, FontFamily, FontSize } from '../../constants/theme';
+import { Spacing, FontFamily, FontSize } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { useNavigation } from '../../context/NavigationContext';
 
 export function SystemSettingsScreen() {
   const { colors } = useTheme();
+  const { navigate } = useNavigation();
 
-  const handleSettingPress = (settingName: string) => {
-    // Navigate to specific setting screen or show a modal
-    console.log('Navigate to:', settingName);
+  const handleSettingPress = (id: string) => {
+    if (id === '1') {
+      navigate('EmployeeSettings');
+    }
   };
 
   return (
     <SubModuleLayout parentModuleId="2" title="System Settings" showBack={true}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.subScroll}>
         <Text style={[styles.sectionTitle, { color: colors.primaryText }]}>System Settings</Text>
@@ -26,7 +29,7 @@ export function SystemSettingsScreen() {
             submodule={setting}
             iconType={setting.iconType}
             description={setting.description}
-            onPress={() => handleSettingPress(setting.name)}
+            onPress={() => handleSettingPress(setting.id)}
           />
         ))}
       </ScrollView>

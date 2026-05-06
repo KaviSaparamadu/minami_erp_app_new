@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -10,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useIsPreview } from '../../context/PreviewContext';
+import { LiveScreenPreview } from './ScreenPreview';
 import { useNavigation } from '../../context/NavigationContext';
 import { SCREEN_LABELS } from '../../constants/screenLabels';
 import { MODULES } from '../../constants/modules';
@@ -34,11 +37,6 @@ const SUBMODULE_SCREEN: Record<string, ScreenName> = {
   'Logistics':               'Logistics',
 };
 
-// Muted background colours per tab (cycles)
-const CARD_COLORS = [
-  '#F0F4FF', '#FFF0F5', '#F0FFF4', '#FFFBF0',
-  '#F5F0FF', '#F0FAFF', '#FFF5F0', '#F0FFF9',
-];
 const CARD_ACCENT = [
   '#6B8CFF', '#E91E63', '#34C759', '#FF9500',
   '#9B59B6', '#17A2B8', '#FF6B35', '#00B894',
@@ -69,12 +67,17 @@ function getInitials(label: string): string {
     .join('');
 }
 
+
 export function RecentPageTabs() {
+  const isPreview = useIsPreview();
   const { width } = useWindowDimensions();
   const {
     recentPages, removeRecentPage,
     navigateInstant, currentScreen, params: currentParams,
+    screenshots, saveScreenshot,
   } = useNavigation();
+
+  if (isPreview) return null;
 
   const scrollRef         = useRef<ScrollView>(null);
   const [modalOpen,       setModalOpen]       = useState(false);
@@ -88,6 +91,15 @@ export function RecentPageTabs() {
     return currentScreen === page.screen;
   };
 
+  async function openModal() {
+    // Capture the currently visible screen so its card shows a fresh preview
+    const currentKey = currentScreen === 'ModuleDetail' && currentParams?.moduleId
+      ? `ModuleDetail:${currentParams.moduleId}`
+      : currentScreen;
+    await saveScreenshot(currentKey);
+    setModalOpen(true);
+  }
+
   const toggleSubmodule = (key: string) =>
     setActiveSubmodule(prev => (prev === key ? null : key));
 
@@ -95,9 +107,9 @@ export function RecentPageTabs() {
   const activeSubItems = activePage ? getSubmodules(activePage) : [];
 
   // card grid: 2 columns with gap
-  const CARD_GAP = 10;
+  const CARD_GAP   = 12;
   const CARD_H_PAD = 16;
-  const cardWidth = (width - CARD_H_PAD * 2 - CARD_GAP) / 2;
+  const cardWidth  = (width - CARD_H_PAD * 2 - CARD_GAP) / 2;
 
   return (
     <View>
@@ -158,10 +170,11 @@ export function RecentPageTabs() {
           )}
         </ScrollView>
 
-        {/* Subtle count badge */}
+        {/* Tab count badge — box with + before number */}
         <Pressable
           style={({ pressed }) => [styles.countBadge, pressed && styles.countBadgePressed]}
-          onPress={() => setModalOpen(true)}>
+          onPress={openModal}>
+          <MaterialCommunityIcons name="plus" size={9} color="#595959" style={styles.countPlus} />
           <Text style={styles.countText}>{recentPages.length}</Text>
         </Pressable>
       </View>
@@ -192,7 +205,7 @@ export function RecentPageTabs() {
         </View>
       )}
 
-      {/* ── Browser-style tab switcher modal ── */}
+      {/* ── Chrome-style tab switcher modal ── */}
       <Modal
         visible={modalOpen}
         transparent
@@ -220,7 +233,7 @@ export function RecentPageTabs() {
                 <ScrollView
                   contentContainerStyle={[
                     styles.grid,
-                    { paddingHorizontal: CARD_H_PAD, gap: CARD_GAP },
+                    { paddingHorizontal: CARD_H_PAD },
                   ]}
                   showsVerticalScrollIndicator={false}>
 
@@ -229,20 +242,20 @@ export function RecentPageTabs() {
                       <Text style={styles.emptyText}>No open tabs</Text>
                     </View>
                   ) : (
-                    <View style={[styles.gridRow]}>
+                    <View style={styles.gridRow}>
                       {recentPages.map((page, idx) => {
-                        const label    = getLabel(page);
-                        const isActive = isTabActive(page);
-                        const bg       = CARD_COLORS[idx % CARD_COLORS.length];
-                        const accent   = CARD_ACCENT[idx % CARD_ACCENT.length];
-                        const initials = getInitials(label);
+                        const label      = getLabel(page);
+                        const isActive   = isTabActive(page);
+                        const accent     = CARD_ACCENT[idx % CARD_ACCENT.length];
+                        const initials   = getInitials(label);
+                        const screenshot = screenshots[page.key];
 
                         return (
                           <Pressable
                             key={page.key}
                             style={({ pressed }) => [
                               styles.card,
-                              { width: cardWidth, borderColor: isActive ? Colors.primaryHighlight : '#E8E8E8' },
+                              { width: cardWidth },
                               isActive && styles.cardActive,
                               pressed && styles.cardPressed,
                             ]}
@@ -251,33 +264,33 @@ export function RecentPageTabs() {
                               setModalOpen(false);
                             }}>
 
-                            {/* Card top bar */}
-                            <View style={[styles.cardTopBar, { backgroundColor: accent }]}>
-                              <View style={styles.cardDots}>
-                                <View style={styles.cardDot} />
-                                <View style={styles.cardDot} />
-                                <View style={styles.cardDot} />
+                            {/* Chrome-style tab header */}
+                            <View style={styles.cardHeader}>
+                              <View style={[styles.cardFavicon, { backgroundColor: accent }]}>
+                                <Text style={styles.cardFaviconText}>{initials[0] ?? '?'}</Text>
                               </View>
+                              <Text style={styles.cardTitle} numberOfLines={1}>{label}</Text>
                               <Pressable
                                 onPress={() => removeRecentPage(page.key)}
                                 hitSlop={8}
-                                style={styles.cardClose}>
-                                <MaterialCommunityIcons name="close" size={11} color="rgba(255,255,255,0.9)" />
+                                style={styles.cardCloseBtn}>
+                                <MaterialCommunityIcons name="close" size={13} color="#888888" />
                               </Pressable>
                             </View>
 
-                            {/* Card content */}
-                            <View style={[styles.cardBody, { backgroundColor: bg }]}>
-                              <View style={[styles.cardInitialCircle, { backgroundColor: accent + '22' }]}>
-                                <Text style={[styles.cardInitials, { color: accent }]}>{initials}</Text>
+                            {/* Live screen preview — renders the actual screen scaled down */}
+                            {screenshot ? (
+                              <View style={styles.cardPreviewWrap}>
+                                <Image
+                                  source={{ uri: screenshot }}
+                                  style={styles.cardPreviewImg}
+                                  resizeMode="cover"
+                                />
                               </View>
-                              <Text style={styles.cardLabel} numberOfLines={2}>{label}</Text>
-                              {isActive && (
-                                <View style={[styles.cardActivePill, { backgroundColor: accent + '22' }]}>
-                                  <Text style={[styles.cardActivePillText, { color: accent }]}>active</Text>
-                                </View>
-                              )}
-                            </View>
+                            ) : (
+                              <LiveScreenPreview page={page} cardWidth={cardWidth} />
+                            )}
+
                           </Pressable>
                         );
                       })}
@@ -297,13 +310,13 @@ const styles = StyleSheet.create({
   // ── Bar ──────────────────────────────────────────────────────────────────────
   bar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: '#FAFAFA',
     borderBottomWidth: 1,
     borderBottomColor: '#EFEFEF',
     paddingVertical: 5,
     paddingLeft: 8,
-    paddingRight: 6,
+    paddingRight: 0,
     minHeight: 32,
   },
   scroll: { flex: 1 },
@@ -355,26 +368,28 @@ const styles = StyleSheet.create({
   closeX: { fontSize: 13, color: '#BBBBBB', lineHeight: 16 },
   closeXActive: { color: '#595959' },
 
-  // ── Count badge (subtle) ─────────────────────────────────────────────────────
+  // ── Count badge (box with +) ─────────────────────────────────────────────────
   countBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#C8C8C8',
-    backgroundColor: '#F5F5F5',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 5,
+    alignSelf: 'stretch',
+    borderRadius: 0,
+    borderLeftWidth: 1.5,
+    borderColor: '#C8C8C8',
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 10,
     marginLeft: 6,
+    gap: 2,
   },
   countBadgePressed: { opacity: 0.6 },
   countText: {
     fontFamily: FontFamily.bold,
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: '#595959',
   },
+  countPlus: {},
 
   // ── Sub-module panel ─────────────────────────────────────────────────────────
   subPanel: {
@@ -427,7 +442,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '75%',
+    maxHeight: '80%',
     paddingBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -467,7 +482,7 @@ const styles = StyleSheet.create({
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   emptyWrap: {
     alignItems: 'center',
@@ -480,9 +495,11 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
+  // ── Chrome-style card ────────────────────────────────────────────────────────
   card: {
     borderRadius: 14,
     borderWidth: 2,
+    borderColor: '#E0E0E5',
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
@@ -492,67 +509,73 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardActive: {
+    borderColor: Colors.primaryHighlight,
     shadowOpacity: 0.15,
     elevation: 5,
   },
   cardPressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
 
-  cardTopBar: {
+  // Header row (white, like Chrome tab bar)
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingVertical: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E8E8ED',
+    gap: 6,
   },
-  cardDots: { flexDirection: 'row', gap: 3, flex: 1 },
-  cardDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-  },
-  cardClose: {
+  cardFavicon: {
     width: 18,
     height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-
-  cardBody: {
-    padding: 10,
-    alignItems: 'center',
-    gap: 6,
-    minHeight: 90,
-    justifyContent: 'center',
-  },
-  cardInitialCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardInitials: {
+  cardFaviconText: {
     fontFamily: FontFamily.bold,
-    fontSize: 13,
+    fontSize: 9,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
-  cardLabel: {
+  cardTitle: {
+    flex: 1,
     fontFamily: FontFamily.medium,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#1C1C1E',
-    textAlign: 'center',
   },
-  cardActivePill: {
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  cardCloseBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  cardActivePillText: {
-    fontFamily: FontFamily.regular,
-    fontSize: 9,
-    fontWeight: '600',
+
+  // Preview area
+  cardPreviewWrap: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#F5F5F5',
+    overflow: 'hidden',
+  },
+  cardPreviewImg: {
+    width: '100%',
+    height: '100%',
+  },
+  cardPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardPlaceholderInitials: {
+    fontFamily: FontFamily.bold,
+    fontSize: 22,
+    fontWeight: '700',
+    opacity: 0.7,
   },
 });

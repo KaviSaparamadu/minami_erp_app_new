@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   JP_CITIES,
   JP_DISTRICTS,
@@ -94,7 +95,13 @@ function Dropdown({ label, value, options, onChange, disabled, placeholder, requ
       <Text style={dd.label}>{label}{required && <Text style={dd.req}> *</Text>}</Text>
       <Pressable onPress={() => !disabled && setOpen(o=>!o)} style={[dd.trigger, open && dd.open, disabled && dd.disabled]}>
         <Text style={[dd.value, !value && dd.placeholder]}>{value || placeholder || `Select ${label}`}</Text>
-        {!disabled && <View style={[dd.chevWrap, open && dd.chevUp]}><View style={dd.cL}/><View style={dd.cR}/></View>}
+        {!disabled && (
+          <MaterialCommunityIcons
+            name={open ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={Colors.placeholder}
+          />
+        )}
       </Pressable>
       {open && (
         <View style={dd.list}>
@@ -614,10 +621,6 @@ const dd = StyleSheet.create({
   disabled: { opacity:0.55 },
   value: { flex:1, fontFamily:FontFamily.regular, fontSize:FontSize.md, color:Colors.primaryText },
   placeholder: { color:Colors.placeholder },
-  chevWrap: { width:18, height:10, alignItems:'center', justifyContent:'center' },
-  chevUp: { transform:[{rotate:'180deg'}] },
-  cL: { position:'absolute', left:0, width:9, height:2, backgroundColor:Colors.placeholder, borderRadius:1, transform:[{rotate:'35deg'},{translateY:-1}] },
-  cR: { position:'absolute', right:0, width:9, height:2, backgroundColor:Colors.placeholder, borderRadius:1, transform:[{rotate:'-35deg'},{translateY:-1}] },
   list: { backgroundColor:'#FFF', borderRadius:12, marginTop:4, borderWidth:1, borderColor:'#E5E5EA', overflow:'hidden', shadowColor:'#000', shadowOffset:{width:0,height:4}, shadowOpacity:0.08, shadowRadius:12, elevation:6 },
   opt: { flexDirection:'row', alignItems:'center', paddingHorizontal:Spacing.lg, paddingVertical:13, borderBottomWidth:1, borderBottomColor:'#F5F5F5' },
   optActive: { backgroundColor:'rgba(233,30,99,0.04)' },

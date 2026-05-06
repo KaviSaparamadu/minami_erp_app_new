@@ -31,6 +31,7 @@ import {
   SUB_SECTIONS,
   WORK_BRANCHES,
 } from '../../constants/employeeData';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { Employee } from '../../types/hr';
 
@@ -121,9 +122,11 @@ function Dropdown({
             {value || placeholder || `Select ${label}`}
           </Text>
           {!disabled && (
-            <View style={[dd.chevWrap, open && dd.chevUp]}>
-              <View style={dd.cL} /><View style={dd.cR} />
-            </View>
+            <MaterialCommunityIcons
+              name={open ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={Colors.placeholder}
+            />
           )}
         </Pressable>
 
@@ -821,10 +824,6 @@ const dd = StyleSheet.create({
   disabled: { opacity: 0.55 },
   value: { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText },
   placeholder: { color: Colors.placeholder },
-  chevWrap: { width: 18, height: 10, alignItems: 'center', justifyContent: 'center' },
-  chevUp: { transform: [{ rotate: '180deg' }] },
-  cL: { position: 'absolute', left: 0, width: 9, height: 2, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '35deg' }, { translateY: -1 }] },
-  cR: { position: 'absolute', right: 0, width: 9, height: 2, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '-35deg' }, { translateY: -1 }] },
   // GPIT green button
   gpitBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
   gpitImg: { width: 28, height: 28 },

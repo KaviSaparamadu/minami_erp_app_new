@@ -14,6 +14,7 @@ import { TabsSection } from '../dashboard/TabsSection';
 import { Spacing } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
+import { useIsPreview } from '../../context/PreviewContext';
 
 type Tab = 'dashboard' | 'modules';
 
@@ -44,6 +45,7 @@ export function SubModuleLayout({
   onModulePress,
 }: SubModuleLayoutProps) {
   const { isDarkMode, colors } = useTheme();
+  const isPreview = useIsPreview();
   const [tab, setTab] = useState<Tab>(activeTab);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -59,6 +61,16 @@ export function SubModuleLayout({
     await new Promise<void>(resolve => setTimeout(resolve, 1500));
     setRefreshing(false);
   };
+
+  if (isPreview) {
+    return (
+      <View style={styles.previewWrap}>
+        <ScrollView scrollEnabled={false} bounces={false}>
+          <View style={styles.content}>{children}</View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
@@ -124,6 +136,7 @@ function createDynamicStyles(_isDarkMode: boolean) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  previewWrap: { flex: 1, backgroundColor: '#FFFFFF' },
 
   quickWrap: {
     paddingHorizontal: Spacing.lg,

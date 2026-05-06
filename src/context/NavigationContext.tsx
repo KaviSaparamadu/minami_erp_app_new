@@ -1,4 +1,6 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import type { View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 
 export type ScreenName =
   | 'Dashboard' | 'HR'
@@ -7,7 +9,7 @@ export type ScreenName =
   | 'CreateSystemUsers' | 'AssignUserPermission'
   | 'CreateUserRole'    | 'AssignUserRolePermission'
   | 'SystemAdmin'
-  | 'SystemSettings' | 'GeneralSettings'
+  | 'SystemSettings' | 'GeneralSettings' | 'EmployeeSettings'
   | 'SystemDefaultSettings' | 'SupportTicket' | 'ActivityLog'
   | 'SystemWorkFlow'
   | 'Finance' | 'FinanceUtilities' | 'LedgerManagement' | 'FinanceOperation'
@@ -21,7 +23,7 @@ export type ScreenName =
   | 'ModuleDetail';
 
 export interface RecentPage {
-  key: string;                          // unique: screen or 'ModuleDetail:moduleId'
+  key: string;
   screen: ScreenName;
   params?: Record<string, any> | null;
 }
@@ -45,6 +47,9 @@ interface NavigationContextValue {
   lastModuleId?: string;
   recentPages: RecentPage[];
   removeRecentPage: (key: string) => void;
+  screenRef: React.RefObject<View | null>;
+  screenshots: Record<string, string>;
+  saveScreenshot: (key: string) => Promise<void>;
 }
 
 const NavigationContext = createContext<NavigationContextValue | undefined>(undefined);
@@ -58,11 +63,45 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const [sidebarOpen,  setSidebarOpen]  = useState(false);
   const [lastModuleId, setLastModuleId] = useState<string | undefined>(undefined);
   const [recentPages,  setRecentPages]  = useState<RecentPage[]>([]);
+  const [screenshots,  setScreenshots]  = useState<Record<string, string>>({});
+
+  const screenRef    = useRef<View | null>(null);
+  const currentPageRef = useRef<{ screen: ScreenName; params: Record<string, any> | null }>({
+    screen: 'Dashboard',
+    params: null,
+  });
+
+  // Keep currentPageRef always up-to-date (runs on every render)
+  const latestScreen = stack[stack.length - 1];
+  const latestParams = paramsStack[paramsStack.length - 1];
+  currentPageRef.current = { screen: latestScreen, params: latestParams ?? null };
+
+  // Capture the currently visible screen and store it under `key`
+  const captureCurrentPage = useCallback(() => {
+    const { screen: fromScreen, params: fromParams } = currentPageRef.current;
+    if (EXCLUDED_FROM_RECENT.includes(fromScreen) || !screenRef.current) return;
+    const fromKey = fromScreen === 'ModuleDetail' && fromParams?.moduleId
+      ? `ModuleDetail:${fromParams.moduleId}`
+      : fromScreen;
+    captureRef(screenRef, { format: 'jpg', quality: 0.5 })
+      .then(uri => setScreenshots(prev => ({ ...prev, [fromKey]: uri })))
+      .catch(() => {});
+  }, []);
+
+  // Exposed so RecentPageTabs can capture the active tab when opening the modal
+  const saveScreenshot = useCallback(async (key: string) => {
+    if (!screenRef.current) return;
+    try {
+      const uri = await captureRef(screenRef, { format: 'jpg', quality: 0.6 });
+      setScreenshots(prev => ({ ...prev, [key]: uri }));
+    } catch { /* ignore */ }
+  }, []);
 
   const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   const navigate = useCallback((screen: ScreenName, navParams?: Record<string, any>) => {
+    captureCurrentPage();
     setNavigating(true);
     setTimeout(() => {
       setStack(prev => [...prev, screen]);
@@ -85,9 +124,10 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 
       setNavigating(false);
     }, NAV_DELAY);
-  }, []);
+  }, [captureCurrentPage]);
 
   const navigateInstant = useCallback((screen: ScreenName, navParams?: Record<string, any>) => {
+    captureCurrentPage();
     setStack(prev => [...prev, screen]);
     setParamsStack(prev => [...prev, navParams || null]);
 
@@ -105,18 +145,20 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
         return [{ key, screen, params: navParams || null }, ...filtered].slice(0, 15);
       });
     }
-  }, []);
+  }, [captureCurrentPage]);
 
   const goBack = useCallback(() => {
+    captureCurrentPage();
     setNavigating(true);
     setTimeout(() => {
       setStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
       setParamsStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
       setNavigating(false);
     }, NAV_DELAY);
-  }, []);
+  }, [captureCurrentPage]);
 
   const navigateTo = useCallback((screen: ScreenName) => {
+    captureCurrentPage();
     setNavigating(true);
     setTimeout(() => {
       setStack(prev => {
@@ -129,7 +171,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       });
       setNavigating(false);
     }, NAV_DELAY);
-  }, []);
+  }, [captureCurrentPage]);
 
   const removeRecentPage = useCallback((key: string) => {
     setRecentPages(prev => prev.filter(p => p.key !== key));
@@ -145,6 +187,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       stack, params, paramsStack, navigateTo,
       sidebarOpen, openSidebar, closeSidebar, lastModuleId,
       recentPages, removeRecentPage,
+      screenRef, screenshots, saveScreenshot,
     }}>
       {children}
     </NavigationContext.Provider>

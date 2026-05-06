@@ -30,6 +30,7 @@ const SCREEN_PARENT: Record<string, string> = {
   // System Admin
   SystemAdmin:              'Dashboard',
   SystemSettings:           'SystemAdmin',
+  EmployeeSettings:         'SystemSettings',
   GeneralSettings:          'SystemAdmin',
   SystemDefaultSettings:    'SystemAdmin',
   SupportTicket:            'SystemAdmin',
@@ -76,6 +77,9 @@ const CRUMB_CHILDREN: Record<string, NavChild[]> = {
     { label: 'System Default Settings', screen: 'SystemDefaultSettings', icon: 'sys-defaults' },
     { label: 'Support Ticket',          screen: 'SupportTicket',         icon: 'support-ticket' },
     { label: 'Activity Log',            screen: 'ActivityLog',           icon: 'activity-log' },
+  ],
+  SystemSettings: [
+    { label: 'Employee Settings', screen: 'EmployeeSettings', icon: 'sys-settings' },
   ],
   SystemDefaultSettings: [
     { label: 'System Work Flow', screen: 'SystemWorkFlow', icon: 'workflow' },
@@ -169,7 +173,12 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
 
   const handleCrumbPress = (screen: string) => {
     setActiveDropdown(null);
-    // If the screen exists in the current stack, pop back to it; else push it
+    // Module-level crumbs always go to ModuleDetail so submodules are visible
+    const mod = MODULES.find(m => m.screen === screen);
+    if (mod) {
+      navigate('ModuleDetail' as any, { moduleId: mod.id } as any);
+      return;
+    }
     const idx = stack.indexOf(screen as any);
     if (idx >= 0) {
       navigateTo(screen as any);
@@ -232,7 +241,7 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
                     accessibilityRole="button">
                     <MaterialCommunityIcons
                       name={isOpen ? 'chevron-up' : 'chevron-down'}
-                      size={11}
+                      size={20}
                       color={isOpen ? Colors.primaryHighlight : chevronColor}
                     />
                   </Pressable>
@@ -251,6 +260,21 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
       {/* ── Dropdown panel ── */}
       {activeDropdown && activeDropdownChildren.length > 0 && (
         <View style={[styles.dropdown, dyn.dropdown]}>
+          {/* Close button row */}
+          <View style={[styles.dropdownHeader, dyn.dropdownItemBorder]}>
+            <Pressable
+              onPress={() => setActiveDropdown(null)}
+              hitSlop={8}
+              style={styles.dropdownCloseBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Close menu">
+              <MaterialCommunityIcons
+                name="close"
+                size={14}
+                color={isDarkMode ? 'rgba(255,255,255,0.45)' : '#AEAEB2'}
+              />
+            </Pressable>
+          </View>
           {activeDropdownChildren.map((child, idx) => (
             <Pressable
               key={child.screen}
@@ -269,7 +293,7 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
               </Text>
               <MaterialCommunityIcons
                 name="chevron-right"
-                size={14}
+                size={20}
                 color={isDarkMode ? 'rgba(255,255,255,0.3)' : '#C7C7CC'}
               />
             </Pressable>
@@ -373,10 +397,28 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
+  dropdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingLeft: 7,
+    paddingRight: 14,
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+
+  dropdownCloseBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingLeft: 7,
+    paddingRight: 14,
     paddingVertical: 11,
     gap: 10,
   },

@@ -14,6 +14,7 @@ import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { TableIcons } from '../../components/common/DataTable';
+import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
 import { EmployeeFormModal, EmployeeModalMode } from '../../components/hr/EmployeeFormModal';
 import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
@@ -26,6 +27,11 @@ const genId = () => String(nextId++);
 
 type Tab = 'dashboard' | 'modules';
 type Filter = 'All' | 'Permanent' | 'Contract' | 'Casual';
+
+const EMP_TABS: PageTabItem[] = [
+  { key: 'employee',      label: 'Employee',      color: '#595959' },
+  { key: 'salary-matrix', label: 'Salary Matrix', color: '#595959' },
+];
 const FILTERS: Filter[] = ['All', 'Permanent', 'Contract', 'Casual'];
 const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
 
@@ -308,11 +314,30 @@ function EmployeeListView({
   );
 }
 
+// ─── Salary Matrix placeholder ────────────────────────────────────────────────
+function SalaryMatrixView() {
+  const { colors } = useTheme();
+  return (
+    <View style={sm.wrap}>
+      <View style={sm.iconCircle}>
+        <View style={sm.iconBar} />
+        <View style={sm.iconBarShort} />
+        <View style={sm.iconBarShorter} />
+      </View>
+      <Text style={[sm.title, { color: colors.primaryText }]}>Salary Matrix</Text>
+      <Text style={[sm.sub, { color: colors.placeholder }]}>
+        Salary grade bands and pay scale configuration will appear here.
+      </Text>
+    </View>
+  );
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function EmployeeManagementScreen() {
   const { navigate } = useNavigation();
 
   const [tab,          setTab]          = useState<Tab>('modules');
+  const [pageTab,      setPageTab]      = useState<string>('employee');
   const [employees,    setEmployees]    = useState<Employee[]>([]);
   const [loading]                       = useState(false);
   const [filter,       setFilter]       = useState<Filter>('All');
@@ -381,35 +406,52 @@ export function EmployeeManagementScreen() {
         showSubmodulesTab={false}
         showSubTab={true}
         subTabLabel="Create Employee"
+        selfManagesScroll={true}
       >
-        {tab === 'dashboard' ? (
-          <ScrollView
-            style={styles.contentScroll}
-            contentContainerStyle={styles.contentScrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleDashboardRefresh} tintColor="#595959" />
-            }>
-            <View style={styles.dashboardContent}>
-              <DashboardView />
+        <View style={styles.tabContainer}>
+          {tab !== 'dashboard' && (
+            <View style={styles.tabBarWrap}>
+              <PageTabBar
+                tabs={EMP_TABS}
+                active={pageTab}
+                onChange={(t) => { setPageTab(t); setTab('modules'); }}
+                variant="segment"
+              />
             </View>
-          </ScrollView>
-        ) : (
-          <EmployeeListView
-            counts={counts}
-            filter={filter}
-            setFilter={setFilter}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onOpenCreate={openCreate}
-            onView={openView}
-            onEdit={openEdit}
-            onDelete={handleDelete}
-            filteredEmployees={filteredEmployees}
-            loading={loading}
-            onRefresh={handleDashboardRefresh}
-          />
-        )}
+          )}
+          <View style={[styles.tabPanel, tab !== 'dashboard' && styles.tabPanelOffset]}>
+            {tab === 'dashboard' ? (
+              <ScrollView
+                style={styles.contentScroll}
+                contentContainerStyle={styles.contentScrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                  <RefreshControl refreshing={refreshing} onRefresh={handleDashboardRefresh} tintColor="#595959" />
+                }>
+                <View style={styles.dashboardContent}>
+                  <DashboardView />
+                </View>
+              </ScrollView>
+            ) : pageTab === 'salary-matrix' ? (
+              <SalaryMatrixView />
+            ) : (
+              <EmployeeListView
+                counts={counts}
+                filter={filter}
+                setFilter={setFilter}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onOpenCreate={openCreate}
+                onView={openView}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+                filteredEmployees={filteredEmployees}
+                loading={loading}
+                onRefresh={handleDashboardRefresh}
+              />
+            )}
+          </View>
+        </View>
       </SubModuleLayout>
 
       <EmployeeFormModal
@@ -434,9 +476,34 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
 }
 
 const styles = StyleSheet.create({
-  dashboardContent:      { flex: 1 },
-  contentScroll:         { flex: 1 },
-  contentScrollContent:  { flexGrow: 1 },
+  dashboardContent:     { flex: 1 },
+  contentScroll:        { flex: 1 },
+  contentScrollContent: { flexGrow: 1 },
+  tabContainer:         { flex: 1, paddingTop: 8 },
+  tabBarWrap:           { paddingHorizontal: Spacing.md },
+  tabPanel:             { flex: 1 },
+  tabPanelOffset:       { marginTop: 8 },
+});
+
+const sm = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+    gap: 10,
+  },
+  iconCircle: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: 'rgba(89,89,89,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+    gap: 5, marginBottom: 8,
+  },
+  iconBar:       { width: 28, height: 2.5, borderRadius: 2, backgroundColor: 'rgba(89,89,89,0.35)' },
+  iconBarShort:  { width: 20, height: 2.5, borderRadius: 2, backgroundColor: 'rgba(89,89,89,0.25)' },
+  iconBarShorter:{ width: 14, height: 2.5, borderRadius: 2, backgroundColor: 'rgba(89,89,89,0.15)' },
+  title: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', textAlign: 'center' },
+  sub:   { fontFamily: FontFamily.regular, fontSize: 12, textAlign: 'center', lineHeight: 18 },
 });
 
 // ─── List view styles ─────────────────────────────────────────────────────────

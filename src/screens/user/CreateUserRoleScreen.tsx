@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../../components/common/PageHeader';
 import { ACTIONS, MODULES, ROLE_PRESETS } from '../../constants/userManagementData';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { UserRole } from '../../types/hr';
 
@@ -133,7 +134,11 @@ function RoleFormModal({ visible, mode, role, onClose, onSave }: {
               <Text style={fm.presetLbl}>Quick-fill from preset</Text>
               <Pressable onPress={() => setPresetOpen(o => !o)} style={fm.presetTrigger}>
                 <Text style={fm.presetVal}>Apply a permission preset…</Text>
-                <View style={[fm.chev, presetOpen && fm.chevUp]}><View style={fm.cL}/><View style={fm.cR}/></View>
+                <MaterialCommunityIcons
+                  name={presetOpen ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={Colors.placeholder}
+                />
               </Pressable>
               {presetOpen && (
                 <View style={fm.presetList}>
@@ -382,9 +387,6 @@ const fm = StyleSheet.create({
   presetLbl:  { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder, marginBottom: 5 },
   presetTrigger: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0' },
   presetVal:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.placeholder },
-  chev: { width: 18, height: 10, alignItems: 'center', justifyContent: 'center' }, chevUp: { transform: [{ rotate: '180deg' }] },
-  cL: { position: 'absolute', left: 0, width: 9, height: 2, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '35deg' }, { translateY: -1 }] },
-  cR: { position: 'absolute', right: 0, width: 9, height: 2, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '-35deg' }, { translateY: -1 }] },
   presetList: { backgroundColor: '#FFF', borderRadius: 12, marginTop: 4, borderWidth: 1, borderColor: '#E5E5EA', overflow: 'hidden', elevation: 6 },
   presetOpt:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
   presetOptTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, color: Colors.primaryText },
