@@ -12,9 +12,8 @@ export function SystemSettingsScreen() {
   const { navigate } = useNavigation();
 
   const handleSettingPress = (id: string) => {
-    if (id === '1') {
-      navigate('EmployeeSettings');
-    }
+    if      (id === '1') navigate('EmployeeSettings');
+    else if (id === '2') navigate('ItemSettings');
   };
 
   return (

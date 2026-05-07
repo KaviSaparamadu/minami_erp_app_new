@@ -9,7 +9,7 @@ export type ScreenName =
   | 'CreateSystemUsers' | 'AssignUserPermission'
   | 'CreateUserRole'    | 'AssignUserRolePermission'
   | 'SystemAdmin'
-  | 'SystemSettings' | 'GeneralSettings' | 'EmployeeSettings'
+  | 'SystemSettings' | 'GeneralSettings' | 'EmployeeSettings' | 'ItemSettings'
   | 'SystemDefaultSettings' | 'SupportTicket' | 'ActivityLog'
   | 'SystemWorkFlow'
   | 'Finance' | 'FinanceUtilities' | 'LedgerManagement' | 'FinanceOperation'

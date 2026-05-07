@@ -75,4 +75,7 @@ export interface Human {
   prefecture?: string;
   city?: string;
   townDistrict?: string;
+  // ── Step 3: Street address (both countries) ──
+  houseNo?: string;
+  addressLines?: string[];
 }

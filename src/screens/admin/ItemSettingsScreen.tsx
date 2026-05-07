@@ -19,13 +19,15 @@ import type { AppModule } from '../../constants/modules';
 
 type Tab = 'dashboard' | 'modules';
 
-const EMP_SETTING_TABS = [
-  { key: 'salary-board',         label: 'Salary Board' },
-  { key: 'designation-category', label: 'Designation Category' },
-  { key: 'designation',          label: 'Designation' },
-  { key: 'employee-type',        label: 'Employee Type' },
-  { key: 'designation-grade',    label: 'Designation Grade' },
-  { key: 'allowance-type',       label: 'Allowance Type' },
+const ITEM_SETTING_TABS = [
+  { key: 'item-category',       label: 'Item Category' },
+  { key: 'item-sub-category',   label: 'Item Sub Category' },
+  { key: 'item-material',       label: 'Item Material' },
+  { key: 'variance-type',       label: 'Variance Type' },
+  { key: 'variance-attribute',  label: 'Variance Attribute' },
+  { key: 'item-generic',        label: 'Item Generic' },
+  { key: 'item-oem',            label: 'Item OEM' },
+  { key: 'group-name',          label: 'Group Name' },
 ];
 
 const ARROW_W     = 18;
@@ -34,7 +36,7 @@ const SCROLL_STEP = 120;
 const PREVIEW_W   = 140;
 const PREVIEW_H   = 118;
 
-// ── Placeholder content ────────────────────────────────────────────────────────
+// ── Placeholder content 
 function TabPlaceholder({ label }: { label: string }) {
   return (
     <View style={ph.wrap}>
@@ -45,7 +47,7 @@ function TabPlaceholder({ label }: { label: string }) {
   );
 }
 
-// ── Mini tab preview (scaled-down placeholder shown in the dropdown) ──────────
+// ── Mini tab preview (scaled-down placeholder shown in the dropdown) 
 function MiniTabPreview({ label }: { label: string }) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const scale = PREVIEW_W / screenW;
@@ -68,7 +70,7 @@ function MiniTabPreview({ label }: { label: string }) {
   );
 }
 
-// ── Arrow button ──────────────────────────────────────────────────────────────
+// ── Arrow button 
 function ArrowButton({
   direction, disabled, onPress,
 }: {
@@ -97,7 +99,7 @@ function ArrowButton({
 function ScrollableSegmentTabBar({
   tabs, active, onChange,
 }: {
-  tabs: typeof EMP_SETTING_TABS;
+  tabs: typeof ITEM_SETTING_TABS;
   active: string;
   onChange: (key: string) => void;
 }) {
@@ -122,8 +124,8 @@ function ScrollableSegmentTabBar({
   }
 
   function scrollToTab(key: string) {
-    const tabX = tabOffsetsRef.current[key] ?? 0;
-    const tabW = tabWidthsRef.current[key] ?? 0;
+    const tabX    = tabOffsetsRef.current[key] ?? 0;
+    const tabW    = tabWidthsRef.current[key] ?? 0;
     const centerX = tabX - (layoutWidthRef.current - tabW) / 2;
     scrollTo(centerX);
   }
@@ -271,21 +273,21 @@ function ScrollableSegmentTabBar({
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
-export function EmployeeSettingsScreen() {
+export function ItemSettingsScreen() {
   const { navigate } = useNavigation();
   const [tab,     setTab]     = useState<Tab>('modules');
-  const [pageTab, setPageTab] = useState<string>('salary-board');
+  const [pageTab, setPageTab] = useState<string>('item-category');
 
   function handleQuickAccess(module: AppModule) {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
-  const activeTabItem = EMP_SETTING_TABS.find(t => t.key === pageTab);
+  const activeTabItem = ITEM_SETTING_TABS.find(t => t.key === pageTab);
 
   return (
     <SubModuleLayout
       parentModuleId="2"
-      title="Employee Settings"
+      title="Item Settings"
       showBack={true}
       activeTab={tab}
       onTabChange={setTab}
@@ -297,7 +299,7 @@ export function EmployeeSettingsScreen() {
         {tab !== 'dashboard' && (
           <View style={styles.tabBarWrap}>
             <ScrollableSegmentTabBar
-              tabs={EMP_SETTING_TABS}
+              tabs={ITEM_SETTING_TABS}
               active={pageTab}
               onChange={(t) => { setPageTab(t); setTab('modules'); }}
             />
@@ -328,13 +330,13 @@ export function EmployeeSettingsScreen() {
 
 // ── Screen styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  tabContainer:        { flex: 1, paddingTop: 8 },
-  tabBarWrap:          { paddingHorizontal: Spacing.md },
-  tabPanel:            { flex: 1 },
-  tabPanelOffset:      { marginTop: 8 },
-  contentScroll:       { flex: 1 },
-  contentScrollContent:{ flexGrow: 1, paddingBottom: 80 },
-  dashboardContent:    { flex: 1 },
+  tabContainer:         { flex: 1, paddingTop: 8 },
+  tabBarWrap:           { paddingHorizontal: Spacing.md },
+  tabPanel:             { flex: 1 },
+  tabPanelOffset:       { marginTop: 8 },
+  contentScroll:        { flex: 1 },
+  contentScrollContent: { flexGrow: 1, paddingBottom: 80 },
+  dashboardContent:     { flex: 1 },
 });
 
 // ── Arrow button styles ───────────────────────────────────────────────────────
@@ -359,15 +361,15 @@ const st = StyleSheet.create({
     padding: 2,
     overflow: 'hidden',
   },
-  scroll:     { flexDirection: 'row', gap: 2 },
-  tab:        { paddingVertical: 5, paddingHorizontal: 14, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  tabActive:  { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.09, shadowRadius: 2, elevation: 2 },
-  tabPressed: { opacity: 0.70 },
-  label:      { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: '#9A9A9A', fontWeight: '500' },
-  labelActive:{ fontFamily: FontFamily.bold, fontWeight: '600', color: '#1C1C1E' },
+  scroll:      { flexDirection: 'row', gap: 2 },
+  tab:         { paddingVertical: 5, paddingHorizontal: 14, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  tabActive:   { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.09, shadowRadius: 2, elevation: 2 },
+  tabPressed:  { opacity: 0.70 },
+  label:       { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: '#9A9A9A', fontWeight: '500' },
+  labelActive: { fontFamily: FontFamily.bold, fontWeight: '600', color: '#1C1C1E' },
 
-  dropBtn:       { width: 28, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryHighlight + '18' },
-  dropBtnPressed:{ opacity: 0.6 },
+  dropBtn:        { width: 28, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryHighlight + '18' },
+  dropBtnPressed: { opacity: 0.6 },
 });
 
 // ── Dropdown styles ───────────────────────────────────────────────────────────
@@ -383,13 +385,8 @@ const dd = StyleSheet.create({
     elevation: 10,
     overflow: 'hidden',
   },
-  split: {
-    flexDirection: 'row',
-  },
-  leftCol: {
-    width: 150,
-    paddingVertical: 6,
-  },
+  split:   { flexDirection: 'row' },
+  leftCol: { width: 150, paddingVertical: 6 },
   divider: {
     width: StyleSheet.hairlineWidth,
     backgroundColor: '#E8E8ED',

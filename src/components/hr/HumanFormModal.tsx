@@ -217,6 +217,50 @@ function AddressLines({ lines, onChange, disabled }: { lines:string[]; onChange:
   );
 }
 
+// ─── Read-only table view (used for mode==='view') ────────────────────────────
+function ViewRow({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <View style={vw.row}>
+      <Text style={vw.label}>{label}:</Text>
+      <Text style={vw.value}>{value}</Text>
+    </View>
+  );
+}
+
+function ViewBody({ human }: { human: Human }) {
+  const isSL = human.country === 'Sri Lanka';
+  return (
+    <ScrollView style={vw.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={vw.scrollContent}>
+      <ViewRow label="Country"      value={human.country} />
+      {isSL && <>
+        <ViewRow label="NIC"          value={human.nic} />
+        <ViewRow label="Date Of Birth" value={human.dateOfBirth} />
+        <ViewRow label="Gender"       value={human.gender} />
+      </>}
+      <ViewRow label="Title"        value={human.title} />
+      <ViewRow label="Fullname"     value={human.fullName} />
+      <ViewRow label="First Name"   value={human.firstName} />
+      <ViewRow label="Surname"      value={human.surname} />
+      {human.otherName ? <ViewRow label="Other Name" value={human.otherName} /> : null}
+      {isSL && <>
+        <ViewRow label="GN Division" value={human.gnDivision} />
+        <ViewRow label="District"    value={human.district} />
+        <ViewRow label="Province"    value={human.province} />
+      </>}
+      {!isSL && <>
+        <ViewRow label="Prefecture"    value={human.prefecture} />
+        <ViewRow label="City"          value={human.city} />
+        <ViewRow label="Town/District" value={human.townDistrict} />
+      </>}
+      <ViewRow label="House / Bldg No" value={human.houseNo} />
+      {human.addressLines?.map((line, i) =>
+        line.trim() ? <ViewRow key={i} label={i === 0 ? 'Address' : `Address ${i + 1}`} value={line} /> : null
+      )}
+    </ScrollView>
+  );
+}
+
 // ─── Section header ───────────────────────────────────────────────────────────
 function SectionHead({ text }: { text:string }) {
   return (
@@ -289,7 +333,8 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
       setSurnames(human.surname ? human.surname.split(',').map(s=>s.trim()) : []);
       setFirstName(human.firstName??''); setOtherName(human.otherName??'');
       setProvince(human.province??''); setDistrict(human.district??''); setGnDivision(human.gnDivision??'');
-      setHouseNo(''); setAddrLines(['']);
+      setHouseNo(human.houseNo??'');
+      setAddrLines(human.addressLines?.length ? human.addressLines : ['']);
       setPrefecture(human.prefecture??''); setCity(human.city??''); setTownDistrict(human.townDistrict??'');
     } else {
       setCountry(''); setNic(''); setDob(''); setGender(''); setTitle(''); setFullName('');
@@ -373,6 +418,8 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
         surname:   surnames.join(', '),
         firstName: firstName.trim(),
         otherName: otherName.trim()||undefined,
+        houseNo:      houseNo.trim()||undefined,
+        addressLines: addrLines.filter(l=>l.trim()).length ? addrLines.filter(l=>l.trim()) : undefined,
         ...(isSL ? { province, district, gnDivision } : { prefecture, city, townDistrict }),
       });
     }, 700);
@@ -397,37 +444,44 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
           <View style={s.header}>
             {/* Pink icon square */}
             <View style={s.headerIcon}>
-              <View style={s.penBody}/><View style={s.penTip}/>
+              {isView
+                ? <MaterialCommunityIcons name="eye-outline" size={20} color="#FFF" />
+                : <><View style={s.penBody}/><View style={s.penTip}/></>}
             </View>
             <View style={s.headerTitle}>
               <Text style={s.titleTxt}>{isEdit ? 'Update Human' : isView ? 'View Human' : 'Create Human'}</Text>
-              <Text style={s.stepIndicator}>Step {step} of {STEP_COUNT} — {stepTitles[step-1]}</Text>
+              {!isView && <Text style={s.stepIndicator}>Step {step} of {STEP_COUNT} — {stepTitles[step-1]}</Text>}
             </View>
           </View>
 
-          {/* ── Progress bar ── */}
-          <ProgressBar pct={pct} />
+          {/* ── Progress bar (hidden in view mode) ── */}
+          {!isView && <ProgressBar pct={pct} />}
 
-          {/* ── Step pills ── */}
-          <View style={s.stepRow}>
-            {stepTitles.map((label,idx)=>{
-              const n=idx+1; const done=n<step; const active=n===step;
-              return (
-                <React.Fragment key={n}>
-                  {idx>0 && <View style={[s.stepLine, (done||active) && s.stepLineDone]}/>}
-                  <View style={s.stepCol}>
-                    <View style={[s.stepCircle, done&&s.stepDone, active&&s.stepActive]}>
-                      {done ? <><View style={s.ckL}/><View style={s.ckR}/></> : <Text style={[s.stepNum, active&&s.stepNumActive]}>{n}</Text>}
+          {/* ── Step pills (hidden in view mode) ── */}
+          {!isView && (
+            <View style={s.stepRow}>
+              {stepTitles.map((label,idx)=>{
+                const n=idx+1; const done=n<step; const active=n===step;
+                return (
+                  <React.Fragment key={n}>
+                    {idx>0 && <View style={[s.stepLine, (done||active) && s.stepLineDone]}/>}
+                    <View style={s.stepCol}>
+                      <View style={[s.stepCircle, done&&s.stepDone, active&&s.stepActive]}>
+                        {done ? <><View style={s.ckL}/><View style={s.ckR}/></> : <Text style={[s.stepNum, active&&s.stepNumActive]}>{n}</Text>}
+                      </View>
+                      <Text style={[s.stepLbl, active&&s.stepLblActive, done&&s.stepLblDone]}>{label}</Text>
                     </View>
-                    <Text style={[s.stepLbl, active&&s.stepLblActive, done&&s.stepLblDone]}>{label}</Text>
-                  </View>
-                </React.Fragment>
-              );
-            })}
-          </View>
+                  </React.Fragment>
+                );
+              })}
+            </View>
+          )}
 
-          {/* ── Form ── */}
-          <ScrollView ref={scrollRef} contentContainerStyle={s.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* ── View mode: read-only table ── */}
+          {isView && human && <ViewBody human={human} />}
+
+          {/* ── Form (hidden in view mode) ── */}
+          {!isView && <ScrollView ref={scrollRef} contentContainerStyle={s.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
             {/* ════════════ STEP 1 ════════════ */}
             {step===1 && <>
@@ -476,28 +530,28 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
             </>}
 
             <View style={{height:24}}/>
-          </ScrollView>
+          </ScrollView>}
 
-          {/* ── Footer nav ── */}
-          <View style={s.footer}>
-            {step>1
-              ? <Pressable onPress={handleBack} style={({pressed})=>[s.backBtn,pressed&&{opacity:0.7}]}>
-                  <View style={s.backArrow}/><Text style={s.backTxt}>Back</Text>
-                </Pressable>
-              : <View style={s.backBtn}/>}
+          {/* ── Footer nav (hidden in view mode) ── */}
+          {!isView && (
+            <View style={s.footer}>
+              {step>1
+                ? <Pressable onPress={handleBack} style={({pressed})=>[s.backBtn,pressed&&{opacity:0.7}]}>
+                    <View style={s.backArrow}/><Text style={s.backTxt}>Back</Text>
+                  </Pressable>
+                : <View style={s.backBtn}/>}
 
-            {step<STEP_COUNT
-              ? <Pressable onPress={handleNext} style={({pressed})=>[s.nextBtn,pressed&&{opacity:0.85}]}>
-                  <Text style={s.nextTxt}>Next</Text><View style={s.nextArrow}/>
-                </Pressable>
-              : !isView
-                ? <Pressable onPress={handleSave} disabled={saving} style={({pressed})=>[s.saveBtn,(pressed||saving)&&{opacity:0.85}]}>
+              {step<STEP_COUNT
+                ? <Pressable onPress={handleNext} style={({pressed})=>[s.nextBtn,pressed&&{opacity:0.85}]}>
+                    <Text style={s.nextTxt}>Next</Text><View style={s.nextArrow}/>
+                  </Pressable>
+                : <Pressable onPress={handleSave} disabled={saving} style={({pressed})=>[s.saveBtn,(pressed||saving)&&{opacity:0.85}]}>
                     {saving
                       ? <ActivityIndicator color="#FFF" size="small" />
                       : <Text style={s.saveTxt}>{isEdit ? 'Update' : 'Create Human'}</Text>}
-                  </Pressable>
-                : null}
-          </View>
+                  </Pressable>}
+            </View>
+          )}
 
           </View>{/* container */}
           </View>{/* cardWrapper */}
@@ -656,4 +710,30 @@ const addr = StyleSheet.create({
   addH: { position:'absolute', width:8, height:1.5, backgroundColor:'#30A84B', borderRadius:1 },
   addV: { position:'absolute', width:1.5, height:8, backgroundColor:'#30A84B', borderRadius:1 },
   addTxt: { fontFamily:FontFamily.medium, fontSize:FontSize.sm, color:'#30A84B', fontWeight:FontWeight.medium },
+});
+
+const vw = StyleSheet.create({
+  scroll: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollContent: { paddingBottom: 24 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E5EA',
+  },
+  label: {
+    width: 110,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    color: '#888888',
+  },
+  value: {
+    flex: 1,
+    fontFamily: FontFamily.bold,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: '#1C1C1E',
+  },
 });

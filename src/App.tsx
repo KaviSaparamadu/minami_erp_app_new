@@ -24,6 +24,7 @@ import { ModuleDetailScreen } from './screens/dashboard/ModuleDetailScreen';
 import { SystemAdminScreen } from './screens/admin/SystemAdminScreen';
 import { SystemSettingsScreen } from './screens/admin/SystemSettingsScreen';
 import { EmployeeSettingsScreen } from './screens/admin/EmployeeSettingsScreen';
+import { ItemSettingsScreen } from './screens/admin/ItemSettingsScreen';
 import { GeneralSettingsScreen } from './screens/admin/GeneralSettingsScreen';
 import { SystemDefaultSettingsScreen } from './screens/admin/SystemDefaultSettingsScreen';
 import { SupportTicketScreen } from './screens/admin/SupportTicketScreen';
@@ -115,6 +116,7 @@ function AppNavigator() {
       case 'SystemAdmin':             return <SystemAdminScreen />;
       case 'SystemSettings':          return <SystemSettingsScreen />;
       case 'EmployeeSettings':        return <EmployeeSettingsScreen />;
+      case 'ItemSettings':            return <ItemSettingsScreen />;
       case 'GeneralSettings':         return <GeneralSettingsScreen />;
       case 'SystemDefaultSettings':   return <SystemDefaultSettingsScreen />;
       case 'SupportTicket':           return <SupportTicketScreen />;

@@ -13,6 +13,7 @@ export const SCREEN_LABELS: Record<string, string> = {
   SystemAdmin:                'System Admin',
   SystemSettings:             'System Settings',
   EmployeeSettings:           'Employee Settings',
+  ItemSettings:               'Item Settings',
   GeneralSettings:            'General Settings',
   SystemDefaultSettings:      'System Default Settings',
   SupportTicket:              'Support Ticket',
