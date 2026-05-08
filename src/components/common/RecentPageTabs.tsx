@@ -72,6 +72,7 @@ export function RecentPageTabs() {
   const isPreview = useIsPreview();
   const { width } = useWindowDimensions();
   const {
+    
     recentPages, removeRecentPage,
     navigateInstant, currentScreen, params: currentParams,
     screenshots, saveScreenshot,

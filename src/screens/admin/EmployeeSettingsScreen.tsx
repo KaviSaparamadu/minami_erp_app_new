@@ -31,8 +31,6 @@ const EMP_SETTING_TABS = [
 const ARROW_W     = 18;
 const ROW_GAP     = 6;
 const SCROLL_STEP = 120;
-const PREVIEW_W   = 140;
-const PREVIEW_H   = 118;
 
 // ── Placeholder content ────────────────────────────────────────────────────────
 function TabPlaceholder({ label }: { label: string }) {
@@ -41,29 +39,6 @@ function TabPlaceholder({ label }: { label: string }) {
       <View style={ph.icon} />
       <Text style={ph.title}>{label}</Text>
       <Text style={ph.sub}>No records found. Add a new entry to get started.</Text>
-    </View>
-  );
-}
-
-// ── Mini tab preview (scaled-down placeholder shown in the dropdown) ──────────
-function MiniTabPreview({ label }: { label: string }) {
-  const { width: screenW, height: screenH } = useWindowDimensions();
-  const scale = PREVIEW_W / screenW;
-  const tx    = (PREVIEW_W - screenW) / 2;
-  const ty    = (screenH * scale - screenH) / 2;
-
-  return (
-    <View style={mini.wrap}>
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          width:  screenW,
-          height: screenH,
-          transform: [{ translateX: tx }, { translateY: ty }, { scale }],
-        }}>
-        <TabPlaceholder label={label} />
-      </View>
     </View>
   );
 }
@@ -113,7 +88,6 @@ function ScrollableSegmentTabBar({
   const [canRight,   setCanRight]   = useState(true);
   const [dropOpen,   setDropOpen]   = useState(false);
   const [dropPos,    setDropPos]    = useState({ top: 0, right: 0 });
-  const [previewTab, setPreviewTab] = useState<string>(active);
 
   function scrollTo(x: number) {
     const max     = Math.max(0, contentWidthRef.current - layoutWidthRef.current);
@@ -140,7 +114,6 @@ function ScrollableSegmentTabBar({
   }
 
   function openDropdown() {
-    setPreviewTab(active);
     dropBtnRef.current?.measure((_x: number, _y: number, w: number, h: number, pageX: number, pageY: number) => {
       setDropPos({
         top:   pageY + h + 6,
@@ -220,47 +193,26 @@ function ScrollableSegmentTabBar({
           <View style={{ flex: 1 }}>
             <TouchableWithoutFeedback>
               <View style={[dd.panel, { top: dropPos.top, right: dropPos.right }]}>
-                <View style={dd.split}>
-
-                  {/* Left column — compact tab boxes */}
-                  <View style={dd.leftCol}>
-                    {tabs.map(t => {
-                      const isActive    = active === t.key;
-                      const isPreviewed = previewTab === t.key;
-                      return (
-                        <Pressable
-                          key={t.key}
-                          onPressIn={() => setPreviewTab(t.key)}
-                          onPress={() => { onChange(t.key); scrollToTab(t.key); setDropOpen(false); }}
-                          style={({ pressed }) => [
-                            dd.tabBox,
-                            isActive    && dd.tabBoxActive,
-                            isPreviewed && dd.tabBoxPreviewed,
-                            pressed     && dd.tabBoxPressed,
-                          ]}>
-                          <Text style={[dd.label, isActive && dd.labelActive]} numberOfLines={1}>
-                            {t.label}
-                          </Text>
-                          {isActive && (
-                            <MaterialCommunityIcons name="check" size={12} color={Colors.primaryHighlight} />
-                          )}
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-
-                  {/* Divider */}
-                  <View style={dd.divider} />
-
-                  {/* Right column — page preview */}
-                  <View style={dd.rightCol}>
-                    <Text style={dd.previewLabel} numberOfLines={1}>
-                      {tabs.find(t => t.key === previewTab)?.label}
-                    </Text>
-                    <MiniTabPreview label={tabs.find(t => t.key === previewTab)?.label ?? ''} />
-                  </View>
-
-                </View>
+                {tabs.map(t => {
+                  const isActive = active === t.key;
+                  return (
+                    <Pressable
+                      key={t.key}
+                      onPress={() => { onChange(t.key); scrollToTab(t.key); setDropOpen(false); }}
+                      style={({ pressed }) => [
+                        dd.tabBox,
+                        isActive && dd.tabBoxActive,
+                        pressed  && dd.tabBoxPressed,
+                      ]}>
+                      <Text style={[dd.label, isActive && dd.labelActive]} numberOfLines={1}>
+                        {t.label}
+                      </Text>
+                      {isActive && (
+                        <MaterialCommunityIcons name="check" size={12} color={Colors.primaryHighlight} />
+                      )}
+                    </Pressable>
+                  );
+                })}
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -374,32 +326,16 @@ const st = StyleSheet.create({
 const dd = StyleSheet.create({
   panel: {
     position: 'absolute',
+    minWidth: 180,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
+    paddingVertical: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.14,
     shadowRadius: 16,
     elevation: 10,
     overflow: 'hidden',
-  },
-  split: {
-    flexDirection: 'row',
-  },
-  leftCol: {
-    width: 150,
-    paddingVertical: 6,
-  },
-  divider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: '#E8E8ED',
-    marginVertical: 8,
-  },
-  rightCol: {
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    gap: 6,
-    alignItems: 'center',
   },
   tabBox: {
     flexDirection: 'row',
@@ -411,9 +347,8 @@ const dd = StyleSheet.create({
     borderRadius: 7,
     gap: 6,
   },
-  tabBoxActive:    { backgroundColor: Colors.primaryHighlight + '12' },
-  tabBoxPreviewed: { backgroundColor: '#F2F2F7' },
-  tabBoxPressed:   { backgroundColor: '#EAEAF0' },
+  tabBoxActive:  { backgroundColor: Colors.primaryHighlight + '12' },
+  tabBoxPressed: { backgroundColor: '#EAEAF0' },
   label: {
     flex: 1,
     fontFamily: FontFamily.medium,
@@ -425,27 +360,6 @@ const dd = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontWeight: '600',
     color: Colors.primaryHighlight,
-  },
-  previewLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    color: '#595959',
-    textAlign: 'center',
-    maxWidth: PREVIEW_W,
-  },
-});
-
-// ── Mini preview styles ───────────────────────────────────────────────────────
-const mini = StyleSheet.create({
-  wrap: {
-    width: PREVIEW_W,
-    height: PREVIEW_H,
-    overflow: 'hidden',
-    backgroundColor: '#F5F5FA',
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E8E8ED',
   },
 });
 
