@@ -289,6 +289,7 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
   const scrollRef = useRef<ScrollView>(null);
 
   const [saving, setSaving] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // ── Step ──
   const [step, setStep] = useState(1);
@@ -395,6 +396,17 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
     scrollRef.current?.scrollTo({y:0,animated:false});
   }
 
+  function handleReset() { setShowResetConfirm(true); }
+
+  function doReset() {
+    setStep(1);
+    setCountry(''); setNic(''); setDob(''); setGender(''); setTitle(''); setFullName('');
+    setSurnames([]); setFirstName(''); setOtherName('');
+    setProvince(''); setDistrict(''); setGnDivision(''); setHouseNo(''); setAddrLines(['']);
+    setPrefecture(''); setCity(''); setTownDistrict('');
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }
+
   function handleSave() {
     if (!validateStep()) return;
     if (isSL) {
@@ -437,6 +449,14 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
             <Pressable onPress={onClose} style={({pressed})=>[s.closeBtn,pressed&&{opacity:0.6}]} hitSlop={16}>
               <View style={s.xL}/><View style={s.xR}/>
             </Pressable>
+
+            {/* Reset button — below close button */}
+            {!isView && (
+              <Pressable onPress={handleReset} style={({pressed})=>[s.resetBtn,pressed&&{opacity:0.75}]} hitSlop={8}>
+                <MaterialCommunityIcons name="refresh" size={13} color="#FFF" />
+                <Text style={s.resetTxt}>Reset Form</Text>
+              </Pressable>
+            )}
 
           <View style={s.container}>
 
@@ -556,6 +576,36 @@ export function HumanFormModal({ visible, mode, human, onClose, onSave }: Props)
           </View>{/* container */}
           </View>{/* cardWrapper */}
         </KeyboardAvoidingView>
+
+        {/* ── Reset confirmation overlay ── */}
+        {showResetConfirm && (
+          <View style={rc.overlay}>
+            <Pressable style={{position:'absolute',top:0,left:0,right:0,bottom:0}} onPress={() => setShowResetConfirm(false)} />
+            <View style={rc.card}>
+              <View style={rc.topAccent} />
+              <Pressable onPress={() => setShowResetConfirm(false)} style={({pressed}) => [rc.closeBtn, pressed && {opacity:0.6}]} hitSlop={8}>
+                <MaterialCommunityIcons name="close" size={13} color="#999" />
+              </Pressable>
+              <View style={rc.iconRing}>
+                <View style={rc.iconCircle}>
+                  <MaterialCommunityIcons name="refresh" size={20} color="#FFF" />
+                </View>
+              </View>
+              <Text style={rc.title}>Reset Form?</Text>
+              <Text style={rc.desc}>All entered data will be cleared.{'\n'}This action cannot be undone.</Text>
+              <View style={rc.divider} />
+              <View style={rc.btnRow}>
+                <Pressable onPress={() => setShowResetConfirm(false)} style={({pressed}) => [rc.cancelBtn, pressed && {opacity: 0.7}]}>
+                  <Text style={rc.cancelTxt}>Keep Editing</Text>
+                </Pressable>
+                <Pressable onPress={() => { setShowResetConfirm(false); doReset(); }} style={({pressed}) => [rc.confirmBtn, pressed && {opacity: 0.85}]}>
+                  <MaterialCommunityIcons name="refresh" size={14} color="#FFF" />
+                  <Text style={rc.confirmTxt}>Yes, Reset</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -605,6 +655,16 @@ const s = StyleSheet.create({
   },
   xL: { position:'absolute', width:14, height:2, backgroundColor:'#FFFFFF', borderRadius:1, transform:[{rotate:'45deg'}] },
   xR: { position:'absolute', width:14, height:2, backgroundColor:'#FFFFFF', borderRadius:1, transform:[{rotate:'-45deg'}] },
+  resetBtn: {
+    position: 'absolute', top: 24, right: 6, zIndex: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#1976D2',
+    borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 5,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2, shadowRadius: 3, elevation: 4,
+  },
+  resetTxt: { fontFamily: FontFamily.medium, fontSize: 11, color: '#FFF' },
 
   // Step pills
   stepRow: { flexDirection:'row', alignItems:'flex-start', justifyContent:'center', backgroundColor:'#FFFFFF', paddingHorizontal:Spacing.xl, paddingVertical:Spacing.sm, borderBottomWidth:1, borderBottomColor:'#EBEBEB' },
@@ -735,5 +795,63 @@ const vw = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: '700',
     color: '#1C1C1E',
+  },
+});
+
+const rc = StyleSheet.create({
+  overlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 44,
+  },
+  card: {
+    width: '100%', backgroundColor: '#FFF',
+    borderRadius: 14, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15, shadowRadius: 12, elevation: 10,
+  },
+  topAccent: { height: 3, backgroundColor: '#1976D2' },
+  iconRing: { marginTop: 14, marginBottom: 8, alignItems: 'center' },
+  iconCircle: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: '#1976D2',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title: {
+    textAlign: 'center',
+    fontFamily: FontFamily.bold, fontSize: 14, fontWeight: FontWeight.bold,
+    color: '#1C1C1E', marginBottom: 4,
+  },
+  desc: {
+    textAlign: 'center',
+    fontFamily: FontFamily.regular, fontSize: 11,
+    color: '#999', lineHeight: 16,
+    paddingHorizontal: 12, marginBottom: 12,
+  },
+  divider: { height: 1, backgroundColor: '#F0F0F4' },
+  btnRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 12, paddingVertical: 10, gap: 8,
+  },
+  cancelBtn: {
+    flex: 1, paddingVertical: 8, borderRadius: 8,
+    borderWidth: 1.5, borderColor: '#D0D0D8',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cancelTxt: { fontFamily: FontFamily.medium, fontSize: 12, color: '#666' },
+  confirmBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: '#E53935',
+  },
+  confirmTxt: {
+    fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF',
+  },
+  closeBtn: {
+    position: 'absolute', top: 8, right: 8, zIndex: 10,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#F0F0F4',
+    alignItems: 'center', justifyContent: 'center',
   },
 });

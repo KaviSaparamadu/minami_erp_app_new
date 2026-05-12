@@ -9,7 +9,7 @@ export type ScreenName =
   | 'CreateSystemUsers' | 'AssignUserPermission'
   | 'CreateUserRole'    | 'AssignUserRolePermission'
   | 'SystemAdmin'
-  | 'SystemSettings' | 'GeneralSettings' | 'EmployeeSettings' | 'ItemSettings'
+  | 'SystemSettings' | 'GeneralSettings' | 'EmployeeSettings' | 'ItemSettings' | 'StoresSettings'
   | 'SystemDefaultSettings' | 'SupportTicket' | 'ActivityLog'
   | 'SystemWorkFlow'
   | 'Finance' | 'FinanceUtilities' | 'LedgerManagement' | 'FinanceOperation'
@@ -20,6 +20,7 @@ export type ScreenName =
   | 'LedgerConnectionConsole' | 'OpeningBalanceConsole' | 'JournalEntry'
   | 'ManagePOSPoints' | 'SimpleInvoice' | 'ManageBankCardMachine'
   | 'Procurement' | 'Purchasing' | 'StoresInventory' | 'Logistics'
+  | 'ProcStores' | 'ProcManageStores' | 'ProcStoresReports'
   | 'ModuleDetail';
 
 export interface RecentPage {

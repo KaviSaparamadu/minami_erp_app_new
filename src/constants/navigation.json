@@ -156,7 +156,13 @@
       "screen": "Procurement",
       "children": [
         { "id": "proc-purchasing", "name": "Purchasing",          "icon": "proc-purchasing", "screen": "Purchasing" },
-        { "id": "proc-stores",     "name": "Stores & Inventory",  "icon": "proc-stores",     "screen": "StoresInventory" },
+        { "id": "proc-stores",     "name": "Stores & Inventory",  "icon": "proc-stores",     "screen": "StoresInventory",
+          "children": [
+            { "id": "proc-stores-locations", "name": "Stores",         "icon": "store",        "screen": "ProcStores" },
+            { "id": "proc-stores-manage",    "name": "Manage Stores",  "icon": "vendor",       "screen": "ProcManageStores" },
+            { "id": "proc-stores-reports",   "name": "Reports",        "icon": "fin-reports",  "screen": "ProcStoresReports" }
+          ]
+        },
         { "id": "proc-logistics",  "name": "Logistics",           "icon": "proc-logistics",  "screen": "Logistics" }
       ]
     },

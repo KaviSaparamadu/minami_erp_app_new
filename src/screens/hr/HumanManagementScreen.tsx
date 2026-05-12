@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,13 +10,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
 import { HumanFormModal, ModalMode } from '../../components/hr/HumanFormModal';
 import { TableIcons } from '../../components/common/DataTable';
-import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
@@ -361,7 +362,9 @@ export function HumanManagementScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<ModalMode>('create');
   const [selected,     setSelected]     = useState<Human | null>(null);
-  const [refreshing,   setRefreshing]   = useState(false);
+  const [refreshing,        setRefreshing]        = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDelete,     setPendingDelete]     = useState<HumanRow | null>(null);
   const [loadError,    setLoadError]    = useState<string | null>(null);
 
   const loadHumans = useCallback(async () => {
@@ -404,11 +407,13 @@ export function HumanManagementScreen() {
   function openView(r: HumanRow) { setSelected(mapRowToHuman(r)); setModalMode('view'); setModalVisible(true); }
 
   function handleDelete(r: HumanRow) {
-    const name = String(r.t1fullname ?? '');
-    Alert.alert('Delete Human', `Remove "${name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => setRows(p => p.filter(x => x.id !== r.id)) },
-    ]);
+    setPendingDelete(r);
+    setShowDeleteConfirm(true);
+  }
+
+  function doDelete() {
+    if (pendingDelete) setRows(p => p.filter(x => x.id !== pendingDelete.id));
+    setPendingDelete(null);
   }
 
   function handleSave(_data: Omit<Human, 'id'>) {
@@ -496,6 +501,38 @@ export function HumanManagementScreen() {
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
       />
+
+      {/* ── Delete confirmation modal ── */}
+      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => setShowDeleteConfirm(false)}>
+        <View style={dc.overlay}>
+          <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowDeleteConfirm(false)} />
+          <View style={dc.card}>
+            <View style={dc.topAccent} />
+            <Pressable onPress={() => setShowDeleteConfirm(false)} style={({ pressed }) => [dc.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={8}>
+              <MaterialCommunityIcons name="close" size={13} color="#999" />
+            </Pressable>
+            <View style={dc.iconRing}>
+              <View style={dc.iconCircle}>
+                <MaterialCommunityIcons name="delete-outline" size={20} color="#FFF" />
+              </View>
+            </View>
+            <Text style={dc.title}>Delete Human?</Text>
+            <Text style={dc.desc} numberOfLines={2}>
+              "{String(pendingDelete?.t1fullname ?? 'this record')}" will be permanently removed.
+            </Text>
+            <View style={dc.divider} />
+            <View style={dc.btnRow}>
+              <Pressable onPress={() => setShowDeleteConfirm(false)} style={({ pressed }) => [dc.cancelBtn, pressed && { opacity: 0.7 }]}>
+                <Text style={dc.cancelTxt}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={() => { setShowDeleteConfirm(false); doDelete(); }} style={({ pressed }) => [dc.confirmBtn, pressed && { opacity: 0.85 }]}>
+                <MaterialCommunityIcons name="delete" size={13} color="#FFF" />
+                <Text style={dc.confirmTxt}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -1118,6 +1155,58 @@ const hc = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primaryHighlight,
   },
+});
+
+const dc = StyleSheet.create({
+  overlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 44,
+  },
+  card: {
+    width: '100%', backgroundColor: '#FFF',
+    borderRadius: 14, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15, shadowRadius: 12, elevation: 10,
+  },
+  topAccent: { height: 3, backgroundColor: '#E53935' },
+  closeBtn: {
+    position: 'absolute', top: 8, right: 8, zIndex: 10,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#F0F0F4',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  iconRing: { marginTop: 14, marginBottom: 8, alignItems: 'center' },
+  iconCircle: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: '#E53935',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title: {
+    textAlign: 'center',
+    fontFamily: FontFamily.bold, fontSize: 14, fontWeight: FontWeight.bold,
+    color: '#1C1C1E', marginBottom: 4,
+  },
+  desc: {
+    textAlign: 'center',
+    fontFamily: FontFamily.regular, fontSize: 11,
+    color: '#999', lineHeight: 16,
+    paddingHorizontal: 12, marginBottom: 12,
+  },
+  divider: { height: 1, backgroundColor: '#F0F0F4' },
+  btnRow: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  cancelBtn: {
+    flex: 1, paddingVertical: 8, borderRadius: 8,
+    borderWidth: 1.5, borderColor: '#D0D0D8',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cancelTxt: { fontFamily: FontFamily.medium, fontSize: 12, color: '#666' },
+  confirmBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: '#E53935',
+  },
+  confirmTxt: { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF' },
 });
 
 

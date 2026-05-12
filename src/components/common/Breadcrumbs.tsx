@@ -46,6 +46,9 @@ const SCREEN_PARENT: Record<string, string> = {
   Purchasing:               'Procurement',
   StoresInventory:          'Procurement',
   Logistics:                'Procurement',
+  ProcStores:               'StoresInventory',
+  ProcManageStores:         'StoresInventory',
+  ProcStoresReports:        'StoresInventory',
 };
 
 function buildPath(screen: string): string[] {
@@ -93,6 +96,11 @@ const CRUMB_CHILDREN: Record<string, NavChild[]> = {
     { label: 'Purchasing',         screen: 'Purchasing',      icon: 'proc-purchasing' },
     { label: 'Stores & Inventory', screen: 'StoresInventory', icon: 'proc-stores' },
     { label: 'Logistics',          screen: 'Logistics',       icon: 'proc-logistics' },
+  ],
+  StoresInventory: [
+    { label: 'Stores',        screen: 'ProcStores',        icon: 'store' },
+    { label: 'Manage Stores', screen: 'ProcManageStores',  icon: 'vendor' },
+    { label: 'Reports',       screen: 'ProcStoresReports', icon: 'fin-reports' },
   ],
 };
 

@@ -135,7 +135,7 @@ export const JP_DISTRICTS: Record<string, string[]> = {
 Object.values(JP_CITIES).flat().forEach(city => {
   if (!JP_DISTRICTS[city]) {
     JP_DISTRICTS[city] = [
-      `${city} North`, `${city} South`, `${city} East`, `${city} West`, `${city} Central`,
+      `${city}  `, `${city} South`, `${city} East`, `${city} West`, `${city} Central`,
     ];
   }
 });

@@ -510,6 +510,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardActive: {
+    borderWidth: 1,
     borderColor: Colors.primaryHighlight,
     shadowOpacity: 0.15,
     elevation: 5,

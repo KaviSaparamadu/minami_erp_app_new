@@ -54,6 +54,17 @@ export interface Employee {
   biometricEnrolled?: boolean;
 }
 
+// ── Work Branch ───────────────────────────────────────────────────────────────
+export interface WorkBranch {
+  id: string;
+  branch: string;
+  code: string;
+  attendanceOn: string;
+  attendanceOff: string;
+  main: boolean;
+  status: 'Active' | 'Inactive';
+}
+
 export interface Human {
   id: string;
   // ── Step 1: Identity ──────────────────────

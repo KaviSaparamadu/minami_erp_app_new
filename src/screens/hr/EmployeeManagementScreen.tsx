@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,17 +10,18 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { TableIcons } from '../../components/common/DataTable';
 import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
 import { EmployeeFormModal, EmployeeModalMode } from '../../components/hr/EmployeeFormModal';
-import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
-import type { Employee } from '../../types/hr';
+import type { Employee, WorkBranch } from '../../types/hr';
 
 let nextId = 1;
 const genId = () => String(nextId++);
@@ -314,6 +315,104 @@ function EmployeeListView({
   );
 }
 
+// ─── Work Branches table ──────────────────────────────────────────────────────
+const WB_COLS = [
+  { key: 'id',            label: 'ID',             width: 56  },
+  { key: 'branch',        label: 'Branch',         width: 140 },
+  { key: 'code',          label: 'Code',           width: 90  },
+  { key: 'attendanceOn',  label: 'Attendance On',  width: 110 },
+  { key: 'attendanceOff', label: 'Attendance Off', width: 110 },
+  { key: 'main',          label: 'Main',           width: 60  },
+  { key: 'status',        label: 'Status',         width: 80  },
+] as const;
+
+function WorkBranchesView({
+  branches,
+  onAdd,
+  onEdit,
+}: {
+  branches: WorkBranch[];
+  onAdd: () => void;
+  onEdit: (b: WorkBranch) => void;
+}) {
+  const { colors, isDarkMode } = useTheme();
+  const totalWidth = WB_COLS.reduce((s, c) => s + c.width, 0) + 2;
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Header row */}
+      <View style={[wb.topBar, isDarkMode && { backgroundColor: '#1C1C1E', borderBottomColor: '#2C2C2E' }]}>
+        <Text style={[wb.title, { color: colors.primaryText }]}>Work Branches</Text>
+        <Pressable onPress={onAdd} style={({ pressed }) => [wb.addBtn, pressed && { opacity: 0.8 }]}>
+          <View style={wb.addIcon} />
+          <View style={wb.addIconV} />
+        </Pressable>
+      </View>
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ paddingHorizontal: Spacing.md }}>
+          <View style={[wb.table, { width: totalWidth }, isDarkMode && { borderColor: '#2C2C2E' }]}>
+
+            {/* Table header */}
+            <View style={[wb.headerRow, isDarkMode && { backgroundColor: '#2C2C2E' }]}>
+              {WB_COLS.map((col, i) => (
+                <View key={col.key} style={[wb.cell, { width: col.width }, i < WB_COLS.length - 1 && wb.cellBorder, isDarkMode && wb.cellBorderDark]}>
+                  <Text style={[wb.headerTxt, { color: colors.placeholder }]}>{col.label}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Rows */}
+            {branches.length === 0 ? (
+              <View style={wb.emptyRow}>
+                <Text style={[wb.emptyTxt, { color: colors.placeholder }]}>No work branches yet. Tap + to add.</Text>
+              </View>
+            ) : (
+              branches.map((b, rowIdx) => (
+                <Pressable
+                  key={b.id}
+                  onLongPress={() => onEdit(b)}
+                  style={({ pressed }) => [
+                    wb.row,
+                    rowIdx % 2 === 1 && (isDarkMode ? wb.rowAltDark : wb.rowAlt),
+                    pressed && { opacity: 0.75 },
+                    isDarkMode && { borderBottomColor: '#2C2C2E' },
+                  ]}>
+                  <View style={[wb.cell, { width: WB_COLS[0].width }, wb.cellBorder, isDarkMode && wb.cellBorderDark]}>
+                    <Text style={[wb.cellTxt, { color: colors.placeholder }]}>{b.id}</Text>
+                  </View>
+                  <View style={[wb.cell, { width: WB_COLS[1].width }, wb.cellBorder, isDarkMode && wb.cellBorderDark]}>
+                    <Text style={[wb.cellTxt, { color: colors.primaryText }]} numberOfLines={1}>{b.branch}</Text>
+                  </View>
+                  <View style={[wb.cell, { width: WB_COLS[2].width }, wb.cellBorder, isDarkMode && wb.cellBorderDark]}>
+                    <Text style={[wb.cellTxt, { color: colors.primaryText }]}>{b.code}</Text>
+                  </View>
+                  <View style={[wb.cell, { width: WB_COLS[3].width }, wb.cellBorder, isDarkMode && wb.cellBorderDark]}>
+                    <Text style={[wb.cellTxt, { color: colors.primaryText }]}>{b.attendanceOn}</Text>
+                  </View>
+                  <View style={[wb.cell, { width: WB_COLS[4].width }, wb.cellBorder, isDarkMode && wb.cellBorderDark]}>
+                    <Text style={[wb.cellTxt, { color: colors.primaryText }]}>{b.attendanceOff}</Text>
+                  </View>
+                  <View style={[wb.cell, { width: WB_COLS[5].width }, wb.cellBorder, isDarkMode && wb.cellBorderDark]}>
+                    <View style={[wb.mainDot, b.main ? wb.mainDotOn : wb.mainDotOff]} />
+                  </View>
+                  <View style={[wb.cell, { width: WB_COLS[6].width }]}>
+                    <View style={[wb.statusBadge, b.status === 'Active' ? wb.statusActive : wb.statusInactive]}>
+                      <Text style={[wb.statusTxt, b.status === 'Active' ? wb.statusTxtActive : wb.statusTxtInactive]}>
+                        {b.status}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </ScrollView>
+    </View>
+  );
+}
+
 // ─── Salary Matrix placeholder ────────────────────────────────────────────────
 function SalaryMatrixView() {
   const { colors } = useTheme();
@@ -345,7 +444,10 @@ export function EmployeeManagementScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<EmployeeModalMode>('create');
   const [selected,     setSelected]     = useState<Employee | null>(null);
-  const [refreshing,   setRefreshing]   = useState(false);
+  const [workBranches] = useState<WorkBranch[]>([]);
+  const [refreshing,      setRefreshing]      = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDelete,     setPendingDelete]     = useState<Employee | null>(null);
 
   const typeFiltered = filter === 'All'
     ? employees
@@ -373,10 +475,13 @@ export function EmployeeManagementScreen() {
   function openView(e: Employee) { setSelected(e); setModalMode('view'); setModalVisible(true); }
 
   function handleDelete(e: Employee) {
-    Alert.alert('Delete Employee', `Remove "${e.employeeName ?? 'this employee'}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => setEmployees(p => p.filter(x => x.id !== e.id)) },
-    ]);
+    setPendingDelete(e);
+    setShowDeleteConfirm(true);
+  }
+
+  function doDelete() {
+    if (pendingDelete) setEmployees(p => p.filter(x => x.id !== pendingDelete.id));
+    setPendingDelete(null);
   }
 
   function handleSave(data: Omit<Employee, 'id'>) {
@@ -461,6 +566,38 @@ export function EmployeeManagementScreen() {
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
       />
+
+      {/* ── Delete confirmation modal ── */}
+      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => setShowDeleteConfirm(false)}>
+        <View style={dc.overlay}>
+          <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowDeleteConfirm(false)} />
+          <View style={dc.card}>
+            <View style={dc.topAccent} />
+            <Pressable onPress={() => setShowDeleteConfirm(false)} style={({ pressed }) => [dc.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={8}>
+              <MaterialCommunityIcons name="close" size={13} color="#999" />
+            </Pressable>
+            <View style={dc.iconRing}>
+              <View style={dc.iconCircle}>
+                <MaterialCommunityIcons name="delete-outline" size={20} color="#FFF" />
+              </View>
+            </View>
+            <Text style={dc.title}>Delete Employee?</Text>
+            <Text style={dc.desc} numberOfLines={2}>
+              "{pendingDelete?.employeeName ?? 'this employee'}" will be permanently removed.
+            </Text>
+            <View style={dc.divider} />
+            <View style={dc.btnRow}>
+              <Pressable onPress={() => setShowDeleteConfirm(false)} style={({ pressed }) => [dc.cancelBtn, pressed && { opacity: 0.7 }]}>
+                <Text style={dc.cancelTxt}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={() => { setShowDeleteConfirm(false); doDelete(); }} style={({ pressed }) => [dc.confirmBtn, pressed && { opacity: 0.85 }]}>
+                <MaterialCommunityIcons name="delete" size={13} color="#FFF" />
+                <Text style={dc.confirmTxt}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -598,4 +735,114 @@ const ec = StyleSheet.create({
   emptySubText: { fontFamily: FontFamily.regular, fontSize: 12, textAlign: 'center', lineHeight: 18 },
   clearBtn:     { marginTop: 8, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.primaryHighlight },
   clearBtnTxt:  { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '700', color: Colors.primaryHighlight },
+});
+
+const dc = StyleSheet.create({
+  overlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 44,
+  },
+  card: {
+    width: '100%', backgroundColor: '#FFF',
+    borderRadius: 14, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15, shadowRadius: 12, elevation: 10,
+  },
+  topAccent: { height: 3, backgroundColor: '#E53935' },
+  closeBtn: {
+    position: 'absolute', top: 8, right: 8, zIndex: 10,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#F0F0F4',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  iconRing: { marginTop: 14, marginBottom: 8, alignItems: 'center' },
+  iconCircle: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: '#E53935',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title: {
+    textAlign: 'center',
+    fontFamily: FontFamily.bold, fontSize: 14, fontWeight: FontWeight.bold,
+    color: '#1C1C1E', marginBottom: 4,
+  },
+  desc: {
+    textAlign: 'center',
+    fontFamily: FontFamily.regular, fontSize: 11,
+    color: '#999', lineHeight: 16,
+    paddingHorizontal: 12, marginBottom: 12,
+  },
+  divider: { height: 1, backgroundColor: '#F0F0F4' },
+  btnRow: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  cancelBtn: {
+    flex: 1, paddingVertical: 8, borderRadius: 8,
+    borderWidth: 1.5, borderColor: '#D0D0D8',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cancelTxt: { fontFamily: FontFamily.medium, fontSize: 12, color: '#666' },
+  confirmBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: '#E53935',
+  },
+  confirmTxt: { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF' },
+});
+
+// ─── Work Branches styles ─────────────────────────────────────────────────────
+const wb = StyleSheet.create({
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md, paddingVertical: 10,
+    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBF0',
+  },
+  title: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700' },
+  addBtn: {
+    width: 34, height: 34, borderRadius: 8, backgroundColor: '#E91E63',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  addIcon:  { position: 'absolute', width: 12, height: 2, borderRadius: 1, backgroundColor: '#FFF' },
+  addIconV: { position: 'absolute', width: 2, height: 12, borderRadius: 1, backgroundColor: '#FFF' },
+
+  table: {
+    borderWidth: 1, borderColor: '#D0D0D8', borderRadius: 8, overflow: 'hidden',
+    marginTop: Spacing.md, backgroundColor: '#FFFFFF',
+  },
+  headerRow: {
+    flexDirection: 'row', backgroundColor: '#F5F5F7',
+    borderBottomWidth: 1, borderBottomColor: '#D0D0D8',
+  },
+  row: {
+    flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#EBEBF0',
+  },
+  rowAlt:     { backgroundColor: '#FAFAFA' },
+  rowAltDark: { backgroundColor: '#242426' },
+  cell: {
+    paddingHorizontal: 10, paddingVertical: 10, justifyContent: 'center',
+  },
+  cellBorder:     { borderRightWidth: 1, borderRightColor: '#D0D0D8' },
+  cellBorderDark: { borderRightColor: '#2C2C2E' },
+  headerTxt: {
+    fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '600',
+    textAlign: 'center',
+  },
+  cellTxt: {
+    fontFamily: FontFamily.regular, fontSize: 12, textAlign: 'center',
+  },
+  mainDot: { width: 10, height: 10, borderRadius: 5, alignSelf: 'center' },
+  mainDotOn:  { backgroundColor: '#30A84B' },
+  mainDotOff: { backgroundColor: '#D0D0D8' },
+  statusBadge: {
+    alignSelf: 'center', borderRadius: 6,
+    paddingHorizontal: 7, paddingVertical: 3,
+  },
+  statusActive:   { backgroundColor: 'rgba(48,168,75,0.12)' },
+  statusInactive: { backgroundColor: 'rgba(229,57,53,0.10)' },
+  statusTxt: { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '600' },
+  statusTxtActive:   { color: '#2E7D32' },
+  statusTxtInactive: { color: '#C62828' },
+  emptyRow: {
+    paddingVertical: 40, alignItems: 'center', justifyContent: 'center',
+  },
+  emptyTxt: { fontFamily: FontFamily.regular, fontSize: 13 },
 });

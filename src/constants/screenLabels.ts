@@ -47,4 +47,7 @@ export const SCREEN_LABELS: Record<string, string> = {
   Purchasing:                 'Purchasing',
   StoresInventory:            'Stores & Inventory',
   Logistics:                  'Logistics',
+  ProcStores:                 'Stores',
+  ProcManageStores:           'Manage Stores',
+  ProcStoresReports:          'Reports',
 };

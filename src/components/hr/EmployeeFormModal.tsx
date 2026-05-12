@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import {
-  COST_CENTRES,
   DEPARTMENTS,
   DESIGNATION_CATEGORIES,
   DESIGNATION_GRADES,
@@ -22,11 +21,8 @@ import {
   EMPLOYEE_TYPES,
   ENTITIES,
   PAYROLL_COMPANIES,
-  REPORTING_BRANCHES,
-  ROSTER_GROUPS,
   SALARY_BOARDS,
   SECTIONS,
-  SHIFT_PATTERNS,
   SUB_DEPARTMENTS,
   SUB_SECTIONS,
   WORK_BRANCHES,
@@ -34,6 +30,7 @@ import {
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
 import type { Employee } from '../../types/hr';
+import { fetchHumanList } from '../../api/humanApi';
 
 export type EmployeeModalMode = 'create' | 'edit' | 'view';
 
@@ -45,9 +42,7 @@ interface Props {
   onSave: (data: Omit<Employee, 'id'>) => void;
 }
 
-// ─── GPIT Create Module Button ────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const GPIT_BTN = require('../../../assets/images/GPIT Create Module Button.png');
+import GPIT_BTN from '../../../assets/images/GPIT Create Module Button.png';
 
 // ─── Progress bar ─────────────────────────────────────────────────────────────
 function healthColor(pct: number): string {
@@ -57,7 +52,7 @@ function healthColor(pct: number): string {
   return '#30A84B';
 }
 
-function ProgressBar({ pct }: { pct: number }) {
+function ProgressBar({ pct, outOfMatrix }: { pct: number; outOfMatrix: boolean }) {
   const required = 15;
   const fillColor = healthColor(pct);
   const meetsRequired = pct >= required;
@@ -70,13 +65,13 @@ function ProgressBar({ pct }: { pct: number }) {
       <View style={pb.labels}>
         <Text style={pb.labelLeft}>Results Weighted On</Text>
         <Text style={pb.labelMid}>Required — {required}%</Text>
-        <Text style={[pb.labelRight, meetsRequired && pb.labelAvg]}>
+        <Text style={[pb.labelBadge, meetsRequired ? pb.badgeAvg : pb.badgePct]}>
           {meetsRequired ? 'Average ✓' : `${Math.round(pct)}%`}
         </Text>
+        <Text style={[pb.labelBadge, outOfMatrix ? pb.badgeCustomOn : pb.badgeCustomOff]}>
+          {outOfMatrix ? 'Custom ✓' : 'Custom ✗'}
+        </Text>
       </View>
-      {!meetsRequired && (
-        <Text style={pb.warning}>Please fill out all required fields.</Text>
-      )}
     </View>
   );
 }
@@ -93,12 +88,15 @@ interface DDProps {
   showGpitBtn?: boolean;
   showHelp?: boolean;
   gpitLabel?: string;
+  gpitBtnDisabled?: boolean;
+  scrollRef?: React.RefObject<ScrollView | null>;
 }
 function Dropdown({
   label, value, options, onChange, disabled, placeholder, required,
-  showGpitBtn = true, showHelp = true, gpitLabel,
+  showGpitBtn = true, showHelp = true, gpitLabel, gpitBtnDisabled, scrollRef,
 }: DDProps) {
   const [open, setOpen] = useState(false);
+  const [selfY, setSelfY] = useState(0);
 
   function handleGpitPress() {
     Alert.alert(
@@ -108,15 +106,26 @@ function Dropdown({
     );
   }
 
+  function handleTriggerPress() {
+    if (disabled) return;
+    const next = !open;
+    setOpen(next);
+    if (next && scrollRef?.current) {
+      scrollRef.current.scrollTo({ y: Math.max(0, selfY - 60), animated: true });
+    }
+  }
+
   return (
-    <View style={dd.wrapper}>
+    <View
+      style={[dd.wrapper, { zIndex: open ? 100 : 10 }]}
+      onLayout={e => setSelfY(e.nativeEvent.layout.y)}>
       <Text style={dd.label}>
         {required && <Text style={dd.req}>*</Text>}{label}
       </Text>
       <View style={dd.row}>
         {/* Trigger */}
         <Pressable
-          onPress={() => !disabled && setOpen(o => !o)}
+          onPress={handleTriggerPress}
           style={[dd.trigger, open && dd.open, disabled && dd.disabled]}>
           <Text style={[dd.value, !value && dd.placeholder]}>
             {value || placeholder || `Select ${label}`}
@@ -131,7 +140,7 @@ function Dropdown({
         </Pressable>
 
         {/* GPIT Create Module Button */}
-        {showGpitBtn && !disabled && (
+        {showGpitBtn && !(gpitBtnDisabled !== undefined ? gpitBtnDisabled : disabled) && (
           <Pressable onPress={handleGpitPress} style={dd.gpitBtn} hitSlop={6}>
             <Image source={GPIT_BTN} style={dd.gpitImg} resizeMode="contain" />
           </Pressable>
@@ -293,8 +302,12 @@ function calcProgress(emp: {
 export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: Props) {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
-  const scrollRef = useRef<ScrollView>(null);
-  const [activeTab, setActiveTab] = useState<TabId>('general');
+  const scrollRef    = useRef<ScrollView>(null);
+  const tabScrollRef = useRef<ScrollView>(null);
+  const tabScrollX   = useRef(0);
+  const [activeTab,   setActiveTab]  = useState<TabId>('general');
+  const [tabAtEnd,    setTabAtEnd]   = useState(false);
+  const [tabAtStart,  setTabAtStart] = useState(true);
 
   // ── General fields ──
   const [employeeNumber,      setEmployeeNumber]      = useState('');
@@ -315,10 +328,6 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
   const [rosterGroup,  setRosterGroup]  = useState('');
   const [shiftPattern, setShiftPattern] = useState('');
 
-  // ── Work Branch tab ──
-  const [reportingBranch, setReportingBranch] = useState('');
-  const [costCentre,      setCostCentre]      = useState('');
-
   // ── Company tab ──
   const [companyCode,      setCompanyCode]      = useState('');
   const [payrollCompany,   setPayrollCompany]   = useState('');
@@ -327,12 +336,42 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
   const [fingerprintId, setFingerprintId] = useState('');
   const [cardNumber,    setCardNumber]    = useState('');
 
+  // ── Work Branch table rows ──
+  const [wbRows, setWbRows] = useState<{
+    id: string; branch: string; code: string;
+    attendanceOn: string; attendanceOff: string;
+    main: boolean; status: 'Active' | 'Inactive';
+  }[]>([]);
+
   const pct = calcProgress({ employeeName, salaryBoard, designationCategory, designation, designationGrade, employeeType, entity, workBranch, department });
+
+  const generalComplete = !!(
+    employeeName && salaryBoard && designationCategory &&
+    designation && designationGrade && employeeType &&
+    entity && workBranch && department
+  );
+
   const [saving, setSaving] = useState(false);
+  const [showResetConfirm,    setShowResetConfirm]    = useState(false);
+  const [outOfSalaryMatrix,   setOutOfSalaryMatrix]   = useState(false);
+  const [humanNames,          setHumanNames]          = useState<string[]>([]);
+  const [leavePattern,        setLeavePattern]        = useState<'standard' | 'custom'>('standard');
+  const [weeklyOffDay,        setWeeklyOffDay]        = useState('Monday');
+  const [weeklyOffDays,       setWeeklyOffDays]       = useState<string[]>(['Monday']);
+  const [profilePhotoUri,     setProfilePhotoUri]     = useState<string | null>(null);
 
   // ── Reset / populate ──
   useEffect(() => {
     if (!visible) return;
+    fetchHumanList(1, 500).then(result => {
+      if (result.ok && result.data) {
+        setHumanNames(
+          result.data.rows
+            .map(r => String(r.t1fullname ?? ''))
+            .filter(Boolean),
+        );
+      }
+    });
     setActiveTab('general');
     scrollRef.current?.scrollTo({ y: 0, animated: false });
     if (employee) {
@@ -351,8 +390,6 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
       setSubSection(employee.subSection ?? '');
       setRosterGroup(employee.rosterGroup ?? '');
       setShiftPattern(employee.shiftPattern ?? '');
-      setReportingBranch(employee.reportingBranch ?? '');
-      setCostCentre(employee.costCentre ?? '');
       setCompanyCode(employee.companyCode ?? '');
       setPayrollCompany(employee.payrollCompany ?? '');
       setFingerprintId(employee.fingerprintId ?? '');
@@ -363,10 +400,12 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
       setEmployeeType(''); setEntity(''); setWorkBranch('');
       setDepartment(''); setSubDepartment(''); setSection(''); setSubSection('');
       setRosterGroup(''); setShiftPattern('');
-      setReportingBranch(''); setCostCentre('');
       setCompanyCode(''); setPayrollCompany('');
       setFingerprintId(''); setCardNumber('');
     }
+    setLeavePattern('standard');
+    setWeeklyOffDay('Monday');
+    setWeeklyOffDays(['Monday']);
   }, [visible, employee]);
 
   // Cascade resets
@@ -375,34 +414,48 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
   useEffect(() => { setSection(''); setSubSection(''); }, [subDepartment]);
   useEffect(() => { setSubSection(''); }, [section]);
 
-  function handleReset() {
-    Alert.alert('Reset Form', 'Clear all fields?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reset', style: 'destructive', onPress: () => {
-          setEmployeeNumber(''); setEmployeeName(''); setSalaryBoard('');
-          setDesignationCategory(''); setDesignation(''); setDesignationGrade('');
-          setEmployeeType(''); setEntity(''); setWorkBranch('');
-          setDepartment(''); setSubDepartment(''); setSection(''); setSubSection('');
-          setRosterGroup(''); setShiftPattern('');
-          setReportingBranch(''); setCostCentre('');
-          setCompanyCode(''); setPayrollCompany('');
-          setFingerprintId(''); setCardNumber('');
-        },
-      },
-    ]);
+  // Auto-generate employee number from entity in create mode
+  useEffect(() => {
+    if (mode !== 'create') return;
+    setEmployeeNumber(entity ? `${entity.charAt(0).toUpperCase()}001` : '');
+  }, [entity]);
+
+  function handleReset() { setShowResetConfirm(true); }
+
+  function doReset() {
+    setEmployeeNumber(''); setEmployeeName(''); setSalaryBoard('');
+    setDesignationCategory(''); setDesignation(''); setDesignationGrade('');
+    setEmployeeType(''); setEntity(''); setWorkBranch('');
+    setDepartment(''); setSubDepartment(''); setSection(''); setSubSection('');
+    setRosterGroup(''); setShiftPattern('');
+    setCompanyCode(''); setPayrollCompany('');
+    setFingerprintId(''); setCardNumber('');
+    setOutOfSalaryMatrix(false);
+    setLeavePattern('standard');
+    setWeeklyOffDay('Monday');
+    setWeeklyOffDays(['Monday']);
+    setProfilePhotoUri(null);
   }
 
   function handleSave() {
-    if (!employeeName.trim())        { Alert.alert('Required', 'Select Employee Name.'); return; }
-    if (!salaryBoard)                { Alert.alert('Required', 'Select Salary Board.'); return; }
-    if (!designationCategory)        { Alert.alert('Required', 'Select Designation Category.'); return; }
-    if (!designation)                { Alert.alert('Required', 'Select Designation.'); return; }
-    if (!designationGrade)           { Alert.alert('Required', 'Select Designation Grade.'); return; }
-    if (!employeeType)               { Alert.alert('Required', 'Select Employee Type.'); return; }
-    if (!entity)                     { Alert.alert('Required', 'Select Entity (Company).'); return; }
-    if (!workBranch)                 { Alert.alert('Required', 'Select Work Branch.'); return; }
-    if (!department)                 { Alert.alert('Required', 'Select Department.'); return; }
+    if (!employeeName.trim())   { Alert.alert('Required', 'Select Employee Name.'); return; }
+    if (!salaryBoard)           { Alert.alert('Required', 'Select Salary Board.'); return; }
+    if (!designationCategory)   { Alert.alert('Required', 'Select Designation Category.'); return; }
+    if (!designation)           { Alert.alert('Required', 'Select Designation.'); return; }
+    if (!designationGrade)      { Alert.alert('Required', 'Select Designation Grade.'); return; }
+    if (!employeeType)          { Alert.alert('Required', 'Select Employee Type.'); return; }
+    if (!entity)                { Alert.alert('Required', 'Select Entity (Company).'); return; }
+    if (!workBranch)            { Alert.alert('Required', 'Select Work Branch.'); return; }
+    if (!department)            { Alert.alert('Required', 'Select Department.'); return; }
+
+    // Step 1 → Rosters (from any other tab)
+    if (activeTab !== 'rosters' && activeTab !== 'workbranch') {
+      setActiveTab('rosters');
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      return;
+    }
+
+    // Final step on Work Branch → save
     setSaving(true);
     setTimeout(() => {
       setSaving(false);
@@ -413,7 +466,6 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
         department, subDepartment: subDepartment || undefined,
         section: section || undefined, subSection: subSection || undefined,
         rosterGroup: rosterGroup || undefined, shiftPattern: shiftPattern || undefined,
-        reportingBranch: reportingBranch || undefined, costCentre: costCentre || undefined,
         companyCode: companyCode || undefined, payrollCompany: payrollCompany || undefined,
         fingerprintId: fingerprintId.trim() || undefined, cardNumber: cardNumber.trim() || undefined,
       });
@@ -424,33 +476,42 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
   function renderGeneral() {
     return (
       <>
-        {/* Employee Number (no * — optional) */}
-        <SectionHead text="Employee Identity" />
-        <Field
-          label="Employee Number"
-          value={employeeNumber}
-          onChangeText={setEmployeeNumber}
-          placeholder="Auto-generated if blank"
-          editable={!isView}
-          hint="Leave blank to auto-assign"
-        />
+        {/* Employee No. + Out of Salary Matrix — single row, display only */}
+        <View style={g.identityRow}>
+          <View style={g.empNumDisplay}>
+            <Text style={g.empNumLarge}>{employeeNumber || '—'}</Text>
+            <Text style={g.empNumLabel}>Employee No.</Text>
+          </View>
+          {!isView ? (
+            <Pressable style={g.checkRow} onPress={() => setOutOfSalaryMatrix(v => !v)}>
+              <View style={[g.checkbox, outOfSalaryMatrix && g.checkboxOn]}>
+                {outOfSalaryMatrix && <MaterialCommunityIcons name="check" size={11} color="#FFF" />}
+              </View>
+              <Text style={g.checkLabel}>Out of Salary Matrix</Text>
+            </Pressable>
+          ) : outOfSalaryMatrix ? (
+            <View style={g.checkBadge}>
+              <Text style={g.checkBadgeTxt}>Out of Salary Matrix</Text>
+            </View>
+          ) : null}
+        </View>
 
         <SectionHead text="Job Details" />
         <Dropdown
           label="Employee Name" value={employeeName}
-          options={[]} onChange={setEmployeeName}
+          options={humanNames} onChange={setEmployeeName}
           disabled={isView} required showGpitBtn showHelp
-          gpitLabel="Employee Name"
+          gpitLabel="Employee Name" scrollRef={scrollRef}
         />
         <Dropdown
           label="Salary Board" value={salaryBoard}
           options={SALARY_BOARDS} onChange={setSalaryBoard}
-          disabled={isView} required showGpitBtn showHelp
+          disabled={isView} required showGpitBtn showHelp scrollRef={scrollRef}
         />
         <Dropdown
           label="Designation Category" value={designationCategory}
           options={DESIGNATION_CATEGORIES} onChange={setDesignationCategory}
-          disabled={isView} required showGpitBtn showHelp
+          disabled={isView} required showGpitBtn showHelp scrollRef={scrollRef}
         />
         <Dropdown
           label="Designation" value={designation}
@@ -458,34 +519,34 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
           onChange={setDesignation}
           disabled={isView || !designationCategory}
           placeholder={designationCategory ? 'Select Designation' : 'Select Category first'}
-          required showGpitBtn showHelp
+          required showGpitBtn showHelp gpitBtnDisabled={isView} scrollRef={scrollRef}
         />
         <Dropdown
           label="Designation Grade" value={designationGrade}
           options={DESIGNATION_GRADES} onChange={setDesignationGrade}
-          disabled={isView} required showGpitBtn showHelp
+          disabled={isView} required showGpitBtn showHelp scrollRef={scrollRef}
         />
         <Dropdown
           label="Employee Type" value={employeeType}
           options={EMPLOYEE_TYPES} onChange={setEmployeeType}
-          disabled={isView} required showGpitBtn={false} showHelp
+          disabled={isView} required showGpitBtn showHelp scrollRef={scrollRef}
         />
 
         <SectionHead text="Organisation" />
         <Dropdown
           label="Entity (Company)" value={entity}
           options={ENTITIES} onChange={setEntity}
-          disabled={isView} required showGpitBtn showHelp
+          disabled={isView} required showGpitBtn showHelp scrollRef={scrollRef}
         />
         <Dropdown
           label="Work Branch" value={workBranch}
           options={WORK_BRANCHES} onChange={setWorkBranch}
-          disabled={isView} required showGpitBtn showHelp
+          disabled={isView} required showGpitBtn showHelp scrollRef={scrollRef}
         />
         <Dropdown
           label="Department" value={department}
           options={DEPARTMENTS} onChange={setDepartment}
-          disabled={isView} required showGpitBtn showHelp
+          disabled={isView} required showGpitBtn showHelp scrollRef={scrollRef}
         />
         <Dropdown
           label="Sub Department" value={subDepartment}
@@ -493,7 +554,7 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
           onChange={setSubDepartment}
           disabled={isView || !department}
           placeholder={department ? 'Select Sub Department' : 'Select Department first'}
-          showGpitBtn showHelp
+          showGpitBtn showHelp gpitBtnDisabled={isView} scrollRef={scrollRef}
         />
         <Dropdown
           label="Section" value={section}
@@ -501,7 +562,7 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
           onChange={setSection}
           disabled={isView || !subDepartment}
           placeholder={subDepartment ? 'Select Section' : 'Select Sub Department first'}
-          showGpitBtn showHelp
+          showGpitBtn showHelp gpitBtnDisabled={isView} scrollRef={scrollRef}
         />
         <Dropdown
           label="Sub Section" value={subSection}
@@ -509,44 +570,226 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
           onChange={setSubSection}
           disabled={isView || !section}
           placeholder={section ? 'Select Sub Section' : 'Select Section first'}
-          showGpitBtn showHelp
+          showGpitBtn showHelp gpitBtnDisabled={isView} scrollRef={scrollRef}
         />
       </>
     );
   }
 
   function renderRosters() {
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const isCustom = leavePattern === 'custom';
+
+    function isDaySelected(day: string) {
+      return isCustom ? weeklyOffDays.includes(day) : weeklyOffDay === day;
+    }
+
+    function toggleDay(day: string) {
+      if (isView) return;
+      if (isCustom) {
+        setWeeklyOffDays(prev =>
+          prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day],
+        );
+      } else {
+        setWeeklyOffDay(day);
+      }
+    }
+
     return (
-      <>
-        <SectionHead text="Roster Assignment" />
-        <Dropdown label="Roster Group" value={rosterGroup} options={ROSTER_GROUPS} onChange={setRosterGroup} disabled={isView} showGpitBtn showHelp />
-        <Dropdown label="Shift Pattern" value={shiftPattern} options={SHIFT_PATTERNS} onChange={setShiftPattern} disabled={isView} showGpitBtn showHelp />
-      </>
+      <View style={rs.root}>
+        <Text style={rs.title}>Employee Roster Schedule</Text>
+
+        {/* ── Leave Pattern card ── */}
+        <View style={rs.card}>
+          <Text style={rs.cardLabel}>Select Leave Pattern</Text>
+          {([
+            { val: 'standard' as const, label: 'Standard Pattern (1 Day Off)' },
+            { val: 'custom'   as const, label: 'Custom Pattern (Multiple Days Off)' },
+          ]).map(({ val, label }) => (
+            <Pressable
+              key={val}
+              style={[rs.radioRow, val === 'custom' && { marginBottom: 0 }]}
+              onPress={() => !isView && setLeavePattern(val)}>
+              <View style={[rs.radio, leavePattern === val && rs.radioOn]}>
+                {leavePattern === val && <View style={rs.radioDot} />}
+              </View>
+              <Text style={rs.radioLabel}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* ── Off-Days card ── */}
+        <View style={rs.card}>
+          <Text style={[rs.cardLabel, isCustom ? rs.cardLabelGreen : rs.cardLabelBlue]}>
+            {isCustom ? 'Select Custom Off-Days' : 'Select Weekly Off-Day'}
+          </Text>
+          <View style={rs.daysGrid}>
+            {DAYS.map(day => {
+              const selected = isDaySelected(day);
+              return (
+                <Pressable key={day} style={rs.dayCell} onPress={() => toggleDay(day)}>
+                  {isCustom ? (
+                    <View style={[rs.checkbox, selected && rs.checkboxOn]}>
+                      {selected && <MaterialCommunityIcons name="check" size={11} color="#FFF" />}
+                    </View>
+                  ) : (
+                    <View style={[rs.radio, selected && rs.radioOn]}>
+                      {selected && <View style={rs.radioDot} />}
+                    </View>
+                  )}
+                  <Text style={rs.dayLabel}>{day}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* ── Add Roster → go to Uploads ── */}
+        {!isView && (
+          <Pressable
+            style={({ pressed }) => [rs.addBtn, pressed && { opacity: 0.85 }]}
+            onPress={() => { setActiveTab('uploads'); scrollRef.current?.scrollTo({ y: 0, animated: false }); }}>
+            <Text style={rs.addBtnTxt}>Add Roster</Text>
+          </Pressable>
+        )}
+      </View>
     );
   }
 
   function renderUploads() {
     return (
-      <>
-        <SectionHead text="Document Uploads" />
-        <View style={s.placeholderBox}>
-          <View style={s.uploadIcon}>
-            <View style={s.uploadArrow} />
-            <View style={s.uploadStem} />
+      <View style={up.root}>
+        <Text style={up.title}>Employee Profile Photo</Text>
+
+        {/* Preview + controls card */}
+        <View style={up.card}>
+          <View style={up.cardRow}>
+
+            {/* Left — photo preview */}
+            <View style={up.previewBox}>
+              {profilePhotoUri ? (
+                <Image source={{ uri: profilePhotoUri }} style={up.previewImg} />
+              ) : (
+                <MaterialCommunityIcons name="account-circle-outline" size={52} color="#C0C0C8" />
+              )}
+            </View>
+
+            {/* Vertical divider */}
+            <View style={up.vDivider} />
+
+            {/* Right — upload controls */}
+            <View style={up.controls}>
+              <Text style={up.controlLabel}>Upload Image</Text>
+              {!isView && (
+                <Pressable
+                  style={({ pressed }) => [up.chooseBtn, pressed && { opacity: 0.85 }]}
+                  onPress={() =>
+                    Alert.alert('Choose File', 'Select PNG, JPG or GIF (Max. 2MB).')
+                  }>
+                  <MaterialCommunityIcons name="cloud-upload-outline" size={17} color="#FFF" />
+                  <Text style={up.chooseBtnTxt}>Choose File</Text>
+                </Pressable>
+              )}
+              <Text style={up.hint}>PNG, JPG or GIF (Max. 2MB)</Text>
+            </View>
+
           </View>
-          <Text style={s.placeholderTitle}>No documents uploaded</Text>
-          <Text style={s.placeholderSub}>Tap to attach contracts, certificates, or IDs.</Text>
         </View>
-      </>
+
+        {/* Upload Image → go to Work Branch */}
+        {!isView && (
+          <Pressable
+            style={({ pressed }) => [up.uploadBtn, pressed && { opacity: 0.85 }]}
+            onPress={() => { setActiveTab('workbranch'); scrollRef.current?.scrollTo({ y: 0, animated: false }); }}>
+            <Text style={up.uploadBtnTxt}>Upload Image</Text>
+          </Pressable>
+        )}
+      </View>
     );
   }
 
+  function handleAddWbRow() {
+    const next = String(wbRows.length + 1);
+    setWbRows(p => [...p, {
+      id: next, branch: '', code: '', attendanceOn: '', attendanceOff: '', main: false, status: 'Active',
+    }]);
+  }
+
   function renderWorkBranch() {
+    const WB_COLS = [
+      { key: 'id',            label: 'ID',             width: 48  },
+      { key: 'branch',        label: 'Branch',         width: 130 },
+      { key: 'code',          label: 'Code',           width: 80  },
+      { key: 'attendanceOn',  label: 'Attendance On',  width: 105 },
+      { key: 'attendanceOff', label: 'Attendance Off', width: 105 },
+      { key: 'main',          label: 'Main',           width: 52  },
+      { key: 'status',        label: 'Status',         width: 72  },
+    ] as const;
+    const totalWidth = WB_COLS.reduce((s, c) => s + c.width, 0);
+
     return (
       <>
-        <SectionHead text="Work Branch Details" />
-        <Dropdown label="Reporting Branch" value={reportingBranch} options={REPORTING_BRANCHES} onChange={setReportingBranch} disabled={isView} showGpitBtn showHelp />
-        <Dropdown label="Cost Centre" value={costCentre} options={COST_CENTRES} onChange={setCostCentre} disabled={isView} showGpitBtn showHelp />
+        {/* ── Work Branches table ── */}
+        <View style={wbt.wrap}>
+          <View style={wbt.titleRow}>
+            <Text style={wbt.title}>Work Branches</Text>
+            {!isView && (
+              <Pressable onPress={handleAddWbRow} style={({ pressed }) => [wbt.addBtn, pressed && { opacity: 0.8 }]}>
+                <View style={wbt.addH} /><View style={wbt.addV} />
+              </Pressable>
+            )}
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={[wbt.table, { width: totalWidth }]}>
+              {/* Header */}
+              <View style={wbt.headerRow}>
+                {WB_COLS.map((col, i) => (
+                  <View key={col.key} style={[wbt.cell, { width: col.width }, i < WB_COLS.length - 1 && wbt.cellRight]}>
+                    <Text style={wbt.headerTxt}>{col.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Rows */}
+              {wbRows.length === 0 ? (
+                <View style={wbt.emptyRow}>
+                  <Text style={wbt.emptyTxt}>No records</Text>
+                </View>
+              ) : (
+                wbRows.map((row, idx) => (
+                  <View key={row.id} style={[wbt.row, idx % 2 === 1 && wbt.rowAlt]}>
+                    <View style={[wbt.cell, { width: WB_COLS[0].width }, wbt.cellRight]}>
+                      <Text style={wbt.idTxt}>{row.id}</Text>
+                    </View>
+                    <View style={[wbt.cell, { width: WB_COLS[1].width }, wbt.cellRight]}>
+                      <Text style={wbt.cellTxt} numberOfLines={1}>{row.branch || '—'}</Text>
+                    </View>
+                    <View style={[wbt.cell, { width: WB_COLS[2].width }, wbt.cellRight]}>
+                      <Text style={wbt.cellTxt}>{row.code || '—'}</Text>
+                    </View>
+                    <View style={[wbt.cell, { width: WB_COLS[3].width }, wbt.cellRight]}>
+                      <Text style={wbt.cellTxt}>{row.attendanceOn || '—'}</Text>
+                    </View>
+                    <View style={[wbt.cell, { width: WB_COLS[4].width }, wbt.cellRight]}>
+                      <Text style={wbt.cellTxt}>{row.attendanceOff || '—'}</Text>
+                    </View>
+                    <View style={[wbt.cell, { width: WB_COLS[5].width }, wbt.cellRight]}>
+                      <View style={[wbt.dot, row.main ? wbt.dotOn : wbt.dotOff]} />
+                    </View>
+                    <View style={[wbt.cell, { width: WB_COLS[6].width }]}>
+                      <View style={[wbt.badge, row.status === 'Active' ? wbt.badgeOn : wbt.badgeOff]}>
+                        <Text style={[wbt.badgeTxt, row.status === 'Active' ? wbt.badgeTxtOn : wbt.badgeTxtOff]}>
+                          {row.status}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </ScrollView>
+        </View>
       </>
     );
   }
@@ -555,8 +798,8 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
     return (
       <>
         <SectionHead text="Company Details" />
-        <Dropdown label="Company Code" value={companyCode} options={[]} onChange={setCompanyCode} disabled={isView} showGpitBtn showHelp />
-        <Dropdown label="Payroll Company" value={payrollCompany} options={PAYROLL_COMPANIES} onChange={setPayrollCompany} disabled={isView} showGpitBtn showHelp />
+        <Dropdown label="Company Code" value={companyCode} options={[]} onChange={setCompanyCode} disabled={isView} showGpitBtn showHelp scrollRef={scrollRef} />
+        <Dropdown label="Payroll Company" value={payrollCompany} options={PAYROLL_COMPANIES} onChange={setPayrollCompany} disabled={isView} showGpitBtn showHelp scrollRef={scrollRef} />
       </>
     );
   }
@@ -589,14 +832,25 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
   };
 
   return (
-    <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={s.container}>
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
+      <View style={s.modalOverlay}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={s.cardWrapper}>
 
-          {/* Close button anchored to the very top of the modal border */}
-          <Pressable onPress={onClose} style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={16}>
-            <View style={s.xL} /><View style={s.xR} />
-          </Pressable>
+            {/* Close button sits centred on the card's top border */}
+            <Pressable onPress={onClose} style={({ pressed }) => [s.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={16}>
+              <View style={s.xL} /><View style={s.xR} />
+            </Pressable>
+
+            {/* Reset button — below close button */}
+            {!isView && (
+              <Pressable onPress={handleReset} style={({ pressed }) => [s.resetBtn, pressed && { opacity: 0.75 }]} hitSlop={8}>
+                <MaterialCommunityIcons name="refresh" size={13} color="#FFF" />
+                <Text style={s.resetTxt}>Reset Form</Text>
+              </Pressable>
+            )}
+
+          <View style={s.container}>
 
           {/* ── Header ── */}
           <View style={s.header}>
@@ -613,35 +867,70 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
                 {TABS.find(t => t.id === activeTab)?.label ?? 'General'}
               </Text>
             </View>
-            {/* Reset Form */}
-            {!isView && (
-              <Pressable onPress={handleReset} style={({ pressed }) => [s.resetBtn, pressed && { opacity: 0.7 }]}>
-                <View style={s.resetIcon}><View style={s.rL} /><View style={s.rR} /></View>
-                <Text style={s.resetTxt}>Reset</Text>
-              </Pressable>
-            )}
           </View>
 
           {/* ── Progress bar ── */}
-          <ProgressBar pct={pct} />
+          <ProgressBar pct={pct} outOfMatrix={outOfSalaryMatrix} />
 
           {/* ── Tab bar ── */}
           <View style={s.tabBarWrap}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabBar}>
+            <ScrollView
+              ref={tabScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.tabBar}
+              scrollEventThrottle={16}
+              onScroll={({ nativeEvent: { layoutMeasurement, contentOffset, contentSize } }) => {
+                tabScrollX.current = contentOffset.x;
+                setTabAtStart(contentOffset.x <= 4);
+                setTabAtEnd(contentOffset.x + layoutMeasurement.width >= contentSize.width - 4);
+              }}
+              onContentSizeChange={(_w, _) => {
+                setTabAtStart(true);
+                setTabAtEnd(false);
+                tabScrollRef.current?.scrollTo({ x: 0, animated: false });
+              }}>
               {TABS.map(tab => {
                 const active = activeTab === tab.id;
+                const locked = tab.id !== 'general' && !generalComplete;
                 return (
                   <Pressable
                     key={tab.id}
+                    disabled={locked}
                     onPress={() => { setActiveTab(tab.id); scrollRef.current?.scrollTo({ y: 0, animated: false }); }}
-                    style={[s.tabBtn, active && s.tabBtnActive]}>
+                    style={[s.tabBtn, active && s.tabBtnActive, locked && s.tabBtnLocked]}>
                     <tab.Icon active={active} />
-                    <Text style={[s.tabLbl, active && s.tabLblActive]}>{tab.label}</Text>
+                    <Text style={[s.tabLbl, active && s.tabLblActive, locked && s.tabLblLocked]}>{tab.label}</Text>
                     {active && <View style={s.tabUnderline} />}
+                    {locked && (
+                      <View style={s.tabLockIcon}>
+                        <MaterialCommunityIcons name="lock" size={8} color="#C0C0C0" />
+                      </View>
+                    )}
                   </Pressable>
                 );
               })}
             </ScrollView>
+
+            {/* Left arrow */}
+            {!tabAtStart && (
+              <Pressable
+                style={({ pressed }) => [s.tabArrowLeft, pressed && { opacity: 0.6 }]}
+                onPress={() => tabScrollRef.current?.scrollTo({ x: Math.max(0, tabScrollX.current - 90), animated: true })}
+                hitSlop={4}>
+                <MaterialCommunityIcons name="chevron-left" size={16} color="#555" />
+              </Pressable>
+            )}
+
+            {/* Right arrow */}
+            {!tabAtEnd && (
+              <Pressable
+                style={({ pressed }) => [s.tabArrowRight, pressed && { opacity: 0.6 }]}
+                onPress={() => tabScrollRef.current?.scrollTo({ x: tabScrollX.current + 90, animated: true })}
+                hitSlop={4}>
+                <MaterialCommunityIcons name="chevron-right" size={16} color="#555" />
+              </Pressable>
+            )}
           </View>
 
           {/* ── Form ── */}
@@ -654,37 +943,79 @@ export function EmployeeFormModal({ visible, mode, employee, onClose, onSave }: 
             <View style={{ height: 24 }} />
           </ScrollView>
 
-          {/* ── Footer ── */}
-          <View style={s.footer}>
-            <Pressable onPress={onClose} style={({ pressed }) => [s.cancelBtn, pressed && { opacity: 0.7 }]}>
-              <Text style={s.cancelTxt}>Cancel</Text>
-            </Pressable>
-            {!isView && (
+          {/* ── Footer — hidden on Rosters & Uploads (each has its own action button) ── */}
+          {!isView && activeTab !== 'rosters' && activeTab !== 'uploads' && (
+            <View style={s.footer}>
               <Pressable onPress={handleSave} disabled={saving} style={({ pressed }) => [s.saveBtn, (pressed || saving) && { opacity: 0.85 }]}>
                 {saving
                   ? <ActivityIndicator color="#FFF" size="small" />
                   : <Text style={s.saveTxt}>{isEdit ? 'Update Employee' : 'Create Employee'}</Text>}
               </Pressable>
-            )}
-          </View>
+            </View>
+          )}
 
-        </View>
-      </KeyboardAvoidingView>
+          </View>
+          </View>
+        </KeyboardAvoidingView>
+
+        {/* ── Reset confirmation overlay ── */}
+        {showResetConfirm && (
+          <View style={rc.overlay}>
+            <Pressable style={{position:'absolute',top:0,left:0,right:0,bottom:0}} onPress={() => setShowResetConfirm(false)} />
+            <View style={rc.card}>
+              <View style={rc.topAccent} />
+              <Pressable onPress={() => setShowResetConfirm(false)} style={({ pressed }) => [rc.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={8}>
+                <MaterialCommunityIcons name="close" size={13} color="#999" />
+              </Pressable>
+              <View style={rc.iconRing}>
+                <View style={rc.iconCircle}>
+                  <MaterialCommunityIcons name="refresh" size={20} color="#FFF" />
+                </View>
+              </View>
+              <Text style={rc.title}>Reset Form?</Text>
+              <Text style={rc.desc}>All entered data will be cleared.{'\n'}This action cannot be undone.</Text>
+              <View style={rc.divider} />
+              <View style={rc.btnRow}>
+                <Pressable onPress={() => setShowResetConfirm(false)} style={({ pressed }) => [rc.cancelBtn, pressed && { opacity: 0.7 }]}>
+                  <Text style={rc.cancelTxt}>Keep Editing</Text>
+                </Pressable>
+                <Pressable onPress={() => { setShowResetConfirm(false); doReset(); }} style={({ pressed }) => [rc.confirmBtn, pressed && { opacity: 0.85 }]}>
+                  <MaterialCommunityIcons name="refresh" size={14} color="#FFF" />
+                  <Text style={rc.confirmTxt}>Yes, Reset</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
     </Modal>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const DARK = '#1C1C1E';
+const DARK = '#595959';
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F7' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-start',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 12,
+  },
+  cardWrapper: {
+    flex: 1,
+    maxHeight: '95%',
+    width: '100%',
+  },
+  container: { flex: 1, backgroundColor: '#F5F5F7', borderRadius: 10, overflow: 'hidden' },
 
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF',
-    paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 58 : 24,
-    paddingBottom: Spacing.md, paddingRight: 60, gap: Spacing.md,
+    paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md, gap: Spacing.md,
     borderBottomWidth: 1, borderBottomColor: '#EBEBEB',
   },
   headerIcon: {
@@ -701,16 +1032,21 @@ const s = StyleSheet.create({
   tabIndicator: { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder, marginTop: 2 },
 
   // Reset button
-  resetBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, borderWidth: 1.5, borderColor: '#D0D0D8' },
-  resetIcon: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
-  rL: { position: 'absolute', width: 10, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  rR: { position: 'absolute', width: 10, height: 1.5, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  resetTxt: { fontFamily: FontFamily.medium, fontSize: 10, color: Colors.placeholder },
+  resetBtn: {
+    position: 'absolute', top: 24, right: 6, zIndex: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#1976D2',
+    borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 5,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2, shadowRadius: 3, elevation: 4,
+  },
+  resetTxt: { fontFamily: FontFamily.medium, fontSize: 11, color: '#FFF' },
 
   closeBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 16,
-    right: 16,
+    top: -18,
+    right: -5,
     zIndex: 10,
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#1C1C1E',
@@ -722,15 +1058,18 @@ const s = StyleSheet.create({
   xR: { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFFFFF', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
 
   // Tab bar
-  tabBarWrap: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
+  tabBarWrap: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBEB', position: 'relative' },
   tabBar: { flexDirection: 'row', paddingHorizontal: Spacing.sm },
   tabBtn: {
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 10,
     gap: 3, minWidth: 56, position: 'relative',
   },
   tabBtnActive: {},
+  tabBtnLocked: { opacity: 0.4 },
   tabLbl: { fontFamily: FontFamily.regular, fontSize: 9, color: '#A0A0A0', textAlign: 'center' },
   tabLblActive: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: Colors.primaryHighlight },
+  tabLblLocked: { color: '#C0C0C0' },
+  tabLockIcon: { position: 'absolute', top: 4, right: 4 },
   tabUnderline: {
     position: 'absolute', bottom: 0, left: 8, right: 8,
     height: 2.5, borderRadius: 2, backgroundColor: Colors.primaryHighlight,
@@ -778,6 +1117,20 @@ const s = StyleSheet.create({
     backgroundColor: DARK, borderRadius: 10, paddingVertical: 14,
   },
   saveTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF', letterSpacing: 0.5 },
+
+  // Tab bar scroll arrows
+  tabArrowLeft: {
+    position: 'absolute', top: 0, left: 0, bottom: 0,
+    width: 28, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRightWidth: 1, borderRightColor: '#EBEBEB',
+  },
+  tabArrowRight: {
+    position: 'absolute', top: 0, right: 0, bottom: 0,
+    width: 28, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 1, borderLeftColor: '#EBEBEB',
+  },
 });
 
 const pb = StyleSheet.create({
@@ -786,11 +1139,13 @@ const pb = StyleSheet.create({
   fill: { height: 6, borderRadius: 3 },
   marker: { position: 'absolute', top: -3, width: 2, height: 12, backgroundColor: '#595959', borderRadius: 1 },
   labels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
-  labelLeft: { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
-  labelMid:  { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
-  labelRight:{ fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
-  labelAvg:  { color: '#30A84B', fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
-  warning:   { fontFamily: FontFamily.regular, fontSize: 9, color: '#E53935', marginTop: 3 },
+  labelLeft:     { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
+  labelMid:      { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
+  labelBadge:    { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
+  badgeAvg:      { color: '#30A84B', backgroundColor: 'rgba(48,168,75,0.1)' },
+  badgePct:      { color: Colors.placeholder, backgroundColor: 'transparent' },
+  badgeCustomOn: { color: '#1976D2', backgroundColor: 'rgba(25,118,210,0.1)' },
+  badgeCustomOff:{ color: '#E53935', backgroundColor: 'rgba(229,57,53,0.08)' },
 });
 
 const sec = StyleSheet.create({
@@ -867,4 +1222,305 @@ const ti = StyleSheet.create({
   cardLine1: { position: 'absolute', top: 5, left: 5, width: 8, height: 1.5, borderRadius: 1 },
   cardLine2: { position: 'absolute', top: 9, left: 5, width: 5, height: 1.5, borderRadius: 1 },
   cardCircle: { position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: 3, borderWidth: 1.5 },
+});
+
+const g = StyleSheet.create({
+  identityRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFF', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    marginBottom: 8, gap: 12,
+    borderWidth: 1, borderColor: '#E8E8EE',
+  },
+  empNumBox: { flex: 1 },
+  empNumDisplay: { flex: 1 },
+  empNumLarge: {
+    fontFamily: FontFamily.bold, fontSize: 20, fontWeight: FontWeight.bold,
+    color: Colors.primaryHighlight, letterSpacing: 0.5,
+  },
+  empNumPlaceholder: {
+    fontFamily: FontFamily.regular, fontSize: 13,
+    color: Colors.placeholder, fontStyle: 'italic',
+  },
+  empNumLabel: {
+    fontFamily: FontFamily.regular, fontSize: 9,
+    color: Colors.placeholder, marginTop: 2,
+  },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  checkbox: {
+    width: 18, height: 18, borderRadius: 4,
+    borderWidth: 1.5, borderColor: '#C0C0C8',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#FFF',
+  },
+  checkboxOn: { backgroundColor: '#1976D2', borderColor: '#1976D2' },
+  checkLabel: {
+    fontFamily: FontFamily.medium, fontSize: 11,
+    color: Colors.primaryText, flexShrink: 1,
+  },
+  checkBadge: {
+    backgroundColor: 'rgba(25,118,210,0.1)', borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
+  checkBadgeTxt: { fontFamily: FontFamily.medium, fontSize: 10, color: '#1976D2' },
+  grid: { flexDirection: 'row', alignItems: 'flex-start' },
+  col: { flex: 1 },
+  colDivider: { width: 1, backgroundColor: '#E8E8EE', marginTop: 32, alignSelf: 'stretch' },
+});
+
+const rc = StyleSheet.create({
+  overlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 44,
+  },
+  card: {
+    width: '100%', backgroundColor: '#FFF',
+    borderRadius: 14, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15, shadowRadius: 12, elevation: 10,
+  },
+  topAccent: { height: 3, backgroundColor: '#1976D2' },
+  iconRing: { marginTop: 14, marginBottom: 8, alignItems: 'center' },
+  iconCircle: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: '#1976D2',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title: {
+    textAlign: 'center',
+    fontFamily: FontFamily.bold, fontSize: 14, fontWeight: FontWeight.bold,
+    color: '#1C1C1E', marginBottom: 4,
+  },
+  desc: {
+    textAlign: 'center',
+    fontFamily: FontFamily.regular, fontSize: 11,
+    color: '#999', lineHeight: 16,
+    paddingHorizontal: 12, marginBottom: 12,
+  },
+  divider: { height: 1, backgroundColor: '#F0F0F4' },
+  btnRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 12, paddingVertical: 10, gap: 8,
+  },
+  cancelBtn: {
+    flex: 1, paddingVertical: 8, borderRadius: 8,
+    borderWidth: 1.5, borderColor: '#D0D0D8',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cancelTxt: { fontFamily: FontFamily.medium, fontSize: 12, color: '#666' },
+  confirmBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: '#E53935',
+  },
+  confirmTxt: {
+    fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF',
+  },
+  closeBtn: {
+    position: 'absolute', top: 8, right: 8, zIndex: 10,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#F0F0F4',
+    alignItems: 'center', justifyContent: 'center',
+  },
+});
+
+const rs = StyleSheet.create({
+  root: { flex: 1 },
+  title: {
+    fontFamily: FontFamily.bold, fontSize: 17, fontWeight: FontWeight.bold,
+    color: DARK, marginBottom: 14, letterSpacing: 0.2,
+  },
+
+  // Cards
+  card: {
+    backgroundColor: '#FFF', borderRadius: 12,
+    borderWidth: 1, borderColor: '#E8E8EE',
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6,
+    marginBottom: 12,
+  },
+  cardLabel: {
+    fontFamily: FontFamily.medium, fontSize: FontSize.sm,
+    color: Colors.primaryText, marginBottom: 14,
+  },
+  cardLabelBlue: {
+    fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: '#1976D2',
+  },
+  cardLabelGreen: {
+    fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: '#2E7D32',
+  },
+
+  // Radio (circle — Standard)
+  radioRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  radio: {
+    width: 19, height: 19, borderRadius: 10,
+    borderWidth: 2, borderColor: '#C0C0C8',
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  radioOn: { borderColor: '#1976D2' },
+  radioDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#1976D2' },
+  radioLabel: {
+    fontFamily: FontFamily.regular, fontSize: FontSize.sm,
+    color: Colors.primaryText, flex: 1,
+  },
+
+  // Checkbox (square — Custom)
+  checkbox: {
+    width: 18, height: 18, borderRadius: 4,
+    borderWidth: 1.5, borderColor: '#C0C0C8',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#FFF', flexShrink: 0,
+  },
+  checkboxOn: { backgroundColor: '#2E7D32', borderColor: '#2E7D32' },
+
+  // Days grid — 2 columns
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  dayCell: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: 10, width: '50%', marginBottom: 14,
+  },
+  dayLabel: {
+    fontFamily: FontFamily.regular, fontSize: FontSize.sm,
+    color: Colors.primaryText,
+  },
+
+  // Add Roster button
+  addBtn: {
+    backgroundColor: '#3D3D3D', borderRadius: 8,
+    paddingVertical: 15, alignItems: 'center', justifyContent: 'center',
+    marginTop: 4,
+  },
+  addBtnTxt: {
+    fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold,
+    color: '#FFF', letterSpacing: 0.5,
+  },
+});
+
+const up = StyleSheet.create({
+  root: { flex: 1 },
+  title: {
+    fontFamily: FontFamily.bold, fontSize: 17, fontWeight: FontWeight.bold,
+    color: DARK, marginBottom: 14, letterSpacing: 0.2,
+  },
+
+  // Card
+  card: {
+    backgroundColor: '#F8F8FA', borderRadius: 12,
+    borderWidth: 1, borderColor: '#E0E0E8',
+    padding: 16, marginBottom: 14,
+  },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+
+  // Photo preview box
+  previewBox: {
+    width: 100, height: 100, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#C0C0C8', borderStyle: 'dashed',
+    backgroundColor: '#FFF',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    flexShrink: 0,
+  },
+  previewImg: { width: '100%', height: '100%' },
+
+  // Vertical divider
+  vDivider: { width: 1, height: 100, backgroundColor: '#E0E0E8' },
+
+  // Controls
+  controls: { flex: 1, gap: 10 },
+  controlLabel: {
+    fontFamily: FontFamily.medium, fontSize: FontSize.sm,
+    color: Colors.primaryText,
+  },
+  chooseBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#1976D2', borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 10,
+    alignSelf: 'flex-start',
+  },
+  chooseBtnTxt: {
+    fontFamily: FontFamily.bold, fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold, color: '#FFF',
+  },
+  hint: {
+    fontFamily: FontFamily.regular, fontSize: 10, color: Colors.placeholder,
+  },
+
+  // Upload button
+  uploadBtn: {
+    backgroundColor: '#3D3D3D', borderRadius: 8,
+    paddingVertical: 15, alignItems: 'center', justifyContent: 'center',
+  },
+  uploadBtnTxt: {
+    fontFamily: FontFamily.bold, fontSize: FontSize.md,
+    fontWeight: FontWeight.bold, color: '#FFF', letterSpacing: 0.5,
+  },
+});
+
+// ─── Work Branch table styles ─────────────────────────────────────────────────
+const wbt = StyleSheet.create({
+  wrap: { marginTop: Spacing.xl },
+
+  titleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  title: {
+    fontFamily: FontFamily.bold, fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold, color: Colors.primaryText,
+  },
+  addBtn: {
+    width: 28, height: 28, borderRadius: 7,
+    backgroundColor: Colors.primaryHighlight,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  addH: { position: 'absolute', width: 11, height: 2, borderRadius: 1, backgroundColor: '#FFF' },
+  addV: { position: 'absolute', width: 2, height: 11, borderRadius: 1, backgroundColor: '#FFF' },
+
+  table: {
+    borderWidth: 1, borderColor: '#D0D0D8', borderRadius: 6, overflow: 'hidden',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F7',
+    borderBottomWidth: 1, borderBottomColor: '#D0D0D8',
+  },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1, borderBottomColor: '#EBEBF0',
+    backgroundColor: '#FFFFFF',
+  },
+  rowAlt: { backgroundColor: '#FAFAFA' },
+
+  cell: {
+    paddingHorizontal: 8, paddingVertical: 9,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cellRight: { borderRightWidth: 1, borderRightColor: '#D0D0D8' },
+
+  headerTxt: {
+    fontFamily: FontFamily.bold, fontSize: 10,
+    fontWeight: '600', color: Colors.placeholder, textAlign: 'center',
+  },
+  idTxt: {
+    fontFamily: FontFamily.regular, fontSize: 11,
+    color: Colors.placeholder, textAlign: 'center',
+  },
+  cellTxt: {
+    fontFamily: FontFamily.regular, fontSize: 11,
+    color: Colors.primaryText, textAlign: 'center',
+  },
+
+  dot: { width: 9, height: 9, borderRadius: 5 },
+  dotOn:  { backgroundColor: '#30A84B' },
+  dotOff: { backgroundColor: '#C8C8D0' },
+
+  badge: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 },
+  badgeOn:  { backgroundColor: 'rgba(48,168,75,0.12)' },
+  badgeOff: { backgroundColor: 'rgba(229,57,53,0.10)' },
+  badgeTxt: { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '600' },
+  badgeTxtOn:  { color: '#2E7D32' },
+  badgeTxtOff: { color: '#C62828' },
+
+  emptyRow: { paddingVertical: 20, alignItems: 'center' },
+  emptyTxt: { fontFamily: FontFamily.regular, fontSize: 12, color: Colors.placeholder },
 });

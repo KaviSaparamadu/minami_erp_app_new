@@ -1,419 +1,713 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Modal, Platform, Pressable,
-  ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { PageHeader } from '../../components/common/PageHeader';
-import { ACTIONS, MODULES, ROLE_PRESETS } from '../../constants/userManagementData';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
+import { DashboardView } from '../../components/dashboard/DashboardView';
+import { UIIcon } from '../../components/common/UIIcon';
+import { TableIcons } from '../../components/common/DataTable';
+import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import type { AppModule } from '../../constants/modules';
+import { useTheme } from '../../hooks/useTheme';
+import { useNavigation } from '../../context/NavigationContext';
 import type { UserRole } from '../../types/hr';
 
 let nextId = 1;
 const genId = () => String(nextId++);
 
+type Tab = 'dashboard' | 'modules';
+type ModalMode = 'create' | 'edit' | 'view';
+
+const UR_TABS: PageTabItem[] = [
+  { key: 'user-roles', label: 'User Roles', color: '#595959' },
+];
+
 const ROLE_COLORS = ['#5E35B1', '#1565C0', '#00796B', '#AD1457', '#E65100', '#2E7D32'];
 
-// ─── Permission grid ──────────────────────────────────────────────────────────
-function PermissionGrid({ selected, onChange, disabled }: {
-  selected: string[]; onChange(p: string[]): void; disabled?: boolean;
-}) {
-  function toggle(key: string) {
-    if (disabled) return;
-    onChange(selected.includes(key) ? selected.filter(k => k !== key) : [...selected, key]);
-  }
-  function toggleModule(mod: string) {
-    if (disabled) return;
-    const keys = ACTIONS.map(a => `${mod}:${a}`);
-    const allOn = keys.every(k => selected.includes(k));
-    onChange(allOn ? selected.filter(k => !keys.includes(k)) : [...new Set([...selected, ...keys])]);
-  }
-
-  return (
-    <View style={pg.wrap}>
-      {/* Header row */}
-      <View style={pg.hRow}>
-        <View style={pg.modCol}><Text style={pg.hTxt}>Module</Text></View>
-        {ACTIONS.map(a => <View key={a} style={pg.actCol}><Text style={pg.hTxt}>{a.slice(0,3)}</Text></View>)}
-      </View>
-
-      {MODULES.map(mod => {
-        const keys = ACTIONS.map(a => `${mod}:${a}`);
-        const allOn = keys.every(k => selected.includes(k));
-        return (
-          <View key={mod} style={pg.row}>
-            <Pressable onPress={() => toggleModule(mod)} style={pg.modCol}>
-              <Text style={[pg.modTxt, allOn && pg.modTxtOn]}>{mod}</Text>
-            </Pressable>
-            {ACTIONS.map(a => {
-              const key = `${mod}:${a}`;
-              const on  = selected.includes(key);
-              return (
-                <Pressable key={a} onPress={() => toggle(key)} style={pg.actCol} hitSlop={4}>
-                  <View style={[pg.cell, on && pg.cellOn]}>
-                    {on && <><View style={pg.ckL}/><View style={pg.ckR}/></>}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 // ─── Role Form Modal ──────────────────────────────────────────────────────────
-type Mode = 'create' | 'edit' | 'view';
 function RoleFormModal({ visible, mode, role, onClose, onSave }: {
-  visible: boolean; mode: Mode; role?: UserRole | null;
-  onClose(): void; onSave(d: Omit<UserRole, 'id'>): void;
+  visible: boolean;
+  mode: ModalMode;
+  role?: UserRole | null;
+  onClose: () => void;
+  onSave: (d: Omit<UserRole, 'id'>) => void;
 }) {
   const isView = mode === 'view';
+  const isEdit = mode === 'edit';
+
   const [roleName,    setRoleName]    = useState('');
-  const [description, setDescription]= useState('');
-  const [permissions, setPermissions]= useState<string[]>([]);
-  const [presetOpen,  setPresetOpen] = useState(false);
-  const [saving,      setSaving]     = useState(false);
+  const [description, setDescription] = useState('');
+  const [saving,      setSaving]      = useState(false);
+  const [showReset,   setShowReset]   = useState(false);
+
+  const scrollRef    = useRef<ScrollView>(null);
+  const descRef      = useRef<TextInput>(null);
+  const yPos         = useRef<Record<string, number>>({});
+
+  function scrollTo(key: string) {
+    const y = yPos.current[key];
+    if (y != null) scrollRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+  }
 
   useEffect(() => {
     if (!visible) return;
-    if (role) { setRoleName(role.roleName); setDescription(role.description ?? ''); setPermissions(role.permissions); }
-    else       { setRoleName(''); setDescription(''); setPermissions([]); }
+    if (role) {
+      setRoleName(role.roleName);
+      setDescription(role.description ?? '');
+    } else {
+      setRoleName('');
+      setDescription('');
+    }
+    setShowReset(false);
   }, [visible, role]);
 
-  function applyPreset(preset: string) {
-    setPermissions(ROLE_PRESETS[preset] ?? []);
-    setPresetOpen(false);
+  function doReset() {
+    setRoleName('');
+    setDescription('');
   }
 
-  function save() {
+  function handleSave() {
     if (!roleName.trim()) { Alert.alert('Required', 'Enter a role name.'); return; }
     setSaving(true);
     setTimeout(() => {
       setSaving(false);
-      onSave({ roleName: roleName.trim(), description: description.trim() || undefined, permissions });
+      onSave({ roleName: roleName.trim(), description: description.trim() || undefined, permissions: role?.permissions ?? [] });
     }, 700);
   }
 
   return (
-    <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-      <View style={fm.container}>
-        <View style={fm.header}>
-          <View style={fm.headerIcon}>
-            <View style={fm.badgeOuter}/><View style={fm.badgeClip}/><View style={fm.badgeLine}/>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={fm.title}>{mode === 'edit' ? 'Update Role' : mode === 'view' ? 'View Role' : 'Create User Role'}</Text>
-            <Text style={fm.sub}>{permissions.length} permission{permissions.length !== 1 ? 's' : ''} assigned</Text>
-          </View>
-          <Pressable onPress={onClose} style={fm.closeBtn} hitSlop={12}>
-            <View style={fm.xL}/><View style={fm.xR}/>
-          </Pressable>
-        </View>
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
+      <View style={ms.overlay}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={ms.cardWrapper}>
+            {/* Floating close */}
+            <Pressable onPress={onClose} style={({ pressed }) => [ms.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={16}>
+              <View style={ms.xL} /><View style={ms.xR} />
+            </Pressable>
 
-        <ScrollView contentContainerStyle={fm.form} keyboardShouldPersistTaps="handled">
-          {/* Role name */}
-          <View style={fm.fieldWrap}>
-            <Text style={fm.fieldLabel}><Text style={fm.req}>*</Text>Role Name</Text>
-            <TextInput value={roleName} onChangeText={setRoleName} placeholder="e.g. HR Manager"
-              placeholderTextColor={Colors.placeholder} editable={!isView}
-              style={[fm.fieldInput, !isView && fm.fieldActive]} />
-          </View>
-          <View style={fm.fieldWrap}>
-            <Text style={fm.fieldLabel}>Description</Text>
-            <TextInput value={description} onChangeText={setDescription} placeholder="What can this role do?"
-              placeholderTextColor={Colors.placeholder} editable={!isView} multiline
-              style={[fm.fieldInput, !isView && fm.fieldActive, { minHeight: 56 }]} />
-          </View>
+            <View style={ms.container}>
+              {/* Header */}
+              <View style={ms.header}>
+                <View style={ms.headerIcon}>
+                  <MaterialCommunityIcons name="shield-account" size={20} color="#FFF" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={ms.titleTxt}>
+                    {isEdit ? 'Update User Role' : isView ? 'View User Role' : 'Create User Role'}
+                  </Text>
+                </View>
+                {!isView && (
+                  <View style={ms.headerActions}>
+                    <Pressable onPress={() => setShowReset(true)} style={({ pressed }) => [ms.resetBtn, pressed && { opacity: 0.75 }]}>
+                      <MaterialCommunityIcons name="refresh" size={13} color="#FFF" />
+                      <Text style={ms.resetTxt}>Reset Form</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
 
-          {/* Preset picker */}
-          {!isView && (
-            <View style={fm.presetWrap}>
-              <Text style={fm.presetLbl}>Quick-fill from preset</Text>
-              <Pressable onPress={() => setPresetOpen(o => !o)} style={fm.presetTrigger}>
-                <Text style={fm.presetVal}>Apply a permission preset…</Text>
-                <MaterialCommunityIcons
-                  name={presetOpen ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color={Colors.placeholder}
-                />
-              </Pressable>
-              {presetOpen && (
-                <View style={fm.presetList}>
-                  <ScrollView style={{ maxHeight: 140 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                    {Object.keys(ROLE_PRESETS).map(p => (
-                      <Pressable key={p} onPress={() => applyPreset(p)} style={fm.presetOpt}>
-                        <Text style={fm.presetOptTxt}>{p}</Text>
-                        <Text style={fm.presetOptCnt}>{ROLE_PRESETS[p].length} permissions</Text>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
+              {/* Form */}
+              <ScrollView ref={scrollRef} contentContainerStyle={ms.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+                <View onLayout={e => { yPos.current['roleName'] = e.nativeEvent.layout.y; }}>
+                  <Text style={ms.fieldLabel}><Text style={ms.req}>*</Text>User Role</Text>
+                  <TextInput
+                    value={roleName}
+                    onChangeText={setRoleName}
+                    placeholder="e.g. HR Manager"
+                    placeholderTextColor={Colors.placeholder}
+                    editable={!isView}
+                    returnKeyType="next"
+                    onSubmitEditing={() => {
+                      descRef.current?.focus();
+                      scrollTo('description');
+                    }}
+                    style={[ms.fieldInput, !isView && ms.fieldActive]}
+                  />
+                </View>
+
+                <View onLayout={e => { yPos.current['description'] = e.nativeEvent.layout.y; }} style={{ marginTop: Spacing.lg }}>
+                  <Text style={ms.fieldLabel}>description</Text>
+                  <TextInput
+                    ref={descRef}
+                    value={description}
+                    onChangeText={setDescription}
+                    placeholder="What can this role do?"
+                    placeholderTextColor={Colors.placeholder}
+                    editable={!isView}
+                    multiline
+                    textAlignVertical="top"
+                    style={[ms.descInput, !isView && ms.descActive]}
+                  />
+                </View>
+
+                <View style={{ height: 24 }} />
+              </ScrollView>
+
+              {/* Footer */}
+              {!isView && (
+                <View style={ms.footer}>
+                  <Pressable
+                    onPress={handleSave}
+                    disabled={saving}
+                    style={({ pressed }) => [ms.saveBtn, (pressed || saving) && { opacity: 0.85 }]}>
+                    {saving
+                      ? <ActivityIndicator color="#FFF" size="small" />
+                      : <Text style={ms.saveTxt}>{isEdit ? 'Update User Role' : 'Create User Role'}</Text>}
+                  </Pressable>
                 </View>
               )}
             </View>
-          )}
-
-          {/* Permission grid */}
-          <View style={fm.gridSection}>
-            <View style={fm.gridHeader}>
-              <Text style={fm.gridTitle}>Permissions</Text>
-              {!isView && (
-                <View style={fm.gridBadge}><Text style={fm.gridBadgeTxt}>{permissions.length} selected</Text></View>
-              )}
-            </View>
-            <PermissionGrid selected={permissions} onChange={setPermissions} disabled={isView} />
           </View>
+        </KeyboardAvoidingView>
 
-          <View style={{ height: 24 }} />
-        </ScrollView>
-
-        <View style={fm.footer}>
-          <Pressable onPress={onClose} style={fm.cancelBtn}><Text style={fm.cancelTxt}>Cancel</Text></Pressable>
-          {!isView && (
-            <Pressable onPress={save} disabled={saving} style={({ pressed }) => [fm.saveBtn, (pressed || saving) && { opacity: 0.85 }]}>
-              {saving
-                ? <ActivityIndicator color="#FFF" size="small" />
-                : <Text style={fm.saveTxt}>{mode === 'edit' ? 'Update Role' : 'Create Role'}</Text>}
-            </Pressable>
-          )}
-        </View>
+        {/* Reset confirm */}
+        {showReset && (
+          <View style={ms.rcOverlay}>
+            <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowReset(false)} />
+            <View style={ms.rcCard}>
+              <View style={ms.rcAccent} />
+              <Pressable onPress={() => setShowReset(false)} style={({ pressed }) => [ms.rcClose, pressed && { opacity: 0.6 }]} hitSlop={8}>
+                <MaterialCommunityIcons name="close" size={13} color="#999" />
+              </Pressable>
+              <View style={ms.rcIconRing}>
+                <View style={ms.rcIconCircle}>
+                  <MaterialCommunityIcons name="refresh" size={20} color="#FFF" />
+                </View>
+              </View>
+              <Text style={ms.rcTitle}>Reset Form?</Text>
+              <Text style={ms.rcDesc}>All entered data will be cleared.{'\n'}This action cannot be undone.</Text>
+              <View style={ms.rcDivider} />
+              <View style={ms.rcBtnRow}>
+                <Pressable onPress={() => setShowReset(false)} style={({ pressed }) => [ms.rcCancel, pressed && { opacity: 0.7 }]}>
+                  <Text style={ms.rcCancelTxt}>Keep Editing</Text>
+                </Pressable>
+                <Pressable onPress={() => { setShowReset(false); doReset(); }} style={({ pressed }) => [ms.rcConfirm, pressed && { opacity: 0.85 }]}>
+                  <MaterialCommunityIcons name="refresh" size={14} color="#FFF" />
+                  <Text style={ms.rcConfirmTxt}>Yes, Reset</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
 }
 
-// ─── Role row ─────────────────────────────────────────────────────────────────
-function RoleRow({ role, index, onView, onEdit, onDelete }: {
-  role: UserRole; index: number;
-  onView(): void; onEdit(): void; onDelete(): void;
+// ─── Role card ────────────────────────────────────────────────────────────────
+function RoleCard({
+  role,
+  index,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  role: UserRole;
+  index: number;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
+  const { colors, isDarkMode } = useTheme();
+  const initial = (role.roleName || '?').charAt(0).toUpperCase();
+  const accentColor = ROLE_COLORS[index % ROLE_COLORS.length];
+
   return (
-    <View style={[tr.row, index % 2 === 0 && tr.rowEven]}>
-      <View style={tr.colIdx}><Text style={tr.idx}>{index + 1}</Text></View>
-      <View style={tr.colName}>
-        <View style={[tr.colorDot, { backgroundColor: ROLE_COLORS[index % ROLE_COLORS.length] }]}>
-          <Text style={tr.dotTxt}>{role.roleName.charAt(0)}</Text>
+    <View style={[rc.card, isDarkMode && rc.cardDark]}>
+      <View style={[rc.accent, { backgroundColor: accentColor }]} />
+      <View style={rc.inner}>
+        {/* Header */}
+        <View style={rc.header}>
+          <View style={[rc.avatar, { backgroundColor: accentColor }]}>
+            <Text style={rc.avatarTxt}>{initial}</Text>
+          </View>
+          <View style={rc.nameBlock}>
+            <Text style={[rc.name, { color: colors.primaryText }]} numberOfLines={1}>
+              {role.roleName}
+            </Text>
+            {role.description ? (
+              <Text style={[rc.desc, { color: colors.placeholder }]} numberOfLines={1}>
+                {role.description}
+              </Text>
+            ) : null}
+          </View>
+          <View style={rc.permBadge}>
+            <Text style={rc.permCount}>{role.permissions.length}</Text>
+            <Text style={[rc.permLabel, { color: colors.placeholder }]}>perms</Text>
+          </View>
+          <Text style={[rc.idx, { color: colors.placeholder }]}>#{index + 1}</Text>
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={tr.name} numberOfLines={1}>{role.roleName}</Text>
-          {role.description ? <Text style={tr.desc} numberOfLines={1}>{role.description}</Text> : null}
+
+        <View style={[rc.divider, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F0F0F5' }]} />
+
+        {/* Actions */}
+        <View style={[rc.actions, { borderTopColor: isDarkMode ? '#2C2C2E' : '#F0F0F5' }]}>
+          <Pressable onPress={onView}   style={({ pressed }) => [rc.btn, rc.btnView,   pressed && rc.btnPressed]} hitSlop={4}>
+            <TableIcons.Eye />
+            <Text style={rc.btnTxt}>View</Text>
+          </Pressable>
+          <Pressable onPress={onEdit}   style={({ pressed }) => [rc.btn, rc.btnEdit,   pressed && rc.btnPressed]} hitSlop={4}>
+            <TableIcons.Edit />
+            <Text style={rc.btnTxt}>Edit</Text>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <Pressable onPress={onDelete} style={({ pressed }) => [rc.btn, rc.btnDelete, pressed && rc.btnPressed]} hitSlop={4}>
+            <TableIcons.Trash />
+            <Text style={rc.btnDelTxt}>Delete</Text>
+          </Pressable>
         </View>
-      </View>
-      <View style={tr.colPerm}>
-        <View style={tr.permBadge}><Text style={tr.permTxt}>{role.permissions.length}</Text></View>
-        <Text style={tr.permLbl}>perms</Text>
-      </View>
-      <View style={tr.colAct}>
-        <Pressable onPress={onView}   style={[tr.btn, tr.bView]}   hitSlop={6}><View style={tr.eyeO}/><View style={tr.eyeD}/></Pressable>
-        <Pressable onPress={onEdit}   style={[tr.btn, tr.bEdit]}   hitSlop={6}><View style={tr.pen}/><View style={tr.penL}/></Pressable>
-        <Pressable onPress={onDelete} style={[tr.btn, tr.bDel]}    hitSlop={6}><View style={tr.lid}/><View style={tr.bin}/></Pressable>
       </View>
     </View>
   );
 }
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
-export function CreateUserRoleScreen() {
-  const [roles,    setRoles]    = useState<UserRole[]>([]);
-  const [search,   setSearch]   = useState('');
-  const [modal,    setModal]    = useState(false);
-  const [mode,     setMode]     = useState<Mode>('create');
-  const [selected, setSelected] = useState<UserRole | null>(null);
+// ─── List view ────────────────────────────────────────────────────────────────
+function RolesListView({
+  searchQuery,
+  setSearchQuery,
+  onOpenCreate,
+  onView,
+  onEdit,
+  onDelete,
+  filteredRoles,
+  loading,
+  onRefresh,
+}: {
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  onOpenCreate: () => void;
+  onView: (r: UserRole) => void;
+  onEdit: (r: UserRole) => void;
+  onDelete: (r: UserRole) => void;
+  filteredRoles: UserRole[];
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  const { colors, isDarkMode } = useTheme();
+  const [refreshing, setRefreshing] = useState(false);
+  const dyn = { searchBar: { backgroundColor: isDarkMode ? '#2C2C2E' : '#FFF', borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA' }, searchInput: { color: colors.primaryText } };
 
-  const q = search.trim().toLowerCase();
-  const filtered = q ? roles.filter(r => r.roleName.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q)) : roles;
-
-  function openCreate() { setSelected(null); setMode('create'); setModal(true); }
-  function openEdit(r: UserRole)  { setSelected(r); setMode('edit');   setModal(true); }
-  function openView(r: UserRole)  { setSelected(r); setMode('view');   setModal(true); }
-  function del(r: UserRole) {
-    Alert.alert('Delete Role', `Remove "${r.roleName}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => setRoles(p => p.filter(x => x.id !== r.id)) },
-    ]);
-  }
-  function save(data: Omit<UserRole, 'id'>) {
-    if (mode === 'create') setRoles(p => [...p, { ...data, id: genId() }]);
-    else setRoles(p => p.map(x => x.id === selected?.id ? { ...data, id: x.id } : x));
-    setModal(false);
+  function handleRefresh() {
+    setRefreshing(true);
+    onRefresh();
+    setTimeout(() => setRefreshing(false), 800);
   }
 
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
-      <View style={s.band}>
-        <PageHeader title="User Roles" showBack={true} />
-        <View style={s.statsRow}>
-          {[['Total Roles', roles.length], ['Permissions', roles.reduce((a, r) => a + r.permissions.length, 0)]].map(([l, v]) => (
-            <View key={l} style={s.chip}><Text style={s.chipV}>{v}</Text><Text style={s.chipL}>{l}</Text></View>
-          ))}
-        </View>
-      </View>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={lv.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#595959" />}>
 
-      <View style={s.sheet}>
-        {roles.length > 0 && (
-          <View style={s.sbWrap}>
-            <View style={s.sbIcon}><View style={s.sbG}/><View style={s.sbH}/></View>
-            <TextInput value={search} onChangeText={setSearch} placeholder="Search roles…"
-              placeholderTextColor={Colors.placeholder} style={s.sbInput} autoCapitalize="none" />
-            {search.length > 0 && (
-              <Pressable onPress={() => setSearch('')} style={s.sbClear} hitSlop={8}>
-                <View style={s.xA}/><View style={s.xB}/>
+        <View style={lv.sectionHeader}>
+          <Text style={[lv.sectionTitle, { color: colors.primaryText }]}>Role Definitions</Text>
+        </View>
+
+        <View style={lv.searchFilterContainer}>
+          <View style={[lv.searchWrapper]}>
+            <View style={[lv.searchBar, dyn.searchBar]}>
+              <UIIcon name="search" size={16} color="#8E8E93" />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search roles…"
+                placeholderTextColor="#8E8E93"
+                style={[lv.searchInput, dyn.searchInput]}
+                autoCapitalize="none"
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery('')} style={lv.clearBtn} hitSlop={8}>
+                  <View style={[lv.clearX1, { backgroundColor: colors.placeholder }]} />
+                  <View style={[lv.clearX2, { backgroundColor: colors.placeholder }]} />
+                </Pressable>
+              )}
+            </View>
+            <Pressable onPress={onOpenCreate} style={({ pressed }) => [lv.addBtn, pressed && lv.addBtnPressed]}>
+              <View style={lv.addBtnIcon} /><View style={lv.addBtnIconV} />
+            </Pressable>
+          </View>
+        </View>
+
+        {loading ? (
+          <View style={rc.emptyWrap}>
+            <ActivityIndicator size="large" color={Colors.primaryHighlight} />
+          </View>
+        ) : filteredRoles.length === 0 ? (
+          <View style={rc.emptyWrap}>
+            <View style={rc.emptyIcon}>
+              <View style={rc.emptyBadge} /><View style={rc.emptyLine1} /><View style={rc.emptyLine2} />
+            </View>
+            <Text style={[rc.emptyTitle, { color: colors.primaryText }]}>
+              {searchQuery.trim() ? 'No matches found' : 'No roles defined yet'}
+            </Text>
+            <Text style={[rc.emptySubText, { color: colors.placeholder }]}>
+              {searchQuery.trim() ? `Nothing matched "${searchQuery}"` : 'Tap + to create the first role'}
+            </Text>
+            {searchQuery.trim().length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} style={rc.clearBtn}>
+                <Text style={rc.clearBtnTxt}>Clear search</Text>
               </Pressable>
             )}
           </View>
-        )}
-
-        {filtered.length > 0 && (
-          <View style={s.thRow}>
-            <View style={s.thIdx}><Text style={s.thTxt}>#</Text></View>
-            <View style={s.thName}><Text style={s.thTxt}>Role</Text></View>
-            <View style={s.thPerm}><Text style={s.thTxt}>Perms</Text></View>
-            <View style={s.thAct}><Text style={[s.thTxt,{textAlign:'center'}]}>Actions</Text></View>
-          </View>
-        )}
-
-        {roles.length === 0 ? (
-          <View style={s.empty}>
-            <View style={s.emptyIcon}><View style={s.eBadge}/><View style={s.eLine1}/><View style={s.eLine2}/></View>
-            <Text style={s.emptyTitle}>No roles defined yet</Text>
-            <Text style={s.emptySub}>Tap + to create the first role</Text>
-            <Pressable onPress={openCreate} style={s.emptyBtn}><Text style={s.emptyBtnTxt}>+ Create Role</Text></Pressable>
-          </View>
-        ) : filtered.length === 0 ? (
-          <View style={s.empty}>
-            <Text style={s.emptyTitle}>No results for "{search}"</Text>
-            <Pressable onPress={() => setSearch('')} style={s.emptyBtn}><Text style={s.emptyBtnTxt}>Clear</Text></Pressable>
-          </View>
         ) : (
-          <FlatList data={filtered} keyExtractor={r => r.id}
-            renderItem={({ item, index }) => (
-              <RoleRow role={item} index={index}
-                onView={() => openView(item)} onEdit={() => openEdit(item)} onDelete={() => del(item)} />
-            )}
-            showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} />
+          <View style={rc.list}>
+            {filteredRoles.map((role, idx) => (
+              <RoleCard
+                key={role.id}
+                role={role}
+                index={idx}
+                onView={() => onView(role)}
+                onEdit={() => onEdit(role)}
+                onDelete={() => onDelete(role)}
+              />
+            ))}
+          </View>
         )}
-
-        <Pressable onPress={openCreate} style={({ pressed }) => [s.fab, pressed && s.fabP]}>
-          <View style={s.fabH}/><View style={s.fabV}/>
-        </Pressable>
-      </View>
-
-      <RoleFormModal visible={modal} mode={mode} role={selected} onClose={() => setModal(false)} onSave={save} />
-    </SafeAreaView>
+      </ScrollView>
+    </View>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const DARK = '#1C1C1E'; const LIGHT = '#F2F2F7'; const PINK = Colors.primaryHighlight; const PURPLE = '#5E35B1';
+// ─── Screen ───────────────────────────────────────────────────────────────────
+export function CreateUserRoleScreen() {
+  const { navigate } = useNavigation();
 
-const s = StyleSheet.create({
-  safe:  { flex: 1, backgroundColor: DARK },
-  band:  { backgroundColor: DARK, paddingBottom: 24 },
-  sheet: { flex: 1, backgroundColor: LIGHT, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -28, overflow: 'hidden' },
-  statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: Spacing.lg, paddingTop: 8 },
-  chip:  { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'center', minWidth: 80 },
-  chipV: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
-  chipL: { fontFamily: FontFamily.regular, fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 1 },
-  sbWrap:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg, marginTop: 16, marginBottom: 2, paddingBottom: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', gap: 8 },
-  sbIcon:   { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
-  sbG:  { width: 11, height: 11, borderRadius: 6, borderWidth: 1.5, borderColor: Colors.placeholder, position: 'absolute', top: 0, left: 0 },
-  sbH:  { position: 'absolute', bottom: 0, right: 0, width: 5, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  sbInput:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.primaryText, paddingVertical: 0 },
-  sbClear:  { width: 18, height: 18, borderRadius: 9, backgroundColor: '#E0E0E8', alignItems: 'center', justifyContent: 'center' },
-  xA: { position: 'absolute', width: 9, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  xB: { position: 'absolute', width: 9, height: 1.5, backgroundColor: Colors.placeholder, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  thRow:  { flexDirection: 'row', paddingHorizontal: Spacing.md, paddingVertical: 8, backgroundColor: '#FFF', borderBottomWidth: 1.5, borderBottomColor: '#E8E8F0' },
-  thTxt:  { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: FontWeight.bold, color: Colors.placeholder, textTransform: 'uppercase', letterSpacing: 0.6 },
-  thIdx: { width: 28 }, thName: { flex: 1 }, thPerm: { width: 60 }, thAct: { width: 96 },
-  empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingBottom: 60 },
-  emptyIcon:  { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(94,53,177,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  eBadge: { position: 'absolute', width: 28, height: 34, borderRadius: 6, backgroundColor: 'rgba(94,53,177,0.3)' },
-  eLine1: { position: 'absolute', top: 22, width: 16, height: 3, borderRadius: 1.5, backgroundColor: PURPLE },
-  eLine2: { position: 'absolute', top: 29, width: 10, height: 3, borderRadius: 1.5, backgroundColor: PURPLE, opacity: 0.5 },
-  emptyTitle:  { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.primaryText },
-  emptySub:    { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.placeholder },
-  emptyBtn:    { marginTop: 4, backgroundColor: PURPLE, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 },
-  emptyBtnTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: '#FFF' },
-  fab:  { position: 'absolute', bottom: 28, right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: PINK, alignItems: 'center', justifyContent: 'center', shadowColor: PINK, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 10 },
-  fabP: { transform: [{ scale: 0.93 }], opacity: 0.88 },
-  fabH: { position: 'absolute', width: 24, height: 3, borderRadius: 1.5, backgroundColor: '#FFF' },
-  fabV: { position: 'absolute', width: 3, height: 24, borderRadius: 1.5, backgroundColor: '#FFF' },
+  const [tab,          setTab]          = useState<Tab>('modules');
+  const [pageTab,      setPageTab]      = useState<string>('user-roles');
+  const [roles,        setRoles]        = useState<UserRole[]>([]);
+  const [loading]                       = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMode,    setModalMode]    = useState<ModalMode>('create');
+  const [selected,     setSelected]     = useState<UserRole | null>(null);
+  const [refreshing,        setRefreshing]        = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDelete,     setPendingDelete]     = useState<UserRole | null>(null);
+
+  const q = searchQuery.trim().toLowerCase();
+  const filteredRoles = q === ''
+    ? roles
+    : roles.filter(r =>
+        r.roleName.toLowerCase().includes(q) ||
+        (r.description ?? '').toLowerCase().includes(q),
+      );
+
+  function openCreate() { setSelected(null); setModalMode('create'); setModalVisible(true); }
+  function openEdit(r: UserRole)  { setSelected(r); setModalMode('edit');   setModalVisible(true); }
+  function openView(r: UserRole)  { setSelected(r); setModalMode('view');   setModalVisible(true); }
+
+  function handleDelete(r: UserRole) {
+    setPendingDelete(r);
+    setShowDeleteConfirm(true);
+  }
+
+  function doDelete() {
+    if (pendingDelete) setRoles(p => p.filter(x => x.id !== pendingDelete.id));
+    setPendingDelete(null);
+  }
+
+  function handleSave(data: Omit<UserRole, 'id'>) {
+    if (modalMode === 'create') setRoles(p => [...p, { ...data, id: genId() }]);
+    else setRoles(p => p.map(x => x.id === selected?.id ? { ...data, id: x.id } : x));
+    setModalVisible(false);
+  }
+
+  function handleQuickAccess(module: AppModule) {
+    navigate('ModuleDetail', { moduleId: module.id });
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await new Promise<void>(resolve => setTimeout(resolve, 800));
+    setRefreshing(false);
+  }
+
+  return (
+    <>
+      <SubModuleLayout
+        parentModuleId="1"
+        title="User Roles"
+        showBack={true}
+        activeTab={tab}
+        onTabChange={setTab}
+        onModulePress={handleQuickAccess}
+        showSubmodulesTab={false}
+        showSubTab={true}
+        subTabLabel="Create Role"
+        selfManagesScroll={true}
+      >
+        <View style={styles.tabContainer}>
+          {tab !== 'dashboard' && (
+            <View style={styles.tabBarWrap}>
+              <PageTabBar
+                tabs={UR_TABS}
+                active={pageTab}
+                onChange={(t) => { setPageTab(t); setTab('modules'); }}
+                variant="segment"
+              />
+            </View>
+          )}
+          <View style={[styles.tabPanel, tab !== 'dashboard' && styles.tabPanelOffset]}>
+            {tab === 'dashboard' ? (
+              <ScrollView
+                style={styles.contentScroll}
+                contentContainerStyle={styles.contentScrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#595959" />}>
+                <View style={styles.dashboardContent}><DashboardView /></View>
+              </ScrollView>
+            ) : (
+              <RolesListView
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onOpenCreate={openCreate}
+                onView={openView}
+                onEdit={openEdit}
+                onDelete={handleDelete}
+                filteredRoles={filteredRoles}
+                loading={loading}
+                onRefresh={handleRefresh}
+              />
+            )}
+          </View>
+        </View>
+      </SubModuleLayout>
+
+      <RoleFormModal
+        visible={modalVisible}
+        mode={modalMode}
+        role={selected}
+        onClose={() => setModalVisible(false)}
+        onSave={handleSave}
+      />
+
+      {/* Delete confirm */}
+      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => setShowDeleteConfirm(false)}>
+        <View style={dc.overlay}>
+          <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={() => setShowDeleteConfirm(false)} />
+          <View style={dc.card}>
+            <View style={dc.topAccent} />
+            <Pressable onPress={() => setShowDeleteConfirm(false)} style={({ pressed }) => [dc.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={8}>
+              <MaterialCommunityIcons name="close" size={13} color="#999" />
+            </Pressable>
+            <View style={dc.iconRing}>
+              <View style={dc.iconCircle}>
+                <MaterialCommunityIcons name="delete-outline" size={20} color="#FFF" />
+              </View>
+            </View>
+            <Text style={dc.title}>Delete Role?</Text>
+            <Text style={dc.desc} numberOfLines={2}>
+              "{pendingDelete?.roleName ?? 'this role'}" will be permanently removed.
+            </Text>
+            <View style={dc.divider} />
+            <View style={dc.btnRow}>
+              <Pressable onPress={() => setShowDeleteConfirm(false)} style={({ pressed }) => [dc.cancelBtn, pressed && { opacity: 0.7 }]}>
+                <Text style={dc.cancelTxt}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={() => { setShowDeleteConfirm(false); doDelete(); }} style={({ pressed }) => [dc.confirmBtn, pressed && { opacity: 0.85 }]}>
+                <MaterialCommunityIcons name="delete" size={13} color="#FFF" />
+                <Text style={dc.confirmTxt}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+// ─── Layout styles ────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  dashboardContent:     { flex: 1 },
+  contentScroll:        { flex: 1 },
+  contentScrollContent: { flexGrow: 1 },
+  tabContainer:         { flex: 1, paddingTop: 8 },
+  tabBarWrap:           { paddingHorizontal: Spacing.md },
+  tabPanel:             { flex: 1 },
+  tabPanelOffset:       { marginTop: 8 },
 });
 
-const tr = StyleSheet.create({
-  row:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F5', backgroundColor: '#FFF' },
-  rowEven: { backgroundColor: '#FAFAFA' },
-  colIdx:  { width: 28 }, colName: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  colPerm: { width: 60, flexDirection: 'row', alignItems: 'center', gap: 4 }, colAct: { width: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
-  idx:     { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder },
-  colorDot:{ width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  dotTxt:  { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: FontWeight.bold, color: '#FFF' },
-  name:    { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.primaryText },
-  desc:    { fontFamily: FontFamily.regular, fontSize: 10, color: Colors.placeholder },
-  permBadge: { backgroundColor: 'rgba(94,53,177,0.1)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  permTxt:   { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: FontWeight.bold, color: PURPLE },
-  permLbl:   { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
-  btn:   { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  bView: { backgroundColor: 'rgba(63,81,181,0.1)' }, bEdit: { backgroundColor: 'rgba(255,152,0,0.1)' }, bDel: { backgroundColor: 'rgba(211,47,47,0.1)' },
-  eyeO:  { position: 'absolute', width: 14, height: 9, borderRadius: 5, borderWidth: 1.5, borderColor: '#3F51B5' },
-  eyeD:  { width: 5, height: 5, borderRadius: 3, backgroundColor: '#3F51B5' },
-  pen:   { position: 'absolute', width: 9, height: 3, backgroundColor: '#FF9800', borderRadius: 1, transform: [{ rotate: '-45deg' }], top: 4, left: 3 },
-  penL:  { position: 'absolute', bottom: 2, width: 8, height: 1.5, backgroundColor: '#FF9800', borderRadius: 1 },
-  lid:   { position: 'absolute', top: 2, width: 12, height: 2, borderRadius: 1, backgroundColor: '#D32F2F' },
-  bin:   { position: 'absolute', bottom: 2, width: 10, height: 10, borderBottomLeftRadius: 2, borderBottomRightRadius: 2, borderWidth: 1.5, borderColor: '#D32F2F', borderTopWidth: 0 },
+// ─── List view styles ─────────────────────────────────────────────────────────
+const lv = StyleSheet.create({
+  scroll:              { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 100 },
+  sectionHeader:       { paddingHorizontal: Spacing.md, paddingTop: 0, paddingBottom: 2 },
+  sectionTitle:        { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700' },
+  searchFilterContainer: { paddingHorizontal: Spacing.md, paddingVertical: 6 },
+  searchWrapper:       { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
+  searchBar:           { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, height: 40, borderRadius: 10, borderWidth: 1 },
+  searchInput:         { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.sm, paddingVertical: 0 },
+  clearBtn:            { width: 18, height: 18, borderRadius: 9, backgroundColor: '#E0E0E8', alignItems: 'center', justifyContent: 'center' },
+  clearX1:             { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  clearX2:             { position: 'absolute', width: 9, height: 1.5, borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  addBtn:              { width: 40, height: 40, borderRadius: 10, backgroundColor: '#E91E63', alignItems: 'center', justifyContent: 'center' },
+  addBtnPressed:       { opacity: 0.8, transform: [{ scale: 0.95 }] },
+  addBtnIcon:          { position: 'absolute', width: 14, height: 2, borderRadius: 1, backgroundColor: '#FFF' },
+  addBtnIconV:         { position: 'absolute', width: 2, height: 14, borderRadius: 1, backgroundColor: '#FFF' },
 });
 
-const fm = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F7' },
-  header: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : 22, paddingBottom: Spacing.md, gap: Spacing.md, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
-  headerIcon: { width: 38, height: 38, borderRadius: 8, backgroundColor: PURPLE, alignItems: 'center', justifyContent: 'center' },
-  badgeOuter: { position: 'absolute', width: 20, height: 24, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.9)' },
-  badgeClip:  { position: 'absolute', top: 5, width: 7, height: 4, borderRadius: 2, backgroundColor: 'rgba(94,53,177,0.5)' },
-  badgeLine:  { position: 'absolute', bottom: 9, width: 12, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.6)' },
-  title: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: DARK },
-  sub:   { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder, marginTop: 2 },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0F0F5', alignItems: 'center', justifyContent: 'center' },
-  xL: { position: 'absolute', width: 14, height: 2, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  xR: { position: 'absolute', width: 14, height: 2, backgroundColor: '#888', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+// ─── Role card styles ─────────────────────────────────────────────────────────
+const rc = StyleSheet.create({
+  list: { paddingHorizontal: Spacing.md, paddingTop: 8, paddingBottom: 28, gap: 10 },
+
+  card: {
+    flexDirection: 'row', backgroundColor: '#FFFFFF',
+    borderRadius: 16, borderWidth: 1, borderColor: '#EAEAF0',
+    shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3, overflow: 'hidden',
+  },
+  cardDark: { backgroundColor: '#1C1C1E', borderColor: '#2A2A2C' },
+  accent:   { width: 4 },
+  inner:    { flex: 1 },
+
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 10,
+  },
+  avatar:    { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 17, fontWeight: '700', color: '#FFF' },
+  nameBlock: { flex: 1, gap: 3 },
+  name:      { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', lineHeight: 20 },
+  desc:      { fontFamily: FontFamily.regular, fontSize: 11 },
+  permBadge: { alignItems: 'center', gap: 1 },
+  permCount: { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#5E35B1' },
+  permLabel: { fontFamily: FontFamily.regular, fontSize: 9 },
+  idx:       { fontFamily: FontFamily.regular, fontSize: 11, alignSelf: 'flex-start', marginTop: 2 },
+
+  divider: { height: 1 },
+
+  actions:    { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, paddingHorizontal: 10, paddingVertical: 8, gap: 6 },
+  btn:        { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8 },
+  btnView:    { backgroundColor: 'rgba(89,89,89,0.08)' },
+  btnEdit:    { backgroundColor: 'rgba(89,89,89,0.08)' },
+  btnDelete:  { backgroundColor: 'rgba(233,30,99,0.08)' },
+  btnPressed: { opacity: 0.7, transform: [{ scale: 0.97 }] },
+  btnTxt:     { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#595959' },
+  btnDelTxt:  { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#E91E63' },
+
+  emptyWrap:    { alignItems: 'center', paddingVertical: 50, paddingHorizontal: Spacing.xl, gap: 8 },
+  emptyIcon:    { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(94,53,177,0.10)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  emptyBadge:   { position: 'absolute', width: 24, height: 30, borderRadius: 5, backgroundColor: 'rgba(94,53,177,0.3)' },
+  emptyLine1:   { position: 'absolute', top: 22, width: 14, height: 2.5, borderRadius: 1.5, backgroundColor: '#5E35B1' },
+  emptyLine2:   { position: 'absolute', top: 28, width: 10, height: 2.5, borderRadius: 1.5, backgroundColor: '#5E35B1', opacity: 0.5 },
+  emptyTitle:   { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', textAlign: 'center' },
+  emptySubText: { fontFamily: FontFamily.regular, fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  clearBtn:     { marginTop: 8, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.primaryHighlight },
+  clearBtnTxt:  { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '700', color: Colors.primaryHighlight },
+});
+
+// ─── Modal styles ─────────────────────────────────────────────────────────────
+const ms = StyleSheet.create({
+  overlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-start', paddingTop: 80, paddingHorizontal: 12,
+  },
+  cardWrapper: { flex: 1, maxHeight: '85%', width: '100%' },
+  container:   { flex: 1, backgroundColor: '#F5F5F7', borderRadius: 10, overflow: 'hidden' },
+
+  closeBtn: {
+    position: 'absolute', top: -18, right: -5, zIndex: 10,
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1C1C1E',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 8,
+  },
+  xL: { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  xR: { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+
+  header: {
+    flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap',
+    backgroundColor: '#FFF', paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md, gap: Spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: '#EBEBEB',
+  },
+  headerIcon: {
+    width: 38, height: 38, borderRadius: 8,
+    backgroundColor: Colors.primaryHighlight,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  titleTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: '#1C1C1E' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  resetBtn:  {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#1976D2', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5,
+  },
+  resetTxt:  { fontFamily: FontFamily.medium, fontSize: 11, color: '#FFF' },
+
   form: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg },
-  fieldWrap:  { marginBottom: Spacing.lg },
-  fieldLabel: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder, marginBottom: 5 },
-  req:        { color: PINK },
-  fieldInput: { fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText, paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#EAEAEA', paddingHorizontal: 0 },
-  fieldActive:{ borderBottomColor: '#D0D0D0' },
-  presetWrap: { marginBottom: Spacing.lg, zIndex: 20 },
-  presetLbl:  { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder, marginBottom: 5 },
-  presetTrigger: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0' },
-  presetVal:  { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.placeholder },
-  presetList: { backgroundColor: '#FFF', borderRadius: 12, marginTop: 4, borderWidth: 1, borderColor: '#E5E5EA', overflow: 'hidden', elevation: 6 },
-  presetOpt:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
-  presetOptTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, color: Colors.primaryText },
-  presetOptCnt: { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder },
-  gridSection: { marginTop: Spacing.md },
-  gridHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
-  gridTitle:   { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.primaryText },
-  gridBadge:   { backgroundColor: 'rgba(94,53,177,0.1)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  gridBadgeTxt:{ fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: PURPLE },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E5E5EA', gap: Spacing.sm },
-  cancelBtn: { paddingVertical: 12, paddingHorizontal: Spacing.md, borderRadius: 8, borderWidth: 1.5, borderColor: '#D0D0D8', backgroundColor: '#FFF', minWidth: 80, alignItems: 'center' },
-  cancelTxt: { fontFamily: FontFamily.medium, fontSize: FontSize.sm, color: Colors.primaryText },
-  saveBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: PURPLE, borderRadius: 10, paddingVertical: 14 },
-  saveTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF' },
+
+  fieldLabel: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder, marginBottom: 6 },
+  req:        { color: Colors.primaryHighlight },
+  fieldInput: {
+    fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText,
+    paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#EAEAEA', paddingHorizontal: 0,
+  },
+  fieldActive: { borderBottomColor: '#D0D0D0' },
+  descInput: {
+    fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText,
+    borderWidth: 1.5, borderColor: '#D0D0D0', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 10, minHeight: 80,
+  },
+  descActive: { borderColor: '#BDBDBD' },
+
+  footer: {
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E5E5EA',
+  },
+  saveBtn: {
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#595959', borderRadius: 10, paddingVertical: 14,
+  },
+  saveTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF', letterSpacing: 0.5 },
+
+  // Reset confirm
+  rcOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 44,
+  },
+  rcCard:    { width: '100%', backgroundColor: '#FFF', borderRadius: 14, overflow: 'hidden', elevation: 10 },
+  rcAccent:  { height: 3, backgroundColor: '#1976D2' },
+  rcClose:   { position: 'absolute', top: 8, right: 8, zIndex: 10, width: 22, height: 22, borderRadius: 11, backgroundColor: '#F0F0F4', alignItems: 'center', justifyContent: 'center' },
+  rcIconRing: { marginTop: 14, marginBottom: 8, alignItems: 'center' },
+  rcIconCircle: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#1976D2', alignItems: 'center', justifyContent: 'center' },
+  rcTitle:   { textAlign: 'center', fontFamily: FontFamily.bold, fontSize: 14, fontWeight: FontWeight.bold, color: '#1C1C1E', marginBottom: 4 },
+  rcDesc:    { textAlign: 'center', fontFamily: FontFamily.regular, fontSize: 11, color: '#999', lineHeight: 16, paddingHorizontal: 12, marginBottom: 12 },
+  rcDivider: { height: 1, backgroundColor: '#F0F0F4' },
+  rcBtnRow:  { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  rcCancel:  { flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1.5, borderColor: '#D0D0D8', alignItems: 'center', justifyContent: 'center' },
+  rcCancelTxt: { fontFamily: FontFamily.medium, fontSize: 12, color: '#666' },
+  rcConfirm: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, borderRadius: 8, backgroundColor: '#1976D2' },
+  rcConfirmTxt: { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF' },
 });
 
-const pg = StyleSheet.create({
-  wrap:   { borderRadius: 12, borderWidth: 1, borderColor: '#E5E5EA', overflow: 'hidden' },
-  hRow:   { flexDirection: 'row', backgroundColor: '#F5F5F7', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
-  row:    { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
-  modCol: { width: 72, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10 },
-  actCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
-  hTxt:   { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: FontWeight.bold, color: Colors.placeholder, textTransform: 'uppercase', textAlign: 'center', letterSpacing: 0.4 },
-  modTxt: { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.primaryText },
-  modTxtOn: { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: PURPLE },
-  cell:   { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: '#D0D0D8', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF' },
-  cellOn: { backgroundColor: PURPLE, borderColor: PURPLE },
-  ckL: { position: 'absolute', left: 1, bottom: 3, width: 4, height: 1.5, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  ckR: { position: 'absolute', right: 1, bottom: 4, width: 7, height: 1.5, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '-50deg' }] },
+// ─── Delete confirm styles ────────────────────────────────────────────────────
+const dc = StyleSheet.create({
+  overlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 44 },
+  card:     { width: '100%', backgroundColor: '#FFF', borderRadius: 14, overflow: 'hidden', elevation: 10 },
+  topAccent:{ height: 3, backgroundColor: '#E53935' },
+  closeBtn: { position: 'absolute', top: 8, right: 8, zIndex: 10, width: 22, height: 22, borderRadius: 11, backgroundColor: '#F0F0F4', alignItems: 'center', justifyContent: 'center' },
+  iconRing: { marginTop: 14, marginBottom: 8, alignItems: 'center' },
+  iconCircle: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#E53935', alignItems: 'center', justifyContent: 'center' },
+  title:    { textAlign: 'center', fontFamily: FontFamily.bold, fontSize: 14, fontWeight: FontWeight.bold, color: '#1C1C1E', marginBottom: 4 },
+  desc:     { textAlign: 'center', fontFamily: FontFamily.regular, fontSize: 11, color: '#999', lineHeight: 16, paddingHorizontal: 12, marginBottom: 12 },
+  divider:  { height: 1, backgroundColor: '#F0F0F4' },
+  btnRow:   { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  cancelBtn:{ flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1.5, borderColor: '#D0D0D8', alignItems: 'center', justifyContent: 'center' },
+  cancelTxt:{ fontFamily: FontFamily.medium, fontSize: 12, color: '#666' },
+  confirmBtn:{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E53935' },
+  confirmTxt:{ fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF' },
 });

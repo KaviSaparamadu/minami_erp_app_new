@@ -23,7 +23,7 @@ const H_PAD = 6;
 const GRID_GAP = 10;
 const GRID_COLS = 3;
 
-type Tab = 'dashboard' | 'modules' | 'submodules';
+type Tab = 'dashboard' | 'modules';
 
 // ─── Sub-module definitions ───────────────────────────────────────────────────
 const UM_SUBMODULES: {
@@ -149,7 +149,7 @@ function ModulesView({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function UserManagementScreen() {
   const { navigate } = useNavigation();
-  const [tab, setTab] = useState<Tab>('submodules');
+  const [tab, setTab] = useState<Tab>('modules');
   const [refreshing, setRefreshing] = useState(false);
 
   function handleSubmodulePress(screen: ScreenName) {

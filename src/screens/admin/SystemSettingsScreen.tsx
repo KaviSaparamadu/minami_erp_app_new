@@ -14,6 +14,7 @@ export function SystemSettingsScreen() {
   const handleSettingPress = (id: string) => {
     if      (id === '1') navigate('EmployeeSettings');
     else if (id === '2') navigate('ItemSettings');
+    else if (id === '4') navigate('StoresSettings');
   };
 
   return (

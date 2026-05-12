@@ -25,6 +25,7 @@ import { SystemAdminScreen } from './screens/admin/SystemAdminScreen';
 import { SystemSettingsScreen } from './screens/admin/SystemSettingsScreen';
 import { EmployeeSettingsScreen } from './screens/admin/EmployeeSettingsScreen';
 import { ItemSettingsScreen } from './screens/admin/ItemSettingsScreen';
+import { StoresSettingScreen } from './screens/admin/StoresSettingScreen';
 import { GeneralSettingsScreen } from './screens/admin/GeneralSettingsScreen';
 import { SystemDefaultSettingsScreen } from './screens/admin/SystemDefaultSettingsScreen';
 import { SupportTicketScreen } from './screens/admin/SupportTicketScreen';
@@ -52,10 +53,14 @@ import { JournalEntryScreen } from './screens/finance/JournalEntryScreen';
 import { ManagePOSPointsScreen } from './screens/finance/ManagePOSPointsScreen';
 import { SimpleInvoiceScreen } from './screens/finance/SimpleInvoiceScreen';
 import { ManageBankCardMachineScreen } from './screens/finance/ManageBankCardMachineScreen';
+import { StoresProvider } from './context/StoresContext';
 import { ProcurementScreen } from './screens/procurement/ProcurementScreen';
 import { PurchasingScreen } from './screens/procurement/PurchasingScreen';
 import { StoresInventoryScreen } from './screens/procurement/StoresInventoryScreen';
 import { LogisticsScreen } from './screens/procurement/LogisticsScreen';
+import { ProcStoresScreen } from './screens/procurement/ProcStoresScreen';
+import { ProcManageStoresScreen } from './screens/procurement/ProcManageStoresScreen';
+import { ProcStoresReportsScreen } from './screens/procurement/ProcStoresReportsScreen';
 
 function DottedLoader() {
   const DOT_SIZE = 8;
@@ -117,6 +122,7 @@ function AppNavigator() {
       case 'SystemSettings':          return <SystemSettingsScreen />;
       case 'EmployeeSettings':        return <EmployeeSettingsScreen />;
       case 'ItemSettings':            return <ItemSettingsScreen />;
+      case 'StoresSettings':          return <StoresSettingScreen />;
       case 'GeneralSettings':         return <GeneralSettingsScreen />;
       case 'SystemDefaultSettings':   return <SystemDefaultSettingsScreen />;
       case 'SupportTicket':           return <SupportTicketScreen />;
@@ -148,6 +154,9 @@ function AppNavigator() {
       case 'Purchasing':                 return <PurchasingScreen />;
       case 'StoresInventory':            return <StoresInventoryScreen />;
       case 'Logistics':                  return <LogisticsScreen />;
+      case 'ProcStores':                 return <ProcStoresScreen />;
+      case 'ProcManageStores':           return <ProcManageStoresScreen />;
+      case 'ProcStoresReports':          return <ProcStoresReportsScreen />;
       case 'ModuleDetail': {
         const moduleId = params && typeof params === 'object' && 'moduleId' in params ? params.moduleId : '';
         return <ModuleDetailScreen moduleId={moduleId} />;
@@ -202,11 +211,13 @@ function AppWithTheme() {
         backgroundColor={isDarkMode ? '#1C1C1E' : '#FFFFFF'}
       />
       <AuthProvider>
-        <SearchProvider>
-          <NavigationProvider>
-            <RootScreen />
-          </NavigationProvider>
-        </SearchProvider>
+        <StoresProvider>
+          <SearchProvider>
+            <NavigationProvider>
+              <RootScreen />
+            </NavigationProvider>
+          </SearchProvider>
+        </StoresProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

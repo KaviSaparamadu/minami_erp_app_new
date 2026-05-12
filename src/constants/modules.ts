@@ -10,7 +10,7 @@ export interface Submodule {
   description?: string;
   iconType?: string;
 }
-
+ 
 export interface AppModule {
   id: string;
   name: string;
@@ -139,6 +139,12 @@ export const MODULES: AppModule[] = [
  
 ];
 
+export const STORES_INVENTORY_ITEMS: Submodule[] = [
+  { id: '1', name: 'Stores',        value: '12', valueLabel: 'Locations', description: 'Manage store locations, inventory points, and warehouse configurations.',      iconType: 'store' },
+  { id: '2', name: 'Manage Stores', value: '8',  valueLabel: 'Active',    description: 'Update store details, assign stock, and configure store-level parameters.',    iconType: 'vendor' },
+  { id: '3', name: 'Reports',       value: '6',  valueLabel: 'Templates', description: 'Generate inventory reports, stock summaries, and procurement analytics.',      iconType: 'fin-reports' },
+];
+
 export const SYSTEM_SETTINGS: Submodule[] = [
   { id: '1', name: 'Employee Settings', value: '24', valueLabel: 'Config', description: 'Configure employee-related system parameters and defaults', iconType: 'account-tie' },
   { id: '2', name: 'Item Settings', value: '18', valueLabel: 'Config', description: 'Manage item classification, categories, and inventory settings', iconType: 'package' },
@@ -162,6 +168,6 @@ export const STANDARD_SETTINGS: Submodule[] = [
   { id: '8', name: 'System Logs & Backup', value: '11', valueLabel: 'Config', description: 'Configure logging levels, backup schedules, and data retention policies', iconType: 'backup-restore' },
 ];
 
-export const GENERAL_SETTINGS_SUBMODULES: Submodule[] = [
+export const SYSTEM_DEFAULT_SETTINGS: Submodule[] = [
   { id: '1', name: 'Standard Settings', value: '8', valueLabel: 'Settings', description: 'Configure application preferences, display settings, and system defaults', iconType: 'cog' },
 ];
