@@ -61,6 +61,7 @@ import { LogisticsScreen } from './screens/procurement/LogisticsScreen';
 import { ProcStoresScreen } from './screens/procurement/ProcStoresScreen';
 import { ProcManageStoresScreen } from './screens/procurement/ProcManageStoresScreen';
 import { ProcStoresReportsScreen } from './screens/procurement/ProcStoresReportsScreen';
+import { StoreDetailScreen } from './screens/procurement/StoreDetailScreen';
 
 function DottedLoader() {
   const DOT_SIZE = 8;
@@ -157,6 +158,7 @@ function AppNavigator() {
       case 'ProcStores':                 return <ProcStoresScreen />;
       case 'ProcManageStores':           return <ProcManageStoresScreen />;
       case 'ProcStoresReports':          return <ProcStoresReportsScreen />;
+      case 'StoreDetail':                return <StoreDetailScreen />;
       case 'ModuleDetail': {
         const moduleId = params && typeof params === 'object' && 'moduleId' in params ? params.moduleId : '';
         return <ModuleDetailScreen moduleId={moduleId} />;

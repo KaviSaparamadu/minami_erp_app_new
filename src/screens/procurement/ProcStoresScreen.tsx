@@ -28,20 +28,20 @@ function luminance(hex: string): number {
 
 // ── Filled store card ─────────────────────────────────────────────────────────
 
-function StoreCard({ store }: { store: Store }) {
+function StoreCard({ store, onPress }: { store: Store; onPress: () => void }) {
   const bg       = store.storeColor || '#595959';
   const lum      = luminance(bg);
   const textColor = lum > 0.55 ? 'rgba(0,0,0,0.85)' : '#FFFFFF';
   const subColor  = lum > 0.55 ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.75)';
 
   return (
-    <View style={[sc.card, { backgroundColor: bg }]}>
+    <Pressable onPress={onPress} style={({ pressed }) => [sc.card, { backgroundColor: bg }, pressed && { opacity: 0.8 }]}>
       <Text style={[sc.code, { color: subColor }]} numberOfLines={1}>{store.storeCode}</Text>
       <Text style={[sc.number, { color: textColor }]}>{store.storeNo}</Text>
       <View style={[sc.divider, { backgroundColor: textColor, opacity: 0.25 }]} />
       <Text style={[sc.label, { color: subColor }]} numberOfLines={1}>{store.workBranch}</Text>
       <Text style={[sc.label, { color: subColor }]} numberOfLines={1}>{store.entity}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -58,17 +58,18 @@ function EmptySlot({ slotNo, onPress }: { slotNo: number; onPress: () => void })
 
 // ── Row of 3 ─────────────────────────────────────────────────────────────────
 
-function StoreRow({ rowStores, startSlot, onEmptyPress }: {
+function StoreRow({ rowStores, startSlot, onEmptyPress, onStorePress }: {
   rowStores: (Store | null)[];
   startSlot: number;
   onEmptyPress: () => void;
+  onStorePress: (store: Store) => void;
 }) {
   return (
     <View style={sc.row}>
       {rowStores.map((store, i) => {
         const slotNo = startSlot + i;
         return store
-          ? <StoreCard key={store.id} store={store} />
+          ? <StoreCard key={store.id} store={store} onPress={() => onStorePress(store)} />
           : <EmptySlot key={`empty-${slotNo}`} slotNo={slotNo} onPress={onEmptyPress} />;
       })}
     </View>
@@ -182,6 +183,7 @@ export function ProcStoresScreen() {
                     rowStores={rowStores}
                     startSlot={ri * SLOTS_PER_LINE + 1}
                     onEmptyPress={() => navigate('ProcManageStores')}
+                    onStorePress={(store) => navigate('StoreDetail', { storeId: store.id })}
                   />
                   {/* Separator line between rows */}
                   {ri < rows.length - 1 && <View style={styles.rowDivider} />}

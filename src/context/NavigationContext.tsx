@@ -20,7 +20,7 @@ export type ScreenName =
   | 'LedgerConnectionConsole' | 'OpeningBalanceConsole' | 'JournalEntry'
   | 'ManagePOSPoints' | 'SimpleInvoice' | 'ManageBankCardMachine'
   | 'Procurement' | 'Purchasing' | 'StoresInventory' | 'Logistics'
-  | 'ProcStores' | 'ProcManageStores' | 'ProcStoresReports'
+  | 'ProcStores' | 'ProcManageStores' | 'ProcStoresReports' | 'StoreDetail'
   | 'ModuleDetail';
 
 export interface RecentPage {

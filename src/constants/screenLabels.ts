@@ -50,4 +50,5 @@ export const SCREEN_LABELS: Record<string, string> = {
   ProcStores:                 'Stores',
   ProcManageStores:           'Manage Stores',
   ProcStoresReports:          'Reports',
+  StoreDetail:                'Store',
 };

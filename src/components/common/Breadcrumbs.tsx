@@ -49,6 +49,7 @@ const SCREEN_PARENT: Record<string, string> = {
   ProcStores:               'StoresInventory',
   ProcManageStores:         'StoresInventory',
   ProcStoresReports:        'StoresInventory',
+  StoreDetail:              'ProcStores',
 };
 
 function buildPath(screen: string): string[] {

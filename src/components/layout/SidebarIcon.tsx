@@ -613,6 +613,33 @@ function PurchasingIcon({ color }: { color: string }) {
   );
 }
 
+// Store — shelving unit with box items on each shelf
+function StoreIcon({ color }: { color: string }) {
+  return (
+    <View style={styles.center}>
+      <View style={[styles.stFrame,  { borderColor: color }]} />
+      <View style={[styles.stShelf1, { backgroundColor: color }]} />
+      <View style={[styles.stShelf2, { backgroundColor: color }]} />
+      <View style={[styles.stBox,    { backgroundColor: color, top: 4,  left: 4  }]} />
+      <View style={[styles.stBox,    { backgroundColor: color, top: 4,  right: 4 }]} />
+      <View style={[styles.stBox,    { backgroundColor: color, top: 10, left: 4  }]} />
+      <View style={[styles.stBox,    { backgroundColor: color, top: 10, right: 4 }]} />
+    </View>
+  );
+}
+
+// Vendor / Manage Stores — building outline with person badge
+function VendorIcon({ color }: { color: string }) {
+  return (
+    <View style={styles.center}>
+      <View style={[styles.vnBuilding, { borderColor: color }]} />
+      <View style={[styles.vnDoor,     { borderColor: color }]} />
+      <View style={[styles.vnSign,     { backgroundColor: color }]} />
+      <View style={[styles.vnHead,     { backgroundColor: color }]} />
+    </View>
+  );
+}
+
 // Stores & Inventory — warehouse shelves
 function StoresInventoryIcon({ color }: { color: string }) {
   return (
@@ -701,6 +728,9 @@ const ICON_MAP: Record<string, React.FC<{ color: string }>> = {
   'proc-purchasing':   PurchasingIcon,
   'proc-stores':       StoresInventoryIcon,
   'proc-logistics':    LogisticsIcon,
+  store:               StoreIcon,
+  vendor:              VendorIcon,
+  'fin-reports':       FinReportsIcon,
   procurement:         ProcurementIcon,
   operation:   OperationIcon,
   marketing:   MarketingIcon,
@@ -1265,6 +1295,18 @@ const styles = StyleSheet.create({
   // Purchasing — cart tick overlay
   procTickH: { position: 'absolute', top: 7, right: 1, width: 3, height: 0, borderBottomWidth: 1.5, transform: [{ rotate: '45deg' }] },
   procTickV: { position: 'absolute', top: 5, right: 2, width: 5, height: 0, borderBottomWidth: 1.5, transform: [{ rotate: '-45deg' }] },
+
+  // Store — framed shelving with boxes
+  stFrame:  { position: 'absolute', top: 1, left: 1, right: 1, bottom: 1, borderWidth: 1.5, borderRadius: 2 },
+  stShelf1: { position: 'absolute', left: 3, right: 3, top: 7,  height: 1.5, borderRadius: 1 },
+  stShelf2: { position: 'absolute', left: 3, right: 3, top: 13, height: 1.5, borderRadius: 1 },
+  stBox:    { position: 'absolute', width: 3, height: 3, borderRadius: 1 },
+
+  // Vendor — building + person head + door + sign
+  vnBuilding: { position: 'absolute', top: 2, left: 1, right: 1, bottom: 0, borderWidth: 1.5, borderRadius: 1 },
+  vnDoor:     { position: 'absolute', bottom: 0, left: 6, width: 5, height: 6, borderWidth: 1.5, borderBottomWidth: 0, borderRadius: 1 },
+  vnSign:     { position: 'absolute', top: 5, left: 3, width: 5, height: 1.5, borderRadius: 1 },
+  vnHead:     { position: 'absolute', top: -1, left: 5, width: 5, height: 5, borderRadius: 3 },
 
   // Stores & Inventory — horizontal shelves + vertical posts
   siShelf: { position: 'absolute', left: 3, right: 3, height: 1.5, borderRadius: 1 },
