@@ -35,7 +35,7 @@ export function DashboardScreen() {
   const { colors, isDarkMode } = useTheme();
   const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
-  const [tab, setTab] = useState<Tab>('dashboard');
+  const [tab, setTab] = useState<Tab>('modules');
   const [refreshing, setRefreshing] = useState(false);
   const panResponder = useRef<any>(null);
 

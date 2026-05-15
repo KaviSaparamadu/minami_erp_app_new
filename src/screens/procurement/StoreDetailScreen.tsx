@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -216,17 +218,6 @@ function ItemCard({
 
 // ── Modal tab icons (pure RN, same style as EmployeeFormModal) ───────────────
 
-function ItemInfoTabIcon({ active }: { active: boolean }) {
-  const c = active ? Colors.primaryHighlight : '#A0A0A0';
-  return (
-    <View style={mti.wrap}>
-      <View style={[mti.doc, { borderColor: c }]} />
-      <View style={[mti.line, { backgroundColor: c, top: 6 }]} />
-      <View style={[mti.line, { backgroundColor: c, top: 10 }]} />
-      <View style={[mti.photo, { backgroundColor: c }]} />
-    </View>
-  );
-}
 function AdjTabIcon({ active }: { active: boolean }) {
   const c = active ? Colors.primaryHighlight : '#A0A0A0';
   return (
@@ -248,143 +239,845 @@ function PendingTabIcon({ active }: { active: boolean }) {
   );
 }
 
-type AdjTab = 'info' | 'adjustment' | 'pending';
+type AdjTab = 'adjustment' | 'pending';
 const ADJ_TABS: { id: AdjTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
-  { id: 'info',       label: 'Item Info',   Icon: ItemInfoTabIcon },
-  { id: 'adjustment', label: 'Adjustment',  Icon: AdjTabIcon },
-  { id: 'pending',    label: 'Pending',     Icon: PendingTabIcon },
+  { id: 'adjustment', label: 'Adjustment', Icon: AdjTabIcon },
+  { id: 'pending',    label: 'Pending',    Icon: PendingTabIcon },
 ];
+
+const ITEM_IMAGE_MAP: Record<string, string[]> = {
+  'Head Light': [
+    'https://loremflickr.com/400/400/car,headlight?lock=11',
+    'https://loremflickr.com/400/400/car,headlight?lock=12',
+    'https://loremflickr.com/400/400/car,headlight?lock=13',
+    'https://loremflickr.com/400/400/car,headlight?lock=14',
+    'https://loremflickr.com/400/400/car,headlight?lock=15',
+  ],
+  'Dashboard': [
+    'https://loremflickr.com/400/400/car,dashboard?lock=21',
+    'https://loremflickr.com/400/400/car,dashboard?lock=22',
+    'https://loremflickr.com/400/400/car,dashboard?lock=23',
+    'https://loremflickr.com/400/400/car,dashboard?lock=24',
+    'https://loremflickr.com/400/400/car,dashboard?lock=25',
+  ],
+  'Engine': [
+    'https://loremflickr.com/400/400/car,engine?lock=31',
+    'https://loremflickr.com/400/400/car,engine?lock=32',
+    'https://loremflickr.com/400/400/car,engine?lock=33',
+    'https://loremflickr.com/400/400/car,engine?lock=34',
+    'https://loremflickr.com/400/400/car,engine?lock=35',
+  ],
+  'Body': [
+    'https://loremflickr.com/400/400/car,body,panel?lock=41',
+    'https://loremflickr.com/400/400/car,body,panel?lock=42',
+    'https://loremflickr.com/400/400/car,body,panel?lock=43',
+    'https://loremflickr.com/400/400/car,body,panel?lock=44',
+    'https://loremflickr.com/400/400/car,body,panel?lock=45',
+  ],
+};
+
+const FALLBACK_IMAGES = [
+  'https://loremflickr.com/400/400/car,spare,parts?lock=51',
+  'https://loremflickr.com/400/400/car,spare,parts?lock=52',
+  'https://loremflickr.com/400/400/car,spare,parts?lock=53',
+  'https://loremflickr.com/400/400/car,spare,parts?lock=54',
+  'https://loremflickr.com/400/400/car,spare,parts?lock=55',
+];
+
+function getDemoImages(subCategory: string): string[] {
+  return ITEM_IMAGE_MAP[subCategory] ?? FALLBACK_IMAGES;
+}
+
+// ── GRN record type + mock data ──────────────────────────────────────────────
+
+interface GrnRecord {
+  grnNo:    string;
+  date:     string;
+  supplier: string;
+  mainCost: string;
+  loseCost: string;
+  mainSell: string;
+  loseSell: string;
+  mainQty:  string;
+  loseQty:  string;
+}
+
+const MOCK_GRN: GrnRecord[] = [
+  { grnNo: 'GRN-2025-001', date: '15 Jan 2025', supplier: 'Prime Auto Parts Co.',  mainCost: '1,250.00', loseCost: '12.50', mainSell: '1,450.00', loseSell: '14.50', mainQty: '50',  loseQty: '500' },
+  { grnNo: 'GRN-2024-089', date: '20 Nov 2024', supplier: 'Auto Supply Ltd.',       mainCost: '1,180.00', loseCost: '11.80', mainSell: '1,380.00', loseSell: '13.80', mainQty: '40',  loseQty: '400' },
+  { grnNo: 'GRN-2024-044', date: '05 Aug 2024', supplier: 'Prime Auto Parts Co.',   mainCost: '1,100.00', loseCost: '11.00', mainSell: '1,300.00', loseSell: '13.00', mainQty: '60',  loseQty: '600' },
+  { grnNo: 'GRN-2023-128', date: '12 Dec 2023', supplier: 'Minami Trade House',     mainCost: '1,050.00', loseCost: '10.50', mainSell: '1,250.00', loseSell: '12.50', mainQty: '35',  loseQty: '350' },
+];
+
+// ── Assign Makers Serial No modal ─────────────────────────────────────────────
+
+function SerialModal({
+  item,
+  adjType,
+  stockQty,
+  noteText,
+  onClose,
+}: {
+  item: StoreItem;
+  adjType: 'excess' | 'damage';
+  stockQty: number;
+  noteText: string;
+  onClose: () => void;
+}) {
+  type InputType = 'batch' | 'barcode' | 'ocr';
+  const [inputType, setInputType] = useState<InputType>('batch');
+  const [prefix,    setPrefix]    = useState('');
+  const [rangeFrom, setRangeFrom] = useState('1');
+  const [rangeTo,   setRangeTo]   = useState(String(Math.ceil(stockQty)));
+  const [serials,   setSerials]   = useState<string[]>(
+    () => Array(Math.max(1, Math.ceil(stockQty))).fill(''),
+  );
+  const [page, setPage] = useState(1);
+
+  const total      = Math.max(1, Math.ceil(stockQty));
+  const looseQty   = Number((stockQty % 1).toFixed(2));
+  const PAGE_SIZE  = 9;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const assigned   = serials.filter(s => s.trim() !== '').length;
+  const adjLabel   = adjType === 'excess' ? 'Excess' : 'Damage';
+  const pageStart  = (page - 1) * PAGE_SIZE;
+  const pageRows   = serials.slice(pageStart, pageStart + PAGE_SIZE);
+
+  function generateSerials() {
+    const from = Math.max(1, parseInt(rangeFrom, 10) || 1);
+    const to   = Math.min(total, parseInt(rangeTo, 10) || total);
+    setSerials(prev => {
+      const next = [...prev];
+      for (let i = from - 1; i < to; i++) {
+        next[i] = prefix
+          ? `${prefix}${String(i + 1).padStart(4, '0')}`
+          : String(i + 1);
+      }
+      return next;
+    });
+  }
+
+  function clearAll() {
+    setSerials(Array(total).fill(''));
+    setPage(1);
+  }
+
+  function updateSerial(idx: number, val: string) {
+    setSerials(prev => { const n = [...prev]; n[idx] = val; return n; });
+  }
+
+  const INPUT_TYPES: { id: InputType; label: string }[] = [
+    { id: 'batch',   label: 'Batch wise' },
+    { id: 'barcode', label: 'Barcode'    },
+    { id: 'ocr',     label: 'OCR'        },
+  ];
+
+  return (
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <View style={sm.overlay}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={sm.card}>
+
+            {/* ── Header ── */}
+            <View style={sm.header}>
+              <View style={sm.headerIcon}>
+                <MaterialCommunityIcons name="barcode-scan" size={16} color="#FFF" />
+              </View>
+              <Text style={sm.headerTitle}>Assign Makers Serial No</Text>
+              <Pressable onPress={onClose}
+                style={({ pressed }) => [sm.closeBtn, pressed && { opacity: 0.6 }]} hitSlop={12}>
+                <MaterialCommunityIcons name="close" size={16} color="#595959" />
+              </Pressable>
+            </View>
+
+            {/* ── Input type row ── */}
+            <View style={sm.topRow}>
+              <View style={sm.typeSection}>
+                <Text style={sm.selectLbl}>Select serial number input type ?</Text>
+                <View style={sm.radios}>
+                  {INPUT_TYPES.map(t => (
+                    <Pressable key={t.id} onPress={() => { setInputType(t.id); setPage(1); }}
+                      style={sm.radioOpt}>
+                      <View style={[sm.radioCircle, inputType === t.id && sm.radioCircleSel]}>
+                        {inputType === t.id && <View style={sm.radioDot} />}
+                      </View>
+                      <Text style={[sm.radioLbl, inputType === t.id && sm.radioLblSel]}>{t.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={sm.stockMeta}>
+                <View style={sm.stockItem}>
+                  <Text style={sm.stockLbl}>{adjLabel} Stock :</Text>
+                  <Text style={sm.stockVal}>{stockQty.toFixed(2)}</Text>
+                </View>
+                <View style={sm.stockItem}>
+                  <Text style={sm.stockLbl}>{adjLabel} Loose Stock :</Text>
+                  <Text style={sm.stockVal}>{looseQty.toFixed(0)}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* ── Batch wise: serial number ranges ── */}
+            {inputType === 'batch' && (
+              <View style={sm.rangesWrap}>
+                <Text style={sm.rangesTitle}>Serial Number Ranges</Text>
+                <View style={sm.rangeRow}>
+                  <TextInput
+                    value={prefix}
+                    onChangeText={setPrefix}
+                    style={sm.prefixInput}
+                    placeholder="Serial prefix"
+                    placeholderTextColor="#BBBBC0"
+                  />
+                  <View style={sm.numFieldWrap}>
+                    <TextInput value={rangeFrom} onChangeText={setRangeFrom} keyboardType="numeric"
+                      style={sm.numField} placeholder="From" placeholderTextColor="#BBBBC0" />
+                    <View style={sm.spinCols}>
+                      <Pressable hitSlop={6} onPress={() => setRangeFrom(p => String(Math.max(1, parseInt(p||'1',10)+1)))}>
+                        <MaterialCommunityIcons name="chevron-up" size={13} color="#888" />
+                      </Pressable>
+                      <Pressable hitSlop={6} onPress={() => setRangeFrom(p => String(Math.max(1, parseInt(p||'2',10)-1)))}>
+                        <MaterialCommunityIcons name="chevron-down" size={13} color="#888" />
+                      </Pressable>
+                    </View>
+                  </View>
+                  <View style={sm.numFieldWrap}>
+                    <TextInput value={rangeTo} onChangeText={setRangeTo} keyboardType="numeric"
+                      style={sm.numField} placeholder="To" placeholderTextColor="#BBBBC0" />
+                    <View style={sm.spinCols}>
+                      <Pressable hitSlop={6} onPress={() => setRangeTo(p => String(parseInt(p||'0',10)+1))}>
+                        <MaterialCommunityIcons name="chevron-up" size={13} color="#888" />
+                      </Pressable>
+                      <Pressable hitSlop={6} onPress={() => setRangeTo(p => String(Math.max(0, parseInt(p||'1',10)-1)))}>
+                        <MaterialCommunityIcons name="chevron-down" size={13} color="#888" />
+                      </Pressable>
+                    </View>
+                  </View>
+                  <Text style={sm.assignedCount}>{assigned} / {total}</Text>
+                  <Pressable hitSlop={8}
+                    onPress={() => { setPrefix(''); setRangeFrom('1'); setRangeTo(String(total)); }}
+                    style={sm.clearRowBtn}>
+                    <MaterialCommunityIcons name="close" size={12} color="#888" />
+                  </Pressable>
+                </View>
+                <View style={sm.actionBtns}>
+                  <Pressable style={[sm.actionBtn, sm.btnAddRange]}>
+                    <Text style={sm.actionBtnTxt}>Add Range</Text>
+                  </Pressable>
+                  <Pressable onPress={generateSerials} style={[sm.actionBtn, sm.btnGenerate]}>
+                    <Text style={[sm.actionBtnTxt, { color: '#FFF' }]}>Generate Serials</Text>
+                  </Pressable>
+                  <Pressable onPress={clearAll} style={[sm.actionBtn, sm.btnClear]}>
+                    <Text style={sm.actionBtnTxt}>Clear All</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {/* ── Table ── */}
+            <View style={sm.tableWrap}>
+              {/* Fixed table header */}
+              <View style={[sm.tRow, sm.tHeaderRow]}>
+                <Text style={[sm.tCell, sm.cHash,   sm.tHdrTxt]}>#</Text>
+                <Text style={[sm.tCell, sm.cCode,   sm.tHdrTxt]}>Item Code</Text>
+                <Text style={[sm.tCell, sm.cNote,   sm.tHdrTxt]}>{adjLabel} Note</Text>
+                <Text style={[sm.tCell, sm.cSerial, sm.tHdrTxt]}>Serial No</Text>
+                <Text style={[sm.tCell, sm.cOcr,    sm.tHdrTxt]}>OCR</Text>
+              </View>
+
+              {/* Scrollable data rows */}
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {pageRows.map((serial, i) => {
+                  const gIdx = pageStart + i;
+                  return (
+                    <View key={gIdx} style={[sm.tRow, sm.tDataRow]}>
+                      <Text style={[sm.tCell, sm.cHash, sm.tDataTxt]}>{gIdx + 1}</Text>
+                      <Text style={[sm.tCell, sm.cCode, sm.tDataTxt]} numberOfLines={1}>{item.itemCode}</Text>
+                      <Text style={[sm.tCell, sm.cNote, sm.tDataTxt]} numberOfLines={1}>{noteText || '—'}</Text>
+                      <View style={[sm.tCell, sm.cSerial, sm.serialRow]}>
+                        <TextInput
+                          value={serial}
+                          onChangeText={v => updateSerial(gIdx, v)}
+                          placeholder="Serial No"
+                          placeholderTextColor="#BBBBC0"
+                          style={sm.serialInput}
+                        />
+                        <Pressable hitSlop={8}>
+                          <MaterialCommunityIcons name="pencil-outline" size={13} color="#595959" />
+                        </Pressable>
+                        <Pressable hitSlop={8} onPress={() => updateSerial(gIdx, '')}>
+                          <MaterialCommunityIcons name="trash-can-outline" size={13} color="#888" />
+                        </Pressable>
+                      </View>
+                      <View style={[sm.tCell, sm.cOcr, sm.ocrCol]}>
+                        <Pressable hitSlop={8}>
+                          <MaterialCommunityIcons name="link-variant" size={15} color="#8E8E93" />
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* ── Footer: pagination + Done ── */}
+            <View style={sm.footer}>
+              <View style={sm.pagination}>
+                <Pressable disabled={page === 1} hitSlop={8} onPress={() => setPage(1)}
+                  style={[sm.pgBtn, page === 1 && sm.pgBtnOff]}>
+                  <MaterialCommunityIcons name="page-first" size={15} color={page === 1 ? '#CCC' : '#595959'} />
+                </Pressable>
+                <Pressable disabled={page === 1} hitSlop={8} onPress={() => setPage(p => p - 1)}
+                  style={[sm.pgBtn, page === 1 && sm.pgBtnOff]}>
+                  <MaterialCommunityIcons name="chevron-left" size={15} color={page === 1 ? '#CCC' : '#595959'} />
+                </Pressable>
+                <Text style={sm.pgInfo}>Page {page} of {totalPages}</Text>
+                <Pressable disabled={page === totalPages} hitSlop={8} onPress={() => setPage(p => p + 1)}
+                  style={[sm.pgBtn, page === totalPages && sm.pgBtnOff]}>
+                  <MaterialCommunityIcons name="chevron-right" size={15} color={page === totalPages ? '#CCC' : '#595959'} />
+                </Pressable>
+                <Pressable disabled={page === totalPages} hitSlop={8} onPress={() => setPage(totalPages)}
+                  style={[sm.pgBtn, page === totalPages && sm.pgBtnOff]}>
+                  <MaterialCommunityIcons name="page-last" size={15} color={page === totalPages ? '#CCC' : '#595959'} />
+                </Pressable>
+              </View>
+              <Pressable onPress={onClose}
+                style={({ pressed }) => [sm.doneBtn, pressed && { opacity: 0.85 }]}>
+                <Text style={sm.doneTxt}>Done</Text>
+              </Pressable>
+            </View>
+
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Previous GRN picker ───────────────────────────────────────────────────────
+
+function GrnPickerModal({
+  item,
+  onApply,
+  onClose,
+}: {
+  item: StoreItem;
+  onApply: (record: GrnRecord) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal visible transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={grn.overlay}>
+        {/* Tap backdrop to dismiss */}
+        <Pressable style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={onClose} />
+
+        <View style={grn.sheet}>
+          {/* Drag handle */}
+          <View style={grn.handle} />
+
+          {/* Header */}
+          <View style={grn.header}>
+            <View style={grn.headerIcon}>
+              <MaterialCommunityIcons name="file-document-multiple-outline" size={16} color="#FFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={grn.title}>Previous GRN Records</Text>
+              <Text style={grn.subtitle} numberOfLines={1}>{item.itemCode} · {item.itemDescription}</Text>
+            </View>
+            <Pressable onPress={onClose} hitSlop={12}
+              style={({ pressed }) => [grn.closeBtn, pressed && { opacity: 0.6 }]}>
+              <MaterialCommunityIcons name="close" size={15} color="#595959" />
+            </Pressable>
+          </View>
+
+          {/* GRN card list */}
+          <ScrollView showsVerticalScrollIndicator={false}
+            style={grn.list} contentContainerStyle={grn.listContent}>
+            {MOCK_GRN.map(record => (
+              <View key={record.grnNo} style={grn.card}>
+
+                {/* Card top: GRN no + date + supplier */}
+                <View style={grn.cardTop}>
+                  <View style={grn.cardAccent} />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <View style={grn.cardTitleRow}>
+                      <MaterialCommunityIcons name="file-document-outline" size={13} color={Colors.primaryHighlight} />
+                      <Text style={grn.cardGrnNo}>{record.grnNo}</Text>
+                      <View style={grn.dateBadge}>
+                        <Text style={grn.dateText}>{record.date}</Text>
+                      </View>
+                    </View>
+                    <View style={grn.supplierRow}>
+                      <MaterialCommunityIcons name="store-outline" size={11} color="#9090A0" />
+                      <Text style={grn.supplierText}>{record.supplier}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Price grid */}
+                <View style={grn.priceGrid}>
+                  <View style={grn.gridRow}>
+                    <View style={grn.gridLblCell} />
+                    <View style={grn.gridValCell}>
+                      <Text style={grn.gridHdr}>Main  /kg</Text>
+                    </View>
+                    <View style={grn.gridValCell}>
+                      <Text style={grn.gridHdr}>Lose  /g</Text>
+                    </View>
+                  </View>
+                  <View style={[grn.gridRow, grn.gridBorder]}>
+                    <View style={grn.gridLblCell}>
+                      <Text style={grn.gridLbl}>Qty</Text>
+                    </View>
+                    <View style={grn.gridValCell}>
+                      <Text style={[grn.gridVal, grn.gridValQty]}>{record.mainQty}</Text>
+                    </View>
+                    <View style={grn.gridValCell}>
+                      <Text style={[grn.gridVal, grn.gridValQty]}>{record.loseQty}</Text>
+                    </View>
+                  </View>
+                  <View style={[grn.gridRow, grn.gridBorder]}>
+                    <View style={grn.gridLblCell}>
+                      <Text style={grn.gridLbl}>Cost Price</Text>
+                    </View>
+                    <View style={grn.gridValCell}>
+                      <Text style={grn.gridVal}>{record.mainCost}</Text>
+                    </View>
+                    <View style={grn.gridValCell}>
+                      <Text style={grn.gridVal}>{record.loseCost}</Text>
+                    </View>
+                  </View>
+                  <View style={grn.gridRow}>
+                    <View style={grn.gridLblCell}>
+                      <Text style={grn.gridLbl}>Selling Price</Text>
+                    </View>
+                    <View style={grn.gridValCell}>
+                      <Text style={grn.gridVal}>{record.mainSell}</Text>
+                    </View>
+                    <View style={grn.gridValCell}>
+                      <Text style={grn.gridVal}>{record.loseSell}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Apply button */}
+                <View style={grn.cardFooter}>
+                  <Pressable
+                    onPress={() => { onApply(record); onClose(); }}
+                    style={({ pressed }) => [grn.applyBtn, pressed && { opacity: 0.82 }]}>
+                    <MaterialCommunityIcons name="check-circle-outline" size={14} color="#FFF" />
+                    <Text style={grn.applyBtnTxt}>Apply</Text>
+                  </Pressable>
+                </View>
+
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function StockAdjModal({ item, storeCode, onClose }: {
   item: StoreItem;
   storeCode: string;
   onClose: () => void;
 }) {
-  const [activeTab,   setActiveTab]   = useState<AdjTab>('info');
-  const [costPrice,   setCostPrice]   = useState('');
-  const [excessStock, setExcessStock] = useState('');
-  const [reasonNote,  setReasonNote]  = useState('');
-  const ringColor = stockRingColor(item.stockBal);
+  const [activeTab,    setActiveTab]    = useState<AdjTab>('adjustment');
+  const [adjType,      setAdjType]      = useState<'excess' | 'damage' | null>(null);
+  const [costPrice,      setCostPrice]      = useState('');
+  const [_excessStock,   _setExcessStock]   = useState('');
+  const [reasonNote,     _setReasonNote]    = useState('');
+  const [damageStock,    setDamageStock]    = useState('');
+  const [damageReason,   setDamageReason]   = useState('');
+  // Excess form — qty + pricing
+  const [mainQty,        setMainQty]        = useState('');
+  const [loseQty,        setLoseQty]        = useState('');
+  const [mainCostPrice,  setMainCostPrice]  = useState('');
+  const [loseCostPrice,  setLoseCostPrice]  = useState('');
+  const [mainSellPrice,  setMainSellPrice]  = useState('');
+  const [loseSellPrice,  setLoseSellPrice]  = useState('');
+  const [showSerial,   setShowSerial]   = useState(false);
+  const [showGrn,      setShowGrn]      = useState(false);
+  const [appliedGrn,   setAppliedGrn]   = useState<GrnRecord | null>(null);
+  const [activeImg,  setActiveImg]  = useState(0);
+  const [thumbStart,  setThumbStart]  = useState(0);
+  const demoImages = useMemo(() => getDemoImages(item.subCategory), [item.subCategory]);
+  const ringColor  = stockRingColor(item.stockBal);
+
+  const VISIBLE = 3;
+  const canUp   = thumbStart > 0;
+  const canDown = thumbStart + VISIBLE < demoImages.length;
+
+  function shiftThumb(dir: 'up' | 'down') {
+    if (dir === 'up' && !canUp)     return;
+    if (dir === 'down' && !canDown) return;
+    const next = dir === 'up' ? thumbStart - 1 : thumbStart + 1;
+    setThumbStart(next);
+    setActiveImg(dir === 'down' ? next + VISIBLE - 1 : next);
+  }
+
+  function applyGrn(record: GrnRecord) {
+    setAppliedGrn(record);
+    setMainCostPrice(record.mainCost);
+    setLoseCostPrice(record.loseCost);
+    setMainSellPrice(record.mainSell);
+    setLoseSellPrice(record.loseSell);
+    setMainQty(record.mainQty);
+    setLoseQty(record.loseQty);
+  }
+
+  function removeApplied() {
+    setAppliedGrn(null);
+    setMainCostPrice('');
+    setLoseCostPrice('');
+    setMainSellPrice('');
+    setLoseSellPrice('');
+    setMainQty('');
+    setLoseQty('');
+  }
+
+  // PanResponder for thumbnail strip swipe — recreated when thumbStart changes
+  // so the closure always sees the latest canUp/canDown values.
+  // onStartShouldSetPanResponder returns false so taps still reach child Pressables;
+  // onMoveShouldSetPanResponder captures only clear vertical swipes.
+  const thumbPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, state) =>
+          Math.abs(state.dy) > 8 && Math.abs(state.dy) > Math.abs(state.dx),
+        onPanResponderRelease: (_, state) => {
+          if (state.dy < -12) shiftThumb('down');
+          else if (state.dy > 12) shiftThumb('up');
+        },
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [thumbStart, demoImages.length],
+  );
 
   const DETAIL_ROWS: [string, string][] = [
-    ['Item Code',          item.itemCode],
-    ['Description',        item.itemDescription],
-    ['Category',           item.category],
-    ['Sub Category',       item.subCategory],
-    ['GRN Type',           item.grnType],
-    ['Store Code',         storeCode],
-    ['Current Stock',      String(item.stockCnt)],
-    ['Reserved Stock',     String(item.stockRsvd)],
-    ['Available To Issue', String(item.stockBal)],
+    ['Item Code',     item.itemCode],
+    ['Description',   item.itemDescription],
+    ['Category',      item.category],
+    ['Sub Category',  item.subCategory],
+    ['GRN Type',      item.grnType],
+    ['Store Code',    storeCode],
+    ['Cur. Stock',    String(item.stockCnt)],
+    ['Reserved',      String(item.stockRsvd)],
+    ['Available',     String(item.stockBal)],
   ];
-
-  function renderInfo() {
-    return (
-      <>
-        {/* Image panel */}
-        <View style={sa.imgCard}>
-          <View style={[sa.imgMain, { borderColor: ringColor }]}>
-            <MaterialCommunityIcons name="image-outline" size={44} color="rgba(0,0,0,0.13)" />
-          </View>
-          <View style={sa.thumbRow}>
-            {[true, false, false, false].map((active, i) => (
-              <View key={i} style={[sa.thumb, active && { borderColor: ringColor, borderWidth: 2 }]}>
-                <MaterialCommunityIcons name="image-outline" size={11} color="rgba(0,0,0,0.18)" />
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Stock health strip */}
-        <View style={sa.stockStrip}>
-          {([
-            ['Cnt',      String(item.stockCnt),  '#1C1C1E'],
-            ['Reserved', String(item.stockRsvd), '#E65100'],
-            ['Balance',  String(item.stockBal),  ringColor],
-          ] as [string, string, string][]).map(([lbl, val, color], i, arr) => (
-            <React.Fragment key={lbl}>
-              <View style={sa.stripCell}>
-                <Text style={sa.stripLbl}>{lbl}</Text>
-                <Text style={[sa.stripVal, { color }]}>{val}</Text>
-              </View>
-              {i < arr.length - 1 && <View style={sa.stripSep} />}
-            </React.Fragment>
-          ))}
-        </View>
-
-        {/* Detail rows */}
-        <View style={sa.detailCard}>
-          {DETAIL_ROWS.map(([label, val], i) => (
-            <View key={label} style={[sa.detailRow, i < DETAIL_ROWS.length - 1 && sa.detailRowBorder]}>
-              <Text style={sa.detailLbl}>{label}</Text>
-              <Text style={sa.detailVal} numberOfLines={2}>{val}</Text>
-            </View>
-          ))}
-        </View>
-      </>
-    );
-  }
 
   function renderAdjustment() {
     return (
-      <View style={sa.detailCard}>
-        {/* Cost Price */}
-        <View style={sa.adjField}>
-          <Text style={sa.adjLabel}>Cost Price</Text>
-          <View style={sa.adjInputRow}>
-            <TextInput
-              value={costPrice} onChangeText={setCostPrice}
-              keyboardType="numeric" style={sa.adjInput}
-              placeholder="0.00" placeholderTextColor="#BBBBC0"
-            />
-            <View style={sa.spinnerCol}>
-              <Pressable hitSlop={8} onPress={() => setCostPrice(p => String((parseFloat(p || '0') + 0.01).toFixed(2)))}>
-                <MaterialCommunityIcons name="chevron-up"   size={18} color="#888" />
-              </Pressable>
-              <Pressable hitSlop={8} onPress={() => setCostPrice(p => String(Math.max(0, parseFloat(p || '0') - 0.01).toFixed(2)))}>
-                <MaterialCommunityIcons name="chevron-down" size={18} color="#888" />
-              </Pressable>
+      <>
+        {/* ── 1. Radio selector ── */}
+        <View style={sa.radioCard}>
+          <Pressable onPress={() => setAdjType('excess')} style={sa.radioOption}>
+            <View style={[sa.radioCircle, adjType === 'excess' && sa.radioCircleSelected]}>
+              {adjType === 'excess' && <View style={sa.radioDot} />}
+            </View>
+            <Text style={[sa.radioLabel, adjType === 'excess' && sa.radioLabelSelected]}>Excess Stock</Text>
+          </Pressable>
+          <View style={sa.radioSep} />
+          <Pressable onPress={() => setAdjType('damage')} style={sa.radioOption}>
+            <View style={[sa.radioCircle, adjType === 'damage' && sa.radioCircleSelected]}>
+              {adjType === 'damage' && <View style={sa.radioDot} />}
+            </View>
+            <Text style={[sa.radioLabel, adjType === 'damage' && sa.radioLabelSelected]}>Damage Stock</Text>
+          </Pressable>
+        </View>
+
+        {/* ── 2. Excess Stock form ── */}
+        {adjType === 'excess' && (
+          <View style={sa.detailCard}>
+
+            {/* Applied GRN banner */}
+            {appliedGrn && (
+              <View style={sa.appliedCard}>
+                {/* Left accent bar */}
+                <View style={sa.appliedAccent} />
+
+                {/* Check icon circle */}
+                <View style={sa.appliedIconCircle}>
+                  <MaterialCommunityIcons name="check" size={12} color="#FFF" />
+                </View>
+
+                {/* Info */}
+                <View style={sa.appliedInfo}>
+                  <Text style={sa.appliedGrnNo}>{appliedGrn.grnNo}</Text>
+                  <View style={sa.appliedSubRow}>
+                    <View style={sa.appliedTag}>
+                      <Text style={sa.appliedTagTxt}>APPLIED</Text>
+                    </View>
+                    <Text style={sa.appliedSupplier} numberOfLines={1}>{appliedGrn.supplier}</Text>
+                  </View>
+                </View>
+
+                {/* Remove button */}
+                <Pressable onPress={removeApplied} hitSlop={10}
+                  style={({ pressed }) => [sa.appliedRemoveBtn, pressed && { opacity: 0.7 }]}>
+                  <MaterialCommunityIcons name="trash-can-outline" size={14} color="#E53935" />
+                </Pressable>
+              </View>
+            )}
+
+            {/* Column headers — [blank] | main | Qty | /kg | sep | lose | Qty | /g */}
+            <View style={sa.pxHeaderRow}>
+              <View style={sa.pxLblCol} />
+              <View style={sa.pxGrp}>
+                <View style={sa.pxPriceSubcol}>
+                  <Text style={sa.pxColTitle}>Main</Text>
+                  <Text style={sa.pxColUnit}>price</Text>
+                </View>
+                <View style={sa.pxQtySubcol}>
+                  <Text style={sa.pxColTitle}>Qty</Text>
+                  <Text style={sa.pxColUnit}>amt</Text>
+                </View>
+              </View>
+              <Text style={sa.pxGrpUnit}>/kg</Text>
+              <View style={sa.pxSep} />
+              <View style={sa.pxGrp}>
+                <View style={sa.pxPriceSubcol}>
+                  <Text style={sa.pxColTitle}>Lose</Text>
+                  <Text style={sa.pxColUnit}>price</Text>
+                </View>
+                <View style={sa.pxQtySubcol}>
+                  <Text style={sa.pxColTitle}>Qty</Text>
+                  <Text style={sa.pxColUnit}>amt</Text>
+                </View>
+              </View>
+              <Text style={sa.pxGrpUnit}>/g</Text>
+            </View>
+
+            {/* Cost Price row */}
+            <View style={sa.pxRow}>
+              <Text style={sa.pxRowLbl}>Cost Price</Text>
+              <View style={sa.pxGrp}>
+                <View style={sa.pxPriceSubcol}>
+                  <View style={sa.pxInputWrap}>
+                    <TextInput
+                      value={mainCostPrice}
+                      onChangeText={setMainCostPrice}
+                      keyboardType="numeric"
+                      style={sa.pxInput}
+                      placeholder="0.00"
+                      placeholderTextColor="#BBBBC0"
+                    />
+                  </View>
+                </View>
+                <View style={sa.pxQtySubcol}>
+                  <View style={[sa.pxInputWrap, sa.pxQtyInputWrap]}>
+                    <TextInput
+                      value={mainQty}
+                      onChangeText={setMainQty}
+                      keyboardType="numeric"
+                      style={sa.pxInput}
+                      placeholder="0"
+                      placeholderTextColor="#BBBBC0"
+                    />
+                  </View>
+                </View>
+              </View>
+              <Text style={sa.pxGrpUnit}>/kg</Text>
+              <View style={sa.pxSep} />
+              <View style={sa.pxGrp}>
+                <View style={sa.pxPriceSubcol}>
+                  <View style={sa.pxInputWrap}>
+                    <TextInput
+                      value={loseCostPrice}
+                      onChangeText={setLoseCostPrice}
+                      keyboardType="numeric"
+                      style={sa.pxInput}
+                      placeholder="0.00"
+                      placeholderTextColor="#BBBBC0"
+                    />
+                  </View>
+                </View>
+                <View style={sa.pxQtySubcol}>
+                  <View style={[sa.pxInputWrap, sa.pxQtyInputWrap]}>
+                    <TextInput
+                      value={loseQty}
+                      onChangeText={setLoseQty}
+                      keyboardType="numeric"
+                      style={sa.pxInput}
+                      placeholder="0"
+                      placeholderTextColor="#BBBBC0"
+                    />
+                  </View>
+                </View>
+              </View>
+              <Text style={sa.pxGrpUnit}>/g</Text>
+            </View>
+
+            {/* Selling Price row */}
+            <View style={[sa.pxRow, { borderBottomWidth: 0 }]}>
+              <Text style={sa.pxRowLbl}>Selling Price</Text>
+              <View style={sa.pxGrp}>
+                <View style={sa.pxPriceSubcol}>
+                  <View style={sa.pxInputWrap}>
+                    <TextInput
+                      value={mainSellPrice}
+                      onChangeText={setMainSellPrice}
+                      keyboardType="numeric"
+                      style={sa.pxInput}
+                      placeholder="0.00"
+                      placeholderTextColor="#BBBBC0"
+                    />
+                  </View>
+                </View>
+                <View style={sa.pxQtySubcol}>
+                  <View style={[sa.pxInputWrap, sa.pxQtyInputWrap]}>
+                    <TextInput
+                      value={mainQty}
+                      onChangeText={setMainQty}
+                      keyboardType="numeric"
+                      style={sa.pxInput}
+                      placeholder="0"
+                      placeholderTextColor="#BBBBC0"
+                    />
+                  </View>
+                </View>
+              </View>
+              <Text style={sa.pxGrpUnit}>/kg</Text>
+              <View style={sa.pxSep} />
+              <View style={sa.pxGrp}>
+                <View style={sa.pxPriceSubcol}>
+                  <View style={sa.pxInputWrap}>
+                    <TextInput
+                      value={loseSellPrice}
+                      onChangeText={setLoseSellPrice}
+                      keyboardType="numeric"
+                      style={sa.pxInput}
+                      placeholder="0.00"
+                      placeholderTextColor="#BBBBC0"
+                    />
+                  </View>
+                </View>
+                <View style={sa.pxQtySubcol}>
+                  <View style={[sa.pxInputWrap, sa.pxQtyInputWrap]}>
+                    <TextInput
+                      value={loseQty}
+                      onChangeText={setLoseQty}
+                      keyboardType="numeric"
+                      style={sa.pxInput}
+                      placeholder="0"
+                      placeholderTextColor="#BBBBC0"
+                    />
+                  </View>
+                </View>
+              </View>
+              <Text style={sa.pxGrpUnit}>/g</Text>
+            </View>
+
+            {/* View Previous GRN */}
+            <Pressable onPress={() => setShowGrn(true)} style={sa.viewGrnBtn} hitSlop={8}>
+              <MaterialCommunityIcons name="file-document-outline" size={12} color={Colors.primaryHighlight} />
+              <Text style={sa.viewGrnTxt}>View Previous GRN</Text>
+            </Pressable>
+
+          </View>
+        )}
+
+        {/* ── 2. Damage Stock form ── */}
+        {adjType === 'damage' && (
+          <View style={sa.detailCard}>
+            <View style={sa.adjField}>
+              <Text style={sa.adjLabel}>Cost Price</Text>
+              <View style={sa.adjInputRow}>
+                <TextInput value={costPrice} onChangeText={setCostPrice} keyboardType="numeric"
+                  style={sa.adjInput} placeholder="0.00" placeholderTextColor="#BBBBC0" />
+                <View style={sa.spinnerCol}>
+                  <Pressable hitSlop={8} onPress={() => setCostPrice(p => String((parseFloat(p || '0') + 0.01).toFixed(2)))}>
+                    <MaterialCommunityIcons name="chevron-up" size={18} color="#888" />
+                  </Pressable>
+                  <Pressable hitSlop={8} onPress={() => setCostPrice(p => String(Math.max(0, parseFloat(p || '0') - 0.01).toFixed(2)))}>
+                    <MaterialCommunityIcons name="chevron-down" size={18} color="#888" />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+            <View style={sa.adjField}>
+              <Text style={sa.adjLabel}>Damage Stock</Text>
+              <View style={sa.adjInputRow}>
+                <TextInput value={damageStock} onChangeText={setDamageStock} keyboardType="numeric"
+                  style={sa.adjInput} placeholder="0" placeholderTextColor="#BBBBC0" />
+                <View style={sa.spinnerCol}>
+                  <Pressable hitSlop={8} onPress={() => setDamageStock(p => String(parseInt(p || '0', 10) + 1))}>
+                    <MaterialCommunityIcons name="chevron-up" size={18} color="#888" />
+                  </Pressable>
+                  <Pressable hitSlop={8} onPress={() => setDamageStock(p => String(Math.max(0, parseInt(p || '0', 10) - 1)))}>
+                    <MaterialCommunityIcons name="chevron-down" size={18} color="#888" />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+            <View style={[sa.adjField, { borderBottomWidth: 0 }]}>
+              <Text style={sa.adjLabel}>Damage Reason Note</Text>
+              <TextInput value={damageReason} onChangeText={setDamageReason} multiline
+                style={[sa.adjInput, { height: 70, textAlignVertical: 'top', paddingTop: 4 }]}
+                placeholder="Enter reason…" placeholderTextColor="#BBBBC0" />
             </View>
           </View>
+        )}
+
+        {/* ── 3. Item details ── */}
+        <View style={sa.detailCard}>
+          {DETAIL_ROWS.map(([label, val], i) => (
+            <View key={label} style={[sa.compactRow, i < DETAIL_ROWS.length - 1 && sa.compactRowBorder]}>
+              <Text style={sa.compactLbl}>{label}</Text>
+              <Text style={sa.compactVal} numberOfLines={2}>{val}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Excess Stock */}
-        <View style={sa.adjField}>
-          <Text style={sa.adjLabel}>Excess Stock</Text>
-          <View style={sa.adjInputRow}>
-            <TextInput
-              value={excessStock} onChangeText={setExcessStock}
-              keyboardType="numeric" style={sa.adjInput}
-              placeholder="0" placeholderTextColor="#BBBBC0"
-            />
-            <View style={sa.spinnerCol}>
-              <Pressable hitSlop={8} onPress={() => setExcessStock(p => String(parseInt(p || '0', 10) + 1))}>
-                <MaterialCommunityIcons name="chevron-up"   size={18} color="#888" />
-              </Pressable>
-              <Pressable hitSlop={8} onPress={() => setExcessStock(p => String(Math.max(0, parseInt(p || '0', 10) - 1)))}>
-                <MaterialCommunityIcons name="chevron-down" size={18} color="#888" />
-              </Pressable>
+        {/* ── 4. Image card: thumbnail strip left | main image right ── */}
+        <View style={sa.imgDetailCard}>
+
+          {/* Left: vertical thumbnail strip */}
+          <View style={sa.thumbStrip}>
+            <Pressable
+              onPress={() => shiftThumb('up')}
+              disabled={!canUp}
+              style={[sa.thumbArrowBtn, !canUp && sa.thumbArrowDisabled]}>
+              <MaterialCommunityIcons name="chevron-up" size={16} color={canUp ? '#595959' : '#D0D0D8'} />
+            </Pressable>
+
+            <View style={sa.thumbList} {...thumbPanResponder.panHandlers}>
+              {demoImages.slice(thumbStart, thumbStart + VISIBLE).map((uri, i) => {
+                const idx = thumbStart + i;
+                return (
+                  <Pressable
+                    key={idx}
+                    onPress={() => setActiveImg(idx)}
+                    style={[sa.thumbV, activeImg === idx && { borderColor: ringColor, borderWidth: 2.5 }]}>
+                    <Image source={{ uri }} style={sa.thumbImg} resizeMode="cover" />
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Pressable
+              onPress={() => shiftThumb('down')}
+              disabled={!canDown}
+              style={[sa.thumbArrowBtn, !canDown && sa.thumbArrowDisabled]}>
+              <MaterialCommunityIcons name="chevron-down" size={16} color={canDown ? '#595959' : '#D0D0D8'} />
+            </Pressable>
+          </View>
+
+          {/* Right: main image only */}
+          <View style={sa.mainRight}>
+            <View style={[sa.imgMain, { borderColor: ringColor }]}>
+              <Image source={{ uri: demoImages[activeImg] }} style={sa.imgFull} resizeMode="cover" />
             </View>
           </View>
-        </View>
 
-        {/* Reason Note */}
-        <View style={[sa.adjField, { borderBottomWidth: 0 }]}>
-          <Text style={sa.adjLabel}>Excess Reason Note</Text>
-          <TextInput
-            value={reasonNote} onChangeText={setReasonNote}
-            style={[sa.adjInput, { height: 70, textAlignVertical: 'top', paddingTop: 4 }]}
-            placeholder="Enter reason…" placeholderTextColor="#BBBBC0"
-            multiline
-          />
         </View>
-
-        {/* Add Makers Serial */}
-        <Pressable style={({ pressed }) => [sa.serialBtn, pressed && { opacity: 0.8 }]}>
-          <MaterialCommunityIcons name="barcode" size={14} color="#FFF" />
-          <Text style={sa.serialBtnTxt}>Add Makers Serial</Text>
-        </Pressable>
-      </View>
+      </>
     );
   }
 
@@ -401,12 +1094,17 @@ function StockAdjModal({ item, storeCode, onClose }: {
   }
 
   const tabContent: Record<AdjTab, () => React.ReactNode> = {
-    info:       renderInfo,
     adjustment: renderAdjustment,
     pending:    renderPending,
   };
 
+  const serialQty   = adjType === 'excess'
+    ? (parseFloat(mainQty) || 0)
+    : (parseFloat(damageStock) || 0);
+  const serialNote  = adjType === 'excess' ? reasonNote : damageReason;
+
   return (
+    <>
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={sa.modalOverlay}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -457,14 +1155,17 @@ function StockAdjModal({ item, storeCode, onClose }: {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}>
                 {tabContent[activeTab]()}
-                <View style={{ height: 20 }} />
+                <View style={{ height: 8 }} />
               </ScrollView>
 
-              {/* ── Footer ── */}
+              {/* ── Fixed footer: Add Makers Serial ── */}
               {activeTab === 'adjustment' && (
-                <View style={sa.footer}>
-                  <Pressable style={({ pressed }) => [sa.saveBtn, pressed && { opacity: 0.85 }]}>
-                    <Text style={sa.saveTxt}>Save Adjustment</Text>
+                <View style={sa.serialFooter}>
+                  <Pressable
+                    onPress={() => setShowSerial(true)}
+                    style={({ pressed }) => [sa.serialFooterBtn, pressed && { opacity: 0.85 }]}>
+                    <MaterialCommunityIcons name="barcode" size={15} color="#FFF" />
+                    <Text style={sa.serialFooterTxt}>Add Makers Serial</Text>
                   </Pressable>
                 </View>
               )}
@@ -474,6 +1175,23 @@ function StockAdjModal({ item, storeCode, onClose }: {
         </KeyboardAvoidingView>
       </View>
     </Modal>
+    {showSerial && (
+      <SerialModal
+        item={item}
+        adjType={adjType!}
+        stockQty={serialQty}
+        noteText={serialNote}
+        onClose={() => setShowSerial(false)}
+      />
+    )}
+    {showGrn && (
+      <GrnPickerModal
+        item={item}
+        onApply={applyGrn}
+        onClose={() => setShowGrn(false)}
+      />
+    )}
+    </>
   );
 }
 
@@ -872,8 +1590,8 @@ const ic = StyleSheet.create({
 // Stock Adjustment modal — matches EmployeeFormModal structure exactly
 const sa = StyleSheet.create({
   // Modal structure
-  modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-start', paddingTop: 60, paddingBottom: 20, paddingHorizontal: 12 },
-  cardWrapper:     { flex: 1, maxHeight: '95%', width: '100%' },
+  modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-start', paddingTop: 30, paddingBottom: 10, paddingHorizontal: 12 },
+  cardWrapper:     { flex: 1, maxHeight: '98%', width: '100%' },
   container:       { flex: 1, backgroundColor: '#F5F5F7', borderRadius: 10, overflow: 'hidden' },
   closeBtn:        { position: 'absolute', top: -18, right: -5, zIndex: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: '#1C1C1E', alignItems: 'center', justifyContent: 'center' },
   xL:              { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFFFFF', borderRadius: 1, transform: [{ rotate: '45deg'  }] },
@@ -899,24 +1617,41 @@ const sa = StyleSheet.create({
   form:            { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 20, gap: 10 },
 
   // Image panel (info tab)
-  imgCard:         { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, gap: 8, shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 },
-  imgMain:         { height: 100, backgroundColor: '#F0F0F5', borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#DCDCE0' },
-  thumbRow:        { flexDirection: 'row', gap: 6 },
-  thumb:           { flex: 1, height: 30, backgroundColor: '#EAEAF0', borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#D8D8E0' },
+  // Card wrapping the entire image + details block
+  imgDetailCard: { flexDirection: 'row', gap: 8, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 8, shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 },
 
-  // Stock health strip
-  stockStrip:      { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 8, shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 },
-  stripCell:       { flex: 1, alignItems: 'center', gap: 3 },
-  stripLbl:        { fontFamily: FontFamily.regular, fontSize: 9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, color: '#9090A0' },
-  stripVal:        { fontFamily: FontFamily.bold, fontSize: 16, fontWeight: '700' },
-  stripSep:        { width: 1, backgroundColor: '#EBEBF0' },
+  // Left: vertical thumbnail strip
+  thumbStrip:        { width: 52, alignItems: 'center', gap: 4 },
+  thumbArrowBtn:     { width: 52, height: 22, borderRadius: 6, backgroundColor: '#F2F2F7', alignItems: 'center', justifyContent: 'center' },
+  thumbArrowDisabled:{ backgroundColor: '#F8F8FA' },
+  thumbList:          { gap: 5 },
+  thumbV:            { width: 50, height: 50, borderRadius: 7, overflow: 'hidden', borderWidth: 1.5, borderColor: '#D8D8E0' },
 
-  // Detail rows card (info tab) & adjustment fields wrapper
+  // Right: main image stacked above details
+  mainRight:     { flex: 1, gap: 6 },
+  imgMain:       { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#F0F0F5', borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: '#DCDCE0' },
+  imgFull:       { width: '100%', height: '100%' },
+  thumbImg:      { width: '100%', height: '100%' },
+
+  // Compact detail rows (below main image in right column)
+  detailSection:    { gap: 0 },
+  compactRow:       { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 4, gap: 4 },
+  compactRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F4F4F8' },
+  compactLbl:       { width: 62, fontFamily: FontFamily.regular, fontSize: 9, color: '#9090A0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, paddingTop: 1, flexShrink: 0 },
+  compactVal:       { flex: 1, fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#1C1C1E' },
+
+  // Adjustment fields wrapper card
   detailCard:      { backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 14, shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 },
-  detailRow:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 },
-  detailRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
-  detailLbl:       { width: 110, fontFamily: FontFamily.regular, fontSize: 11, color: '#8E8E93' },
-  detailVal:       { flex: 1, fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', textAlign: 'right' },
+
+  // Radio buttons
+  radioCard:           { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 2, paddingHorizontal: 6, shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 },
+  radioOption:         { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8 },
+  radioCircle:         { width: 14, height: 14, borderRadius: 7, borderWidth: 1.5, borderColor: '#CCCCCC', alignItems: 'center', justifyContent: 'center' },
+  radioCircleSelected: { borderColor: Colors.primaryHighlight },
+  radioDot:            { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primaryHighlight },
+  radioLabel:          { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '500', color: '#8E8E93' },
+  radioLabelSelected:  { fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.primaryHighlight },
+  radioSep:            { width: 1, alignSelf: 'stretch', backgroundColor: '#F0F0F5' },
 
   // Adjustment fields
   adjField:        { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F5', gap: 6 },
@@ -924,8 +1659,45 @@ const sa = StyleSheet.create({
   adjInputRow:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F7', borderRadius: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: '#DCDCE0' },
   adjInput:        { flex: 1, fontFamily: FontFamily.medium, fontSize: 13, fontWeight: '600', color: '#1C1C1E', paddingVertical: 8 },
   spinnerCol:      { gap: 0 },
-  serialBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 8, backgroundColor: '#595959', marginTop: 10, marginHorizontal: 14 },
-  serialBtnTxt:    { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: '#FFF' },
+
+  // Excess form — main/lose price grid
+  pxHeaderRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
+  pxRow:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F5', gap: 6 },
+  pxLblCol:    { width: 72, flexShrink: 0 },
+  pxRowLbl:    { width: 52, fontFamily: FontFamily.regular, fontSize: 8, color: '#8E8E93', flexShrink: 0 },
+  pxSep:          { width: 1, alignSelf: 'stretch', backgroundColor: '#F0F0F5', marginHorizontal: 4 },
+  pxColTitle:     { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', color: '#595959', textAlign: 'center' },
+  pxColUnit:      { fontFamily: FontFamily.regular, fontSize: 9, color: '#9090A0', textAlign: 'center', marginTop: 1 },
+  pxInputWrap:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F7', borderRadius: 7, borderWidth: 1, borderColor: '#DCDCE0', paddingHorizontal: 5, gap: 2 },
+  pxQtyInputWrap: { backgroundColor: 'rgba(233,30,99,0.05)', borderColor: Colors.primaryHighlight },
+  pxInput:        { flex: 1, fontFamily: FontFamily.medium, fontSize: 9, fontWeight: '600', color: '#1C1C1E', paddingVertical: 6 },
+  // Grouped two-subcol layout (price + qty per side)
+  pxGrp:          { flex: 1, flexDirection: 'row', gap: 4, alignItems: 'center' },
+  pxPriceSubcol:  { flex: 5.0 },
+  pxQtySubcol:    { flex: 3.0 },
+  pxGrpUnit:      { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#AEAEB2', width: 14, textAlign: 'center' },
+  viewGrnBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 10 },
+  viewGrnTxt:  { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: Colors.primaryHighlight, textDecorationLine: 'underline' },
+
+  // Applied GRN banner
+  appliedCard:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 10, marginBottom: 8, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(48,168,75,0.25)', shadowColor: '#30A84B', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.10, shadowRadius: 4, elevation: 2 },
+  appliedAccent:     { width: 4, alignSelf: 'stretch', backgroundColor: '#30A84B' },
+  appliedIconCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#30A84B', alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
+  appliedInfo:       { flex: 1, paddingVertical: 8, paddingLeft: 8, gap: 3 },
+  appliedGrnNo:      { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: '#1C1C1E' },
+  appliedSubRow:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  appliedTag:        { backgroundColor: 'rgba(48,168,75,0.12)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  appliedTagTxt:     { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700', color: '#2E7D32', letterSpacing: 0.5 },
+  appliedSupplier:   { fontFamily: FontFamily.regular, fontSize: 10, color: '#9090A0', flex: 1 },
+  appliedRemoveBtn:  { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', marginRight: 6, borderRadius: 8, backgroundColor: 'rgba(229,57,53,0.08)' },
+  appliedRemoveTxt:  { fontFamily: FontFamily.medium, fontSize: 10, fontWeight: '600', color: '#E53935' },
+
+  // Fixed serial footer
+  serialFooter:           { paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#EBEBEB', backgroundColor: '#F5F5F7' },
+  serialFooterBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 13, borderRadius: 10, backgroundColor: '#595959' },
+  serialFooterBtnDisabled:{ backgroundColor: '#EAEAEE' },
+  serialFooterTxt:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#FFF' },
+  serialFooterTxtDisabled:{ color: '#C0C0CC' },
 
   // Pending state
   pendingWrap:     { alignItems: 'center', paddingVertical: 50, gap: 10 },
@@ -934,18 +1706,11 @@ const sa = StyleSheet.create({
   pendingSubtxt:   { fontFamily: FontFamily.regular, fontSize: 12, color: '#9090A0' },
 
   // Footer
-  footer:          { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#E8E8EE', backgroundColor: '#F5F5F7' },
-  saveBtn:         { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 13, borderRadius: 10, backgroundColor: Colors.primaryHighlight },
-  saveTxt:         { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#FFF' },
 });
 
 // Tab icon styles — mirrors EmployeeFormModal icon stylesheet
 const mti = StyleSheet.create({
   wrap:   { width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
-  // ItemInfo — document with lines + photo corner
-  doc:    { position: 'absolute', width: 13, height: 16, borderWidth: 1.5, borderRadius: 2 },
-  line:   { position: 'absolute', left: 4, right: 3, height: 1.5, borderRadius: 1 },
-  photo:  { position: 'absolute', top: 3, left: 3, width: 4, height: 4, borderRadius: 1 },
   // Adjustment — box with plus sign
   adjBox: { width: 14, height: 14, borderWidth: 1.5, borderRadius: 3 },
   adjH:   { position: 'absolute', width: 8, height: 1.5, borderRadius: 1 },
@@ -975,4 +1740,122 @@ const dd = StyleSheet.create({
   itemTxt:          { flex: 1, fontFamily: FontFamily.regular, fontSize: 10, color: '#333' },
   itemTxtSelected:  { color: '#FFFFFF', fontWeight: '600' },
   checkCircle:      { width: 16, height: 16, borderRadius: 8, backgroundColor: '#30A84B', alignItems: 'center', justifyContent: 'center' },
+});
+
+// Serial modal styles
+const sm = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', padding: 14, paddingTop: 24 },
+  card:    { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, overflow: 'hidden' },
+
+  // Header
+  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#EBEBEB', gap: 10 },
+  headerIcon:  { width: 34, height: 34, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
+  closeBtn:    { width: 30, height: 30, borderRadius: 8, backgroundColor: '#F2F2F7', alignItems: 'center', justifyContent: 'center' },
+
+  // Input type row
+  topRow:      { paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#EBEBEB', gap: 6 },
+  typeSection: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  selectLbl:   { fontFamily: FontFamily.regular, fontSize: 11, color: '#595959', flexShrink: 0 },
+  radios:      { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  radioOpt:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  radioCircle:    { width: 15, height: 15, borderRadius: 7.5, borderWidth: 2, borderColor: '#CCCCCC', alignItems: 'center', justifyContent: 'center' },
+  radioCircleSel: { borderColor: Colors.primaryHighlight },
+  radioDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primaryHighlight },
+  radioLbl:    { fontFamily: FontFamily.regular, fontSize: 11, color: '#666' },
+  radioLblSel: { fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.primaryHighlight },
+  stockMeta:   { flexDirection: 'row', gap: 16, paddingTop: 2 },
+  stockItem:   { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  stockLbl:    { fontFamily: FontFamily.regular, fontSize: 10, color: '#9090A0' },
+  stockVal:    { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: '#1C1C1E' },
+
+  // Batch ranges section
+  rangesWrap:    { paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#EBEBEB', gap: 7, backgroundColor: '#FAFAFA' },
+  rangesTitle:   { fontFamily: FontFamily.medium, fontSize: 10, fontWeight: '600', color: '#9090A0', textTransform: 'uppercase', letterSpacing: 0.4 },
+  rangeRow:      { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  prefixInput:   { flex: 2, height: 32, borderWidth: 1, borderColor: '#DCDCE0', borderRadius: 6, paddingHorizontal: 7, fontFamily: FontFamily.regular, fontSize: 11, color: '#1C1C1E', backgroundColor: '#FFF' },
+  numFieldWrap:  { flex: 1, flexDirection: 'row', alignItems: 'center', height: 32, borderWidth: 1, borderColor: '#DCDCE0', borderRadius: 6, backgroundColor: '#FFF', paddingLeft: 6, overflow: 'hidden' },
+  numField:      { flex: 1, fontFamily: FontFamily.regular, fontSize: 11, color: '#1C1C1E', paddingVertical: 0 },
+  spinCols:      { width: 18, borderLeftWidth: 1, borderLeftColor: '#EBEBEB', alignItems: 'center', justifyContent: 'space-evenly', alignSelf: 'stretch' },
+  assignedCount: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#1C1C1E', minWidth: 38, textAlign: 'center' },
+  clearRowBtn:   { width: 22, height: 22, borderRadius: 11, backgroundColor: '#EBEBEB', alignItems: 'center', justifyContent: 'center' },
+  actionBtns:    { flexDirection: 'row', gap: 7 },
+  actionBtn:     { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 7, borderWidth: 1, borderColor: '#DCDCE0' },
+  btnAddRange:   { backgroundColor: '#F5F5F7' },
+  btnGenerate:   { backgroundColor: '#595959', borderColor: '#595959' },
+  btnClear:      { backgroundColor: '#F5F5F7' },
+  actionBtnTxt:  { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#595959' },
+
+  // Table
+  tableWrap:  { flex: 1 },
+  tRow:       { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
+  tHeaderRow: { backgroundColor: '#F5F5F7', borderBottomColor: '#DCDCE0' },
+  tDataRow:   { backgroundColor: '#FFFFFF' },
+  tCell:      { paddingHorizontal: 7, paddingVertical: 9 },
+  tHdrTxt:    { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#595959', textTransform: 'uppercase', letterSpacing: 0.3 },
+  tDataTxt:   { fontFamily: FontFamily.regular, fontSize: 11, color: '#1C1C1E' },
+  cHash:      { width: 34, textAlign: 'center' },
+  cCode:      { flex: 2 },
+  cNote:      { flex: 2 },
+  cSerial:    { flex: 3 },
+  cOcr:       { width: 44 },
+  serialRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  serialInput:{ flex: 1, fontFamily: FontFamily.regular, fontSize: 11, color: '#1C1C1E', paddingVertical: 0 },
+  ocrCol:     { alignItems: 'center', justifyContent: 'center' },
+
+  // Footer
+  footer:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#EBEBEB', backgroundColor: '#F5F5F7', gap: 12 },
+  pagination: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 3 },
+  pgBtn:      { width: 26, height: 26, borderRadius: 5, backgroundColor: '#EBEBEB', alignItems: 'center', justifyContent: 'center' },
+  pgBtnOff:   { backgroundColor: '#F5F5F7' },
+  pgInfo:     { flex: 1, fontFamily: FontFamily.regular, fontSize: 11, color: '#595959', textAlign: 'center' },
+  doneBtn:    { paddingHorizontal: 22, paddingVertical: 10, borderRadius: 8, backgroundColor: '#595959' },
+  doneTxt:    { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#FFF' },
+});
+
+// GRN picker bottom-sheet styles
+const grn = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.48)', justifyContent: 'flex-end' },
+  sheet:   { backgroundColor: '#F5F5F7', borderTopLeftRadius: 22, borderTopRightRadius: 22, maxHeight: '80%', paddingBottom: 20 },
+  handle:  { width: 38, height: 4, borderRadius: 2, backgroundColor: '#D0D0D8', alignSelf: 'center', marginTop: 10, marginBottom: 2 },
+
+  // Sheet header
+  header:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBEB', gap: 10 },
+  headerIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
+  title:      { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
+  subtitle:   { fontFamily: FontFamily.regular, fontSize: 10, color: '#9090A0', marginTop: 1 },
+  closeBtn:   { width: 28, height: 28, borderRadius: 8, backgroundColor: '#F2F2F7', alignItems: 'center', justifyContent: 'center' },
+
+  // List
+  list:        { },
+  listContent: { padding: 12, gap: 10, paddingBottom: 20 },
+
+  // GRN card
+  card:       { backgroundColor: '#FFFFFF', borderRadius: 14, overflow: 'hidden', shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.09, shadowRadius: 8, elevation: 3 },
+
+  // Card top row
+  cardTop:       { flexDirection: 'row', paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, gap: 10 },
+  cardAccent:    { width: 3, borderRadius: 2, backgroundColor: Colors.primaryHighlight, alignSelf: 'stretch' },
+  cardTitleRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardGrnNo:     { flex: 1, fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#1C1C1E' },
+  dateBadge:     { backgroundColor: '#F2F2F7', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 2 },
+  dateText:      { fontFamily: FontFamily.regular, fontSize: 10, color: '#595959' },
+  supplierRow:   { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  supplierText:  { fontFamily: FontFamily.regular, fontSize: 11, color: '#9090A0' },
+
+  // Price grid
+  priceGrid:   { marginHorizontal: 12, marginBottom: 2, borderWidth: 1, borderColor: '#EBEBF0', borderRadius: 8, overflow: 'hidden' },
+  gridRow:     { flexDirection: 'row' },
+  gridBorder:  { borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#EBEBF0' },
+  gridLblCell: { flex: 1.4, backgroundColor: '#F9F9FB', paddingHorizontal: 10, paddingVertical: 8, justifyContent: 'center' },
+  gridValCell: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
+  gridLbl:     { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#595959' },
+  gridHdr:     { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', color: '#595959', textTransform: 'uppercase', letterSpacing: 0.3 },
+  gridVal:     { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: '#1C1C1E' },
+  gridValQty:  { color: Colors.primaryHighlight },
+
+  // Card footer + Apply button
+  cardFooter:  { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F0F0F5', backgroundColor: '#FAFAFA' },
+  applyBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primaryHighlight, paddingHorizontal: 20, paddingVertical: 9, borderRadius: 9 },
+  applyBtnTxt: { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: '#FFF' },
 });
