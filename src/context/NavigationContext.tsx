@@ -19,7 +19,7 @@ export type ScreenName =
   | 'ChartOfAccounts' | 'FinanceReportsGenerator'
   | 'LedgerConnectionConsole' | 'OpeningBalanceConsole' | 'JournalEntry'
   | 'ManagePOSPoints' | 'SimpleInvoice' | 'ManageBankCardMachine'
-  | 'Procurement' | 'Purchasing' | 'StoresInventory' | 'Logistics'
+  | 'Procurement' | 'Purchasing' | 'PurchasingGoods' | 'ManageItem' | 'StoresInventory' | 'Logistics'
   | 'ProcStores' | 'ProcManageStores' | 'ProcStoresReports' | 'StoreDetail'
   | 'ModuleDetail';
 

@@ -56,6 +56,8 @@ import { ManageBankCardMachineScreen } from './screens/finance/ManageBankCardMac
 import { StoresProvider } from './context/StoresContext';
 import { ProcurementScreen } from './screens/procurement/ProcurementScreen';
 import { PurchasingScreen } from './screens/procurement/PurchasingScreen';
+import { PurchasingGoodsScreen } from './screens/procurement/PurchasingGoodsScreen';
+import { ManageItemScreen } from './screens/procurement/ManageItemScreen';
 import { StoresInventoryScreen } from './screens/procurement/StoresInventoryScreen';
 import { LogisticsScreen } from './screens/procurement/LogisticsScreen';
 import { ProcStoresScreen } from './screens/procurement/ProcStoresScreen';
@@ -153,6 +155,8 @@ function AppNavigator() {
       case 'ManageBankCardMachine':      return <ManageBankCardMachineScreen />;
       case 'Procurement':                return <ProcurementScreen />;
       case 'Purchasing':                 return <PurchasingScreen />;
+      case 'PurchasingGoods':            return <PurchasingGoodsScreen />;
+      case 'ManageItem':                 return <ManageItemScreen />;
       case 'StoresInventory':            return <StoresInventoryScreen />;
       case 'Logistics':                  return <LogisticsScreen />;
       case 'ProcStores':                 return <ProcStoresScreen />;

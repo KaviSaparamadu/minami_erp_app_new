@@ -139,6 +139,11 @@ export const MODULES: AppModule[] = [
  
 ];
 
+export const PURCHASING_ITEMS: Submodule[] = [
+  { id: '1', name: 'Goods',       value: '128', valueLabel: 'Items',  description: 'Manage item master, categories, and goods catalogue.',                                iconType: 'inventory' },
+  { id: '4', name: 'Manage Item', value: '64',  valueLabel: 'Active', description: 'Configure item selling, vehicle selling, movement categories and goods settings.', iconType: 'package-variant' },
+];
+
 export const STORES_INVENTORY_ITEMS: Submodule[] = [
   { id: '1', name: 'Stores',        value: '12', valueLabel: 'Locations', description: 'Manage store locations, inventory points, and warehouse configurations.',      iconType: 'store' },
   { id: '2', name: 'Manage Stores', value: '8',  valueLabel: 'Active',    description: 'Update store details, assign stock, and configure store-level parameters.',    iconType: 'vendor' },
