@@ -97,9 +97,6 @@ const MOCK_ITEMS: StoreItem[] = [
   { id: 6, itemCode: 'SP01-HL01-0006', itemDescription: 'Spare Parts Vehicle Fog Light Kit', movementCategory: 'Order', ongoingPurchases: 0, reOrderMin: null, reOrderRe: null, reOrderMax: null, stockCnt: 15, stockRsvd: 0, stockBal: 15, suppliersCount: 1, identicalGroups: 0, category: 'Spare Parts', subCategory: 'Head Light', grnType: 'Excess' },
 ];
 
-const ALL_CATEGORIES     = ['All', 'Spare Parts', 'Electronics', 'Consumables'];
-const ALL_SUB_CATEGORIES = ['All', 'Head Light', 'Dashboard', 'Engine', 'Body'];
-
 const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
 
 // ── Stock health helpers (same pattern as employee health) ────────────────────
@@ -784,7 +781,7 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
       if (!raw) return;
       try {
         const d = JSON.parse(raw);
-        if (d.adjType)        setAdjType(d.adjType);
+        // adjType intentionally not restored — radio starts unselected on every open
         if (d.mainQty)        setMainQty(d.mainQty);
         if (d.loseQty)        setLoseQty(d.loseQty);
         if (d.mainCostPrice)  setMainCostPrice(d.mainCostPrice);
@@ -822,6 +819,7 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
 
   // Auto-calculate sell prices from cost prices using item selling config
   useEffect(() => {
+    
     const cost = parseFloat(mainCostPrice);
     const sell = calcSellPrice(item.itemCode, cost);
     if (sell !== null) {
@@ -983,11 +981,18 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
                   </View>
                 </View>
 
-                {/* Remove button */}
-                <Pressable onPress={removeApplied} hitSlop={10}
-                  style={({ pressed }) => [sa.appliedRemoveBtn, pressed && { opacity: 0.7 }]}>
-                  <MaterialCommunityIcons name="trash-can-outline" size={14} color="#E53935" />
-                </Pressable>
+                {/* Edit + Delete grouped */}
+                <View style={sa.appliedActions}>
+                  <Pressable onPress={() => setShowGrn(true)} hitSlop={6}
+                    style={({ pressed }) => [sa.appliedActionBtn, pressed && { opacity: 0.7 }]}>
+                    <MaterialCommunityIcons name="pencil-outline" size={13} color={Colors.primaryHighlight} />
+                  </Pressable>
+                  <View style={sa.appliedActionSep} />
+                  <Pressable onPress={removeApplied} hitSlop={6}
+                    style={({ pressed }) => [sa.appliedActionBtn, pressed && { opacity: 0.7 }]}>
+                    <MaterialCommunityIcons name="trash-can-outline" size={13} color="#E53935" />
+                  </Pressable>
+                </View>
               </View>
             )}
 
@@ -997,31 +1002,42 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
               <View style={[sa.exHalf, sa.exHalfR]}><Text style={sa.exColHdr}>Lose  /g</Text></View>
             </View>
 
-            {/* Cost Price */}
+            {/* ── 1. Quantity ── */}
             <View style={[sa.exRow, sa.exRowBorder]}>
               <View style={sa.exHalf}>
-                <Text style={sa.exLbl}>Cost Price</Text>
-                <View style={sa.exBox}>
-                  <TextInput value={mainCostPrice} onChangeText={setMainCostPrice}
-                    keyboardType="numeric" style={sa.exInput}
-                    placeholder="0.00" placeholderTextColor="#BBBBC0" />
+                <Text style={sa.exLbl}>Main Qty</Text>
+                <View style={[sa.exBox, sa.exBoxQty, sa.exBoxQtyLarge]}>
+                  <TextInput value={mainQty} onChangeText={setMainQty}
+                    keyboardType="numeric" style={[sa.exInput, sa.exInputQty, sa.exInputQtyLarge]}
+                    placeholder="0" placeholderTextColor="#C8F0CE" textAlign="center" />
                 </View>
               </View>
               <View style={[sa.exHalf, sa.exHalfR]}>
-                <Text style={sa.exLbl}>Cost Price</Text>
-                <View style={[sa.exBox, sa.exBoxLose]}>
-                  <TextInput value={loseCostPrice} onChangeText={setLoseCostPrice}
-                    keyboardType="numeric" style={sa.exInput}
-                    placeholder="0.00" placeholderTextColor="#BBBBC0" />
+                <Text style={sa.exLbl}>Lose QTY</Text>
+                <View style={[sa.exBox, sa.exBoxQty, sa.exBoxQtyLarge]}>
+                  <TextInput value={loseQty} onChangeText={setLoseQty}
+                    keyboardType="numeric" style={[sa.exInput, sa.exInputQty, sa.exInputQtyLarge]}
+                    placeholder="0" placeholderTextColor="#C8F0CE" textAlign="center" />
                 </View>
               </View>
             </View>
 
-            {/* Selling Price */}
+            {/* ── Match Previous GRN For Excess ── */}
+            <Pressable
+              onPress={() => setShowGrn(true)}
+              style={({ pressed }) => [sa.grnMatchBtn, pressed && { opacity: 0.75 }]}>
+              <View style={sa.grnMatchIconCircle}>
+                <MaterialCommunityIcons name="file-clock-outline" size={14} color={Colors.primaryHighlight} />
+              </View>
+              <Text style={sa.grnMatchTxt}>Match Previous GRN For Excess</Text>
+              <MaterialCommunityIcons name="chevron-right" size={15} color={Colors.primaryHighlight} />
+            </Pressable>
+
+            {/* ── 2. Sell Price ── */}
             <View style={[sa.exRow, sa.exRowBorder]}>
               <View style={sa.exHalf}>
                 <View style={sa.exLblRow}>
-                  <Text style={sa.exLbl}>Sell Price</Text>
+                  <Text style={sa.exLbl}>Sell Price · Main</Text>
                   {mainSellPrice !== '' && mainCostPrice !== '' && (
                     <View style={sa.autoTag}><Text style={sa.autoTagTxt}>Auto</Text></View>
                   )}
@@ -1032,9 +1048,10 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
                     placeholder="0.00" placeholderTextColor="#BBBBC0" />
                 </View>
               </View>
-              <View style={[sa.exHalf, sa.exHalfR]}>
+              <View style={sa.exHalfDivider} />
+              <View style={sa.exHalf}>
                 <View style={sa.exLblRow}>
-                  <Text style={sa.exLbl}>Sell Price</Text>
+                  <Text style={sa.exLbl}>Sell Price · Lose</Text>
                   {loseSellPrice !== '' && loseCostPrice !== '' && (
                     <View style={sa.autoTag}><Text style={sa.autoTagTxt}>Auto</Text></View>
                   )}
@@ -1047,51 +1064,32 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
               </View>
             </View>
 
-            {/* Quantity */}
+            {/* ── 3. Cost Price ── */}
             <View style={sa.exRow}>
               <View style={sa.exHalf}>
-                <Text style={sa.exLbl}>Quantity</Text>
-                <View style={[sa.exBox, sa.exBoxQty]}>
-                  <TextInput value={mainQty} onChangeText={setMainQty}
-                    keyboardType="numeric" style={[sa.exInput, sa.exInputQty]}
-                    placeholder="0" placeholderTextColor="#BBBBC0" />
+                <Text style={sa.exLbl}>Cost Price  Main</Text>
+                <View style={sa.exBox}>
+                  <TextInput value={mainCostPrice} onChangeText={setMainCostPrice}
+                    keyboardType="numeric" style={sa.exInput}
+                    placeholder="0.00" placeholderTextColor="#BBBBC0" />
                 </View>
               </View>
               <View style={[sa.exHalf, sa.exHalfR]}>
-                <Text style={sa.exLbl}>Quantity</Text>
-                <View style={[sa.exBox, sa.exBoxQty]}>
-                  <TextInput value={loseQty} onChangeText={setLoseQty}
-                    keyboardType="numeric" style={[sa.exInput, sa.exInputQty]}
-                    placeholder="0" placeholderTextColor="#BBBBC0" />
+                <Text style={sa.exLbl}>Cost Price  Lose</Text>
+                <View style={[sa.exBox, sa.exBoxLose]}>
+                  <TextInput value={loseCostPrice} onChangeText={setLoseCostPrice}
+                    keyboardType="numeric" style={sa.exInput}
+                    placeholder="0.00" placeholderTextColor="#BBBBC0" />
                 </View>
               </View>
             </View>
-
-            {/* View Previous GRN */}
-            <Pressable
-              onPress={() => setShowGrn(true)}
-              style={({ pressed }) => [grnb.btn, pressed && grnb.btnPressed]}>
-              <MaterialCommunityIcons name="file-clock-outline" size={12} color={Colors.primaryHighlight} />
-              <Text style={grnb.txt}>Previous GRN</Text>
-            </Pressable>
 
           </View>
         )}
 
         {/* ── 2. Damage Stock form ── */}
         {adjType === 'damage' && (
-          <View style={sa.detailCard}>
-
-            {/* Step indicator */}
-            <View style={dmg.stepBar}>
-              <View style={[dmg.stepPill, dmgStep === 1 && dmg.stepPillActive]}>
-                <Text style={[dmg.stepTxt, dmgStep === 1 && dmg.stepTxtActive]}>1  Select Batch</Text>
-              </View>
-              <View style={dmg.stepLine} />
-              <View style={[dmg.stepPill, dmgStep === 2 && dmg.stepPillActive]}>
-                <Text style={[dmg.stepTxt, dmgStep === 2 && dmg.stepTxtActive]}>2  Damage Details</Text>
-              </View>
-            </View>
+          <View style={[sa.detailCard, { paddingTop: 12, paddingBottom: 10 }]}>
 
             {/* ── Step 1: pick GRN batch ── */}
             {dmgStep === 1 && MOCK_GRN.map(record => {
@@ -1205,14 +1203,25 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
                 </View>
 
                 {/* Reason note */}
-                <Text style={dmg.noteLbl}>Reason Note</Text>
                 <View style={dmg.noteBox}>
+                  <Text style={[dmg.noteLbl, { marginBottom: 6 }]}>Reason Note</Text>
                   <TextInput value={damageReason} onChangeText={setDamageReason} multiline
                     style={dmg.noteInput} placeholder="Describe the damage…"
                     placeholderTextColor="#BBBBC0" />
                 </View>
               </>
             )}
+
+            {/* Step indicator — bottom */}
+            <View style={[dmg.stepBar, { marginBottom: 0, marginTop: 14 }]}>
+              <View style={[dmg.stepPill, dmgStep === 1 && dmg.stepPillActive]}>
+                <Text style={[dmg.stepTxt, dmgStep === 1 && dmg.stepTxtActive]}>1  Select Batch</Text>
+              </View>
+              <View style={dmg.stepLine} />
+              <View style={[dmg.stepPill, dmgStep === 2 && dmg.stepPillActive]}>
+                <Text style={[dmg.stepTxt, dmgStep === 2 && dmg.stepTxtActive]}>2  Damage Details</Text>
+              </View>
+            </View>
 
           </View>
         )}
@@ -1322,7 +1331,7 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={[sa.modalOverlay, showImages && sa.modalOverlayTop]}>
         <KeyboardAvoidingView style={sa.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={[sa.cardWrapper, { height: showImages ? SCREEN_H * 0.90 : SCREEN_H * 0.65 }]}>
+          <View style={[sa.cardWrapper, { height: showImages ? SCREEN_H * 0.92 : SCREEN_H * 0.82 }]}>
 
             {/* Close button — centred on top border, same as EmployeeFormModal */}
             <Pressable onPress={onClose}
@@ -1419,142 +1428,33 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
 
 // ── Items Availability ────────────────────────────────────────────────────────
 
-function DropdownSelect({
-  label,
-  value,
-  options,
-  onChange,
-  isDarkMode,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (v: string) => void;
-  isDarkMode: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const isFiltered = value !== 'All';
-  return (
-    <View style={dd.wrap}>
-      <Pressable
-        onPress={() => setOpen(o => !o)}
-        style={[dd.trigger, isDarkMode && dd.triggerDark, isFiltered && dd.triggerActive]}>
-        <MaterialCommunityIcons
-          name="filter-variant"
-          size={10}
-          color={isFiltered ? '#E91E63' : (isDarkMode ? '#888' : '#AAA')}
-        />
-        <Text
-          style={[dd.triggerTxt, isDarkMode && { color: '#D0D0D0' }, isFiltered && dd.triggerTxtActive]}
-          numberOfLines={1}>
-          {isFiltered ? value : label}
-        </Text>
-        <MaterialCommunityIcons
-          name={open ? 'chevron-up' : 'chevron-down'}
-          size={11}
-          color={isFiltered ? '#E91E63' : (isDarkMode ? '#888' : '#AAA')}
-        />
-      </Pressable>
-
-      {open && (
-        <View style={[dd.list, isDarkMode && dd.listDark]}>
-          {options.map((opt, idx) => {
-            const selected = opt === value;
-            return (
-              <Pressable
-                key={opt}
-                onPress={() => { onChange(opt); setOpen(false); }}
-                style={({ pressed }) => [
-                  dd.item,
-                  idx < options.length - 1 && dd.itemBorder,
-                  pressed && dd.itemPressed,
-                  selected && dd.itemSelected,
-                  isDarkMode && dd.itemDark,
-                  selected && dd.itemSelected,
-                ]}>
-                <Text style={[dd.itemTxt, isDarkMode && { color: '#D0D0D0' }, selected && dd.itemTxtSelected]}>
-                  {opt}
-                </Text>
-                {selected && (
-                  <View style={dd.checkCircle}>
-                    <MaterialCommunityIcons name="check" size={9} color="#FFF" />
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
-}
-
 function ItemsAvailabilityView({ storeCode }: { storeCode: string }) {
   const { colors, isDarkMode } = useTheme();
-  const [items,       setItems]       = useState<StoreItem[]>(MOCK_ITEMS);
-  const [category,    setCategory]    = useState('All');
-  const [subCategory, setSubCategory] = useState('All');
-  const [search,      setSearch]      = useState('');
-  const [adjItem,     setAdjItem]     = useState<StoreItem | null>(null);
+  const [items,   setItems]   = useState<StoreItem[]>(MOCK_ITEMS);
+  const [search,  setSearch]  = useState('');
+  const [adjItem, setAdjItem] = useState<StoreItem | null>(null);
 
   function handleStockUpdate(updated: StoreItem) {
     setItems(prev => prev.map(it => it.id === updated.id ? updated : it));
     setAdjItem(null);
   }
 
-  const filtered = useMemo(() => items.filter(item => {
-    const catOk = category    === 'All' || item.category    === category;
-    const subOk = subCategory === 'All' || item.subCategory === subCategory;
-    const q     = search.trim().toLowerCase();
-    const srOk  = q === '' ||
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(item =>
       item.itemCode.toLowerCase().includes(q) ||
-      item.itemDescription.toLowerCase().includes(q);
-    return catOk && subOk && srOk;
-  }), [category, subCategory, search]);
+      item.itemDescription.toLowerCase().includes(q)
+    );
+  }, [items, search]);
 
   return (
     <View style={{ flex: 1 }}>
 
-      {/* ── Store strip ── */}
-      <View style={[strip.bar, isDarkMode && { backgroundColor: '#1C1C1E', borderBottomColor: '#2C2C2E' }]}>
-        <View style={strip.accent} />
-        <View style={{ flex: 1 }}>
-          <View style={strip.codeRow}>
-            <Text style={[strip.code, { color: colors.primaryText }]}>{storeCode}</Text>
-            <Pressable>
-              <Text style={strip.changeTxt}>Change Stores</Text>
-            </Pressable>
-          </View>
-          <Text style={[strip.sub, { color: colors.placeholder }]}>Tokyo · Minami Lanka</Text>
-        </View>
-        <Pressable style={({ pressed }) => [strip.scanBtn, pressed && { opacity: 0.8 }]}>
-          <MaterialCommunityIcons name="qrcode-scan" size={13} color="#FFF" />
-          <Text style={strip.scanTxt}>Scan QR</Text>
-        </Pressable>
-      </View>
-
-      {/* ── Filter + Search ── */}
+      {/* ── Search ── */}
       <View style={lv.searchFilterContainer}>
 
-        {/* Filters row */}
-        <View style={lv.filterSearchRow}>
-          <DropdownSelect
-            label="All Categories"
-            value={category}
-            options={ALL_CATEGORIES}
-            onChange={setCategory}
-            isDarkMode={isDarkMode}
-          />
-          <DropdownSelect
-            label="All Sub-categories"
-            value={subCategory}
-            options={ALL_SUB_CATEGORIES}
-            onChange={setSubCategory}
-            isDarkMode={isDarkMode}
-          />
-        </View>
-
-        {/* Search bar — below filters */}
+        {/* Search bar */}
         <View style={[lv.searchBar, isDarkMode && { borderBottomColor: '#3A3A3C' }]}>
             <UIIcon name="search" size={13} color="#8E8E93" />
             <TextInput
@@ -2077,14 +1977,30 @@ export function StoreDetailScreen() {
 
       <View style={scr.container}>
         {tab !== 'dashboard' && (
-          <View style={scr.tabBarWrap}>
-            <PageTabBar
-              tabs={STORE_TABS}
-              active={pageTab}
-              onChange={(t) => { setPageTab(t as PageTab); setTab('modules'); }}
-              variant="segment"
-            />
-          </View>
+          <>
+            {/* ── Store info bar ── */}
+            <View style={scr.storeBar}>
+              <View style={scr.storeBarAccent} />
+              <View style={{ flex: 1 }}>
+                <Text style={scr.storeBarName} numberOfLines={1}>{title}</Text>
+                <Text style={scr.storeBarCode} numberOfLines={1}>{storeCode}</Text>
+              </View>
+              <Pressable
+                onPress={() => navigate('ProcStores')}
+                style={({ pressed }) => [scr.changeBtn, pressed && { opacity: 0.6 }]}>
+                <Text style={scr.changeBtnTxt}>Change Stores</Text>
+              </Pressable>
+            </View>
+
+            <View style={scr.tabBarWrap}>
+              <PageTabBar
+                tabs={STORE_TABS}
+                active={pageTab}
+                onChange={(t) => { setPageTab(t as PageTab); setTab('modules'); }}
+                variant="segment"
+              />
+            </View>
+          </>
         )}
 
         <View style={[scr.panel, tab !== 'dashboard' && scr.panelOffset]}>
@@ -2116,10 +2032,18 @@ export function StoreDetailScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const scr = StyleSheet.create({
-  container:   { flex: 1, paddingTop: 8 },
-  tabBarWrap:  { paddingHorizontal: Spacing.md },
-  panel:       { flex: 1 },
-  panelOffset: { marginTop: 8 },
+  container:      { flex: 1, paddingTop: 2 },
+  storeCodeBar:   { paddingHorizontal: Spacing.md, paddingBottom: 6 },
+  storeCodeTxt:   { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#595959' },
+  storeBar:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 10, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBF0', gap: 10 },
+  storeBarAccent: { width: 4, height: 36, backgroundColor: '#B71C1C', borderRadius: 2 },
+  storeBarName:   { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#1C1C1E' },
+  storeBarCode:   { fontFamily: FontFamily.regular, fontSize: 10, color: '#8E8E93', marginTop: 1 },
+  changeBtn:      { paddingHorizontal: 8, paddingVertical: 4 },
+  changeBtnTxt:   { fontFamily: FontFamily.medium, fontSize: 9, fontWeight: '600', color: Colors.primaryHighlight, fontStyle: 'italic' },
+  tabBarWrap:     { paddingHorizontal: Spacing.md, paddingTop: 8 },
+  panel:          { flex: 1 },
+  panelOffset:    { marginTop: 4 },
 });
 
 const ph = StyleSheet.create({
@@ -2127,20 +2051,6 @@ const ph = StyleSheet.create({
   iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(89,89,89,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   title:      { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, textAlign: 'center' },
   sub:        { fontFamily: FontFamily.regular, fontSize: 12, textAlign: 'center', lineHeight: 18 },
-});
-
-// Store strip
-const strip = StyleSheet.create({
-  bar:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 10, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBF0', gap: 10 },
-  accent:    { width: 4, height: 40, backgroundColor: '#B71C1C', borderRadius: 2 },
-  code:      { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
-  sub:       { fontFamily: FontFamily.regular, fontSize: 10, marginTop: 1 },
-  scanBtn:   { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7, backgroundColor: '#595959' },
-  scanTxt:   { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#FFF' },
-  codeRow:        { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  changeRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: 4 },
-  changeTxt:      { fontFamily: FontFamily.medium, fontSize: 9, color: Colors.primaryHighlight, fontStyle: 'italic' },
-  storeCodeRight: { fontFamily: FontFamily.regular, fontSize: 9, fontStyle: 'italic' },
 });
 
 // Search + filter — exact lv from EmployeeManagementScreen
@@ -2235,12 +2145,6 @@ const ic = StyleSheet.create({
 });
 
 // Previous GRN pill button
-const grnb = StyleSheet.create({
-  btn:        { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 4, marginTop: 6, marginBottom: 2, paddingVertical: 4, paddingHorizontal: 2 },
-  btnPressed: { opacity: 0.6 },
-  txt:        { fontFamily: FontFamily.medium, fontSize: 10, fontWeight: '600', color: Colors.primaryHighlight },
-});
-
 // Damage Stock form
 const dmg = StyleSheet.create({
   // Step indicator
@@ -2338,15 +2242,15 @@ const sa = StyleSheet.create({
   imgDetailCard: { flexDirection: 'row', gap: 8, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 8, shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 },
 
   // Left: vertical thumbnail strip
-  thumbStrip:        { width: 52, alignItems: 'center', gap: 4 },
-  thumbArrowBtn:     { width: 52, height: 22, borderRadius: 6, backgroundColor: '#F2F2F7', alignItems: 'center', justifyContent: 'center' },
+  thumbStrip:        { width: 66, alignItems: 'center', gap: 4 },
+  thumbArrowBtn:     { width: 66, height: 26, borderRadius: 6, backgroundColor: '#F2F2F7', alignItems: 'center', justifyContent: 'center' },
   thumbArrowDisabled:{ backgroundColor: '#F8F8FA' },
-  thumbList:          { gap: 5 },
-  thumbV:            { width: 50, height: 50, borderRadius: 7, overflow: 'hidden', borderWidth: 1.5, borderColor: '#D8D8E0' },
+  thumbList:          { gap: 6 },
+  thumbV:            { width: 64, height: 64, borderRadius: 8, overflow: 'hidden', borderWidth: 1.5, borderColor: '#D8D8E0' },
 
-  // Right: main image stacked above details
-  mainRight:     { flex: 1, gap: 6 },
-  imgMain:       { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#F0F0F5', borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: '#DCDCE0' },
+  // Right: main image fills full strip height
+  mainRight:     { flex: 1 },
+  imgMain:       { flex: 1, width: '100%', backgroundColor: '#F0F0F5', borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: '#DCDCE0' },
   imgFull:       { width: '100%', height: '100%' },
   thumbImg:      { width: '100%', height: '100%' },
 
@@ -2392,7 +2296,13 @@ const sa = StyleSheet.create({
   exBoxLose:    { backgroundColor: 'rgba(233,30,99,0.04)', borderColor: 'rgba(233,30,99,0.22)' },
   exBoxQty:     { backgroundColor: 'rgba(48,168,75,0.05)', borderColor: 'rgba(48,168,75,0.28)' },
   exInput:      { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', paddingVertical: 7 },
-  exInputQty:   { color: '#30A84B' },
+  exInputQty:      { color: '#30A84B' },
+  exBoxQtyLarge:   { paddingHorizontal: 10 },
+  exInputQtyLarge: { fontSize: 22, fontWeight: '700', paddingVertical: 12 },
+  grnMatchBtn:        { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: 'rgba(233,30,99,0.22)', backgroundColor: 'rgba(233,30,99,0.04)', marginVertical: 8 },
+  grnMatchIconCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(233,30,99,0.10)', alignItems: 'center', justifyContent: 'center' },
+  grnMatchTxt:        { flex: 1, fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: Colors.primaryHighlight },
+  exHalfDivider:      { width: 1, alignSelf: 'stretch', borderLeftWidth: 1, borderStyle: 'dotted', borderColor: '#D0D0D8', marginHorizontal: 6 },
 
 
   // Excess stock card header
@@ -2420,14 +2330,16 @@ const sa = StyleSheet.create({
   appliedTag:        { backgroundColor: 'rgba(48,168,75,0.12)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   appliedTagTxt:     { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700', color: '#2E7D32', letterSpacing: 0.5 },
   appliedSupplier:   { fontFamily: FontFamily.regular, fontSize: 10, color: '#9090A0', flex: 1 },
-  appliedRemoveBtn:  { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', marginRight: 6, borderRadius: 8, backgroundColor: 'rgba(229,57,53,0.08)' },
+  appliedActions:    { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#EBEBF0', borderRadius: 8, overflow: 'hidden', marginRight: 8 },
+  appliedActionBtn:  { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  appliedActionSep:  { width: 1, height: 20, backgroundColor: '#EBEBF0' },
   appliedRemoveTxt:  { fontFamily: FontFamily.medium, fontSize: 10, fontWeight: '600', color: '#E53935' },
 
   // Fixed serial footer
   serialFooter:           { flexDirection: 'row', gap: 10, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#EBEBEB', backgroundColor: '#F5F5F7' },
   serialFooterBtn:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 13, borderRadius: 10, backgroundColor: '#595959' },
   serialFooterBtnOutline: { backgroundColor: '#F0F0F5', borderWidth: 1, borderColor: '#D0D0D8' },
-  serialFooterBtnSave:    { backgroundColor: '#30A84B' },
+  serialFooterBtnSave:    { backgroundColor: '#595959' },
   serialFooterBtnDisabled:{ backgroundColor: '#EAEAEE' },
   serialFooterTxt:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#FFF' },
   serialFooterTxtDisabled:{ color: '#C0C0CC' },
@@ -2455,26 +2367,6 @@ const mti = StyleSheet.create({
 });
 
 // Dropdown select
-const dd = StyleSheet.create({
-  wrap:             { position: 'relative', zIndex: 10, flex: 1 },
-  filterLabel:      { fontFamily: FontFamily.regular, fontSize: 9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, color: '#9090A0', marginBottom: 3 },
-  trigger:          { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, height: 24, borderRadius: 5, borderWidth: 1, borderColor: '#DCDCE0', backgroundColor: '#F8F8FA' },
-  triggerDark:      { backgroundColor: '#2C2C2E', borderColor: '#3A3A3C' },
-  triggerActive:    { borderColor: '#E91E63', backgroundColor: 'rgba(233,30,99,0.05)' },
-  triggerTxt:       { flex: 1, fontFamily: FontFamily.regular, fontSize: 9, color: '#555', fontWeight: '500' },
-  triggerTxtActive: { color: '#E91E63', fontWeight: '600' },
-  list:             { position: 'absolute', top: 28, left: 0, right: 0, backgroundColor: '#FFFFFF', borderRadius: 7, borderWidth: 1, borderColor: '#DCDCE0', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.10, shadowRadius: 8, elevation: 10, zIndex: 999 },
-  listDark:         { backgroundColor: '#2C2C2E', borderColor: '#3A3A3C' },
-  item:             { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, gap: 6 },
-  itemBorder:       { borderBottomWidth: 1, borderBottomColor: '#F0F0F4' },
-  itemDark:         { borderBottomColor: '#3A3A3C' },
-  itemPressed:      { backgroundColor: 'rgba(0,0,0,0.04)' },
-  itemSelected:     { backgroundColor: '#595959' },
-  itemTxt:          { flex: 1, fontFamily: FontFamily.regular, fontSize: 10, color: '#333' },
-  itemTxtSelected:  { color: '#FFFFFF', fontWeight: '600' },
-  checkCircle:      { width: 16, height: 16, borderRadius: 8, backgroundColor: '#30A84B', alignItems: 'center', justifyContent: 'center' },
-});
-
 // Serial modal styles
 const sm = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', padding: 14, paddingTop: 24 },

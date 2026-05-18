@@ -1,17 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Pressable,
+  Text,
   View,
   StyleSheet,
   ScrollView,
   RefreshControl,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../common/PageHeader';
 import { QuickAccessRow } from '../dashboard/QuickAccessRow';
 import { Breadcrumbs } from '../common/Breadcrumbs';
 import { RecentPageTabs } from '../common/RecentPageTabs';
 import { TabsSection } from '../dashboard/TabsSection';
-import { Spacing } from '../../constants/theme';
+import { Spacing, Colors } from '../../constants/theme';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useIsPreview } from '../../context/PreviewContext';
@@ -48,6 +51,7 @@ export function SubModuleLayout({
   const isPreview = useIsPreview();
   const [tab, setTab] = useState<Tab>(activeTab);
   const [refreshing, setRefreshing] = useState(false);
+  const [showQuickAccess, setShowQuickAccess] = useState(false);
 
   const dyn = useMemo(() => createDynamicStyles(isDarkMode), [isDarkMode]);
 
@@ -77,9 +81,23 @@ export function SubModuleLayout({
       <PageHeader showBack={showBack} showBrand={true} hideGreeting={true} showBreadcrumbs={false} hideSearchIcon={true} />
 
       <View style={styles.whiteSection}>
-        <View style={styles.quickWrap}>
-          <QuickAccessRow onPress={onModulePress} />
-        </View>
+        <Pressable
+          onPress={() => setShowQuickAccess(v => !v)}
+          style={({ pressed }) => [styles.quickToggle, pressed && { opacity: 0.7 }]}>
+          <View style={styles.quickAccent} />
+          <Text style={styles.quickToggleTxt}>Quick Access</Text>
+          <MaterialCommunityIcons
+            name={showQuickAccess ? 'chevron-up' : 'chevron-down'}
+            size={14}
+            color="#9090A0"
+            style={{ marginLeft: 4 }}
+          />
+        </Pressable>
+        {showQuickAccess && (
+          <View style={styles.quickWrap}>
+            <QuickAccessRow onPress={onModulePress} hideTitle />
+          </View>
+        )}
 
         <RecentPageTabs />
 
@@ -138,10 +156,30 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   previewWrap: { flex: 1, backgroundColor: '#FFFFFF' },
 
+  quickToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 8,
+  },
+  quickAccent: {
+    width: 3,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: Colors.primaryHighlight,
+    marginRight: 7,
+  },
+  quickToggleTxt: {
+    fontFamily: 'System',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    marginRight: 4,
+  },
   quickWrap: {
     paddingHorizontal: Spacing.lg,
     paddingTop: 0,
-    paddingBottom: 0,
+    paddingBottom: 4,
     backgroundColor: 'transparent',
   },
 

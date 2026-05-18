@@ -14,6 +14,7 @@ import { useNavigation } from '../../context/NavigationContext';
 interface QuickAccessRowProps {
   onPress?: (module: AppModule) => void;
   selectedModuleId?: string;
+  hideTitle?: boolean;
 }
 
 // Layout constants
@@ -22,7 +23,7 @@ const ITEM_GAP = 4;
 const ARROW_WIDTH = 18;
 const ROW_GAP = 4; // gap between each arrow and the ScrollView
 
-export function QuickAccessRow({ onPress, selectedModuleId }: QuickAccessRowProps) {
+export function QuickAccessRow({ onPress, selectedModuleId, hideTitle = false }: QuickAccessRowProps) {
   const { colors, isDarkMode } = useTheme();
   const { lastModuleId } = useNavigation();
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
@@ -83,13 +84,15 @@ export function QuickAccessRow({ onPress, selectedModuleId }: QuickAccessRowProp
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.titleRow}>
-        <View style={styles.titleLeft}>
-          <View style={styles.titleAccent} />
-          <Text style={[styles.title, dyn.title]}>Quick Access</Text>
+      {!hideTitle && (
+        <View style={styles.titleRow}>
+          <View style={styles.titleLeft}>
+            <View style={styles.titleAccent} />
+            <Text style={[styles.title, dyn.title]}>Quick Access</Text>
+          </View>
+          <Text style={[styles.seeAll, dyn.seeAll]}>See all</Text>
         </View>
-        <Text style={[styles.seeAll, dyn.seeAll]}>See all</Text>
-      </View>
+      )}
 
       <View
         style={styles.rowWithArrows}
