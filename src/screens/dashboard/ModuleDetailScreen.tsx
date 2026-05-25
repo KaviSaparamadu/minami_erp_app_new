@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -15,11 +15,9 @@ import { FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme
 import { UIIcon } from '../../components/common/UIIcon';
 import { MODULE_ICON_MAP } from '../../components/dashboard/ModuleIcon';
 import { MODULES } from '../../constants/modules';
-import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import { ModuleTreeView } from '../../components/dashboard/ModuleTreeView';
-import { QuickAccessRow } from '../../components/dashboard/QuickAccessRow';
 import { RecentPageTabs } from '../../components/common/RecentPageTabs';
 
 const H_PAD = 6;
@@ -32,17 +30,24 @@ interface ModuleDetailScreenProps {
 
 export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
   const { colors, isDarkMode } = useTheme();
-  const { navigate } = useNavigation();
+  const { params } = useNavigation();
 
   const [tab, setTab] = useState<Tab>('modules');
   const [submodulesOpen, setSubmodulesOpen] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // When the breadcrumb taps "switch to Modules tab" (setCurrentParams({ tab:'modules' })),
+  // or when the user navigates to a different module, reset to the Modules tab.
+  const tabParam = params?.tab as Tab | undefined;
+  useEffect(() => {
+    const next: Tab = tabParam ?? 'modules';
+    setTab(next);
+    setSubmodulesOpen(next === 'modules');
+  }, [moduleId, tabParam]);
+
   const dyn = useMemo(() => createDynamicStyles(isDarkMode), [isDarkMode]);
 
   const module = MODULES.find(m => m.id === moduleId);
-
-  const handleModulePress = (mod: AppModule) => navigate('ModuleDetail', { moduleId: mod.id });
 
   const handleTabChange = (newTab: string) => {
     if (newTab === 'Modules') {
@@ -78,11 +83,6 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
       <PageHeader showBack={true} showBrand={true} hideGreeting={true} showBreadcrumbs={false} hideSearchIcon={true} />
 
       <View style={styles.whiteSection}>
-        {/* Quick Access */}
-        <View style={styles.quickWrap}>
-          <QuickAccessRow onPress={handleModulePress} selectedModuleId={module.id} />
-        </View>
-
         <RecentPageTabs />
 
         {/* Tabs */}
@@ -181,13 +181,6 @@ function createDynamicStyles(isDarkMode: boolean) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-
-  quickWrap: {
-    paddingHorizontal: H_PAD,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
-    backgroundColor: '#FFFFFF',
-  },
 
   errorContainer: {
     flex: 1,

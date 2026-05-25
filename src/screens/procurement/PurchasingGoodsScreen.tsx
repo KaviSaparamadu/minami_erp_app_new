@@ -103,7 +103,16 @@ const GOODS_TABS: PageTabItem[] = [
 ];
 
 const ITEM_FILTERS: ItemFilter[] = ['All', 'Spare Parts', 'Electronics', 'Consumables'];
-const ICON_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
+const ITEM_HEALTH_LABELS: Partial<Record<keyof GoodItem, string>> = {
+  code:        'Item Code',
+  description: 'Description',
+  category:    'Category',
+  subCategory: 'Sub Category',
+  brand:       'Brand',
+  itemName:    'Item Name',
+  costPrice:   'Cost Price',
+  sellPrice:   'Sell Price',
+};
 
 const HEALTH_FIELDS: (keyof GoodItem)[] = [
   'code', 'description', 'category', 'subCategory', 'brand',
@@ -115,8 +124,6 @@ function calcHealth(item: GoodItem): number {
   return Math.round((filled / HEALTH_FIELDS.length) * 100);
 }
 function healthRing(pct: number)  { return pct < 25 ? '#E53935' : pct < 50 ? '#FB8C00' : pct < 75 ? '#FDD835' : '#30A84B'; }
-function healthBg(pct: number)    { return pct < 25 ? 'rgba(229,57,53,0.12)' : pct < 50 ? 'rgba(251,140,0,0.12)' : pct < 75 ? 'rgba(253,216,53,0.15)' : 'rgba(48,168,75,0.12)'; }
-function healthColor(pct: number) { return pct < 25 ? '#B71C1C' : pct < 50 ? '#E65100' : pct < 75 ? '#F57F17' : '#2E7D32'; }
 
 // ── Styles (before components) ────────────────────────────────────────────────
 
@@ -133,12 +140,10 @@ const gc = StyleSheet.create({
   accent:   { width: 4 },
   inner:    { flex: 1 },
   header:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 12 },
-  iconWrap: { alignItems: 'center', gap: 4, flexShrink: 0 },
+  iconWrap: { alignItems: 'center', flexShrink: 0 },
   iconRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
-  iconInner:{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  pctBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
-  pctTxt:   { fontFamily: FontFamily.bold, fontSize: 7, fontWeight: '700' },
-  pctLabel: { fontStyle: 'italic', fontWeight: '400' },
+  iconInner:{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  iconPct:  { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
   nameBlock:{ flex: 1, gap: 4 },
   code:     { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#60607A' },
   name:     { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', lineHeight: 19 },
@@ -325,6 +330,69 @@ function ItemInfoChip({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ── Item health modal ─────────────────────────────────────────────────────────
+
+function ItemHealthModal({ visible, item, onClose }: {
+  visible: boolean; item: GoodItem; onClose: () => void;
+}) {
+  const pct         = calcHealth(item);
+  const ringColor   = healthRing(pct);
+  const isComplete  = pct === 100;
+  const filledCount = HEALTH_FIELDS.filter(f => !!item[f]).length;
+  const totalCount  = HEALTH_FIELDS.length;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={ihm.overlay} onPress={onClose}>
+        <Pressable style={ihm.card} onPress={() => {}}>
+          <View style={[ihm.topBar, { backgroundColor: ringColor }]} />
+          <View style={ihm.header}>
+            <View style={[ihm.ring, { borderColor: ringColor }]}>
+              <Text style={[ihm.ringPct, { color: ringColor }]}>{pct}%</Text>
+            </View>
+            <View style={ihm.headerText}>
+              <Text style={ihm.title}>Form Health</Text>
+              <Text style={ihm.sub}>{filledCount} of {totalCount} fields complete</Text>
+            </View>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <MaterialCommunityIcons name="close" size={18} color="#9090A0" />
+            </Pressable>
+          </View>
+          {isComplete ? (
+            <View style={ihm.completeBanner}>
+              <MaterialCommunityIcons name="check-decagram" size={15} color="#2E7D32" />
+              <Text style={ihm.completeText}>Complete — all required fields are filled</Text>
+            </View>
+          ) : (
+            <View style={ihm.warnBanner}>
+              <MaterialCommunityIcons name="alert-outline" size={14} color="#E65100" />
+              <Text style={ihm.warnText}>{totalCount - filledCount} field(s) need attention</Text>
+            </View>
+          )}
+          <ScrollView style={ihm.list} showsVerticalScrollIndicator={false}>
+            {HEALTH_FIELDS.map(field => {
+              const filled = !!item[field];
+              const val    = item[field];
+              return (
+                <View key={field} style={ihm.row}>
+                  <MaterialCommunityIcons
+                    name={filled ? 'check-circle' : 'alert-circle-outline'}
+                    size={16} color={filled ? '#30A84B' : '#FB8C00'} />
+                  <View style={ihm.rowBody}>
+                    <Text style={ihm.rowLabel}>{ITEM_HEALTH_LABELS[field] ?? String(field)}</Text>
+                    {filled
+                      ? <Text style={ihm.rowValue} numberOfLines={1}>{String(val)}</Text>
+                      : <Text style={ihm.rowMissing}>Not filled</Text>}
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 // ── Item card ─────────────────────────────────────────────────────────────────
 
 function ItemCard({
@@ -336,7 +404,7 @@ function ItemCard({
   const { colors, isDarkMode } = useTheme();
   const pct       = calcHealth(item);
   const ringColor = healthRing(pct);
-  const iconBg    = ICON_COLORS[index % ICON_COLORS.length];
+  const [showHealth, setShowHealth] = useState(false);
 
   return (
     <View style={[gc.card, isDarkMode && gc.cardDark]}>
@@ -344,17 +412,13 @@ function ItemCard({
       <View style={gc.inner}>
         {/* Header */}
         <View style={gc.header}>
-          <View style={gc.iconWrap}>
+          <Pressable onPress={() => setShowHealth(true)} style={gc.iconWrap} hitSlop={6}>
             <View style={[gc.iconRing, { borderColor: ringColor }]}>
-              <View style={[gc.iconInner, { backgroundColor: iconBg }]}>
-                <MaterialCommunityIcons name="package-variant-closed" size={20} color="#FFF" />
+              <View style={gc.iconInner}>
+                <Text style={[gc.iconPct, { color: ringColor }]}>{pct}%</Text>
               </View>
             </View>
-            <View style={[gc.pctBadge, { backgroundColor: healthBg(pct) }]}>
-              <Text style={[gc.pctTxt, gc.pctLabel, { color: healthColor(pct) }]}>Fill </Text>
-              <Text style={[gc.pctTxt, { color: healthColor(pct) }]}>{pct}%</Text>
-            </View>
-          </View>
+          </Pressable>
           <View style={gc.nameBlock}>
             <Text style={gc.code}>{item.code}</Text>
             <Text style={[gc.name, { color: colors.primaryText }]} numberOfLines={2}>
@@ -395,6 +459,12 @@ function ItemCard({
           </Pressable>
         </View>
       </View>
+
+      <ItemHealthModal
+        visible={showHealth}
+        item={item}
+        onClose={() => setShowHealth(false)}
+      />
     </View>
   );
 }
@@ -1078,4 +1148,26 @@ const scr = StyleSheet.create({
   container:  { flex: 1, paddingTop: 8 },
   tabBarWrap: { paddingHorizontal: Spacing.md },
   panel:      { flex: 1, marginTop: 8 },
+});
+
+const ihm = StyleSheet.create({
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  card:           { width: '100%', backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', maxHeight: '80%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 12 },
+  topBar:         { height: 4 },
+  header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
+  ring:           { width: 44, height: 44, borderRadius: 22, borderWidth: 3, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  ringPct:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
+  headerText:     { flex: 1 },
+  title:          { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
+  sub:            { fontFamily: FontFamily.regular, fontSize: 11, color: '#8E8E93', marginTop: 2 },
+  completeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(48,168,75,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  completeText:   { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#2E7D32', flex: 1 },
+  warnBanner:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(251,140,0,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  warnText:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#E65100', flex: 1 },
+  list:           { maxHeight: 380 },
+  row:            { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#F5F5F7' },
+  rowBody:        { flex: 1 },
+  rowLabel:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', marginBottom: 2 },
+  rowValue:       { fontFamily: FontFamily.regular, fontSize: 11, color: '#5A5A6E' },
+  rowMissing:     { fontFamily: FontFamily.regular, fontSize: 11, color: '#FB8C00', fontStyle: 'italic' },
 });

@@ -35,7 +35,80 @@ const UR_TABS: PageTabItem[] = [
   { key: 'user-roles', label: 'User Roles', color: '#595959' },
 ];
 
-const ROLE_COLORS = ['#5E35B1', '#1565C0', '#00796B', '#AD1457', '#E65100', '#2E7D32'];
+// ─── Health helpers ───────────────────────────────────────────────────────────
+const ROLE_HEALTH_FIELDS: Array<{ key: keyof UserRole; label: string }> = [
+  { key: 'roleName',    label: 'Role Name' },
+  { key: 'description', label: 'Description' },
+];
+function calcRoleHealth(r: UserRole): number {
+  const filled = ROLE_HEALTH_FIELDS.filter(f => !!r[f.key]).length;
+  return Math.round((filled / ROLE_HEALTH_FIELDS.length) * 100);
+}
+function roleRingColor(pct: number): string {
+  return pct < 25 ? '#E53935' : pct < 50 ? '#FB8C00' : pct < 75 ? '#FDD835' : '#30A84B';
+}
+
+// ─── Role health modal ────────────────────────────────────────────────────────
+function RoleHealthModal({ visible, role, onClose }: {
+  visible: boolean; role: UserRole; onClose: () => void;
+}) {
+  const pct         = calcRoleHealth(role);
+  const ringColor   = roleRingColor(pct);
+  const isComplete  = pct === 100;
+  const filledCount = ROLE_HEALTH_FIELDS.filter(f => !!role[f.key]).length;
+  const totalCount  = ROLE_HEALTH_FIELDS.length;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={rhm.overlay} onPress={onClose}>
+        <Pressable style={rhm.card} onPress={() => {}}>
+          <View style={[rhm.topBar, { backgroundColor: ringColor }]} />
+          <View style={rhm.header}>
+            <View style={[rhm.ring, { borderColor: ringColor }]}>
+              <Text style={[rhm.ringPct, { color: ringColor }]}>{pct}%</Text>
+            </View>
+            <View style={rhm.headerText}>
+              <Text style={rhm.title}>Form Health</Text>
+              <Text style={rhm.sub}>{filledCount} of {totalCount} fields complete</Text>
+            </View>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <MaterialCommunityIcons name="close" size={18} color="#9090A0" />
+            </Pressable>
+          </View>
+          {isComplete ? (
+            <View style={rhm.completeBanner}>
+              <MaterialCommunityIcons name="check-decagram" size={15} color="#2E7D32" />
+              <Text style={rhm.completeText}>Complete — all required fields are filled</Text>
+            </View>
+          ) : (
+            <View style={rhm.warnBanner}>
+              <MaterialCommunityIcons name="alert-outline" size={14} color="#E65100" />
+              <Text style={rhm.warnText}>{totalCount - filledCount} field(s) need attention</Text>
+            </View>
+          )}
+          <ScrollView style={rhm.list} showsVerticalScrollIndicator={false}>
+            {ROLE_HEALTH_FIELDS.map(({ key, label }) => {
+              const filled = !!role[key];
+              const val    = role[key];
+              return (
+                <View key={key} style={rhm.row}>
+                  <MaterialCommunityIcons
+                    name={filled ? 'check-circle' : 'alert-circle-outline'}
+                    size={16} color={filled ? '#30A84B' : '#FB8C00'} />
+                  <View style={rhm.rowBody}>
+                    <Text style={rhm.rowLabel}>{label}</Text>
+                    {filled
+                      ? <Text style={rhm.rowValue} numberOfLines={2}>{String(val)}</Text>
+                      : <Text style={rhm.rowMissing}>Not filled</Text>}
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
 
 // ─── Role Form Modal ──────────────────────────────────────────────────────────
 function RoleFormModal({ visible, mode, role, onClose, onSave }: {
@@ -223,18 +296,23 @@ function RoleCard({
   onDelete: () => void;
 }) {
   const { colors, isDarkMode } = useTheme();
-  const initial = (role.roleName || '?').charAt(0).toUpperCase();
-  const accentColor = ROLE_COLORS[index % ROLE_COLORS.length];
+  const pct       = calcRoleHealth(role);
+  const ringColor = roleRingColor(pct);
+  const [showHealth, setShowHealth] = useState(false);
 
   return (
     <View style={[rc.card, isDarkMode && rc.cardDark]}>
-      <View style={[rc.accent, { backgroundColor: accentColor }]} />
+      <View style={[rc.accent, { backgroundColor: Colors.primaryHighlight }]} />
       <View style={rc.inner}>
         {/* Header */}
         <View style={rc.header}>
-          <View style={[rc.avatar, { backgroundColor: accentColor }]}>
-            <Text style={rc.avatarTxt}>{initial}</Text>
-          </View>
+          <Pressable onPress={() => setShowHealth(true)} style={rc.avatarWrap} hitSlop={6}>
+            <View style={[rc.avatarRing, { borderColor: ringColor }]}>
+              <View style={rc.avatar}>
+                <Text style={[rc.avatarPct, { color: ringColor }]}>{pct}%</Text>
+              </View>
+            </View>
+          </Pressable>
           <View style={rc.nameBlock}>
             <Text style={[rc.name, { color: colors.primaryText }]} numberOfLines={1}>
               {role.roleName}
@@ -271,6 +349,7 @@ function RoleCard({
           </Pressable>
         </View>
       </View>
+      <RoleHealthModal visible={showHealth} role={role} onClose={() => setShowHealth(false)} />
     </View>
   );
 }
@@ -579,8 +658,10 @@ const rc = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 10,
   },
-  avatar:    { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 17, fontWeight: '700', color: '#FFF' },
+  avatarWrap: { alignItems: 'center', flexShrink: 0 },
+  avatarRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  avatar:     { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  avatarPct:  { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
   nameBlock: { flex: 1, gap: 3 },
   name:      { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', lineHeight: 20 },
   desc:      { fontFamily: FontFamily.regular, fontSize: 11 },
@@ -710,4 +791,26 @@ const dc = StyleSheet.create({
   cancelTxt:{ fontFamily: FontFamily.medium, fontSize: 12, color: '#666' },
   confirmBtn:{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E53935' },
   confirmTxt:{ fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF' },
+});
+
+const rhm = StyleSheet.create({
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  card:           { width: '100%', backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', maxHeight: '80%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 12 },
+  topBar:         { height: 4 },
+  header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
+  ring:           { width: 44, height: 44, borderRadius: 22, borderWidth: 3, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  ringPct:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
+  headerText:     { flex: 1 },
+  title:          { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
+  sub:            { fontFamily: FontFamily.regular, fontSize: 11, color: '#8E8E93', marginTop: 2 },
+  completeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(48,168,75,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  completeText:   { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#2E7D32', flex: 1 },
+  warnBanner:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(251,140,0,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  warnText:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#E65100', flex: 1 },
+  list:           { maxHeight: 380 },
+  row:            { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#F5F5F7' },
+  rowBody:        { flex: 1 },
+  rowLabel:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', marginBottom: 2 },
+  rowValue:       { fontFamily: FontFamily.regular, fontSize: 11, color: '#5A5A6E' },
+  rowMissing:     { fontFamily: FontFamily.regular, fontSize: 11, color: '#FB8C00', fontStyle: 'italic' },
 });

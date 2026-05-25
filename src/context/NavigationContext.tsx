@@ -42,6 +42,8 @@ interface NavigationContextValue {
   params: Record<string, any> | null;
   paramsStack: Array<Record<string, any> | null>;
   navigateTo: (screen: ScreenName) => void;
+  /** Merge new keys into the current (top) stack entry's params without pushing a new entry. */
+  setCurrentParams: (patch: Record<string, any>) => void;
   sidebarOpen: boolean;
   openSidebar: () => void;
   closeSidebar: () => void;
@@ -155,8 +157,16 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       setStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
       setParamsStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
       setNavigating(false);
-    }, NAV_DELAY);
+    }, NAV_DELAY);  
   }, [captureCurrentPage]);
+
+  const setCurrentParams = useCallback((patch: Record<string, any>) => {
+    setParamsStack(prev => {
+      const next = [...prev];
+      next[next.length - 1] = { ...(prev[prev.length - 1] ?? {}), ...patch };
+      return next;
+    });
+  }, []);
 
   const navigateTo = useCallback((screen: ScreenName) => {
     captureCurrentPage();
@@ -185,7 +195,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   return (
     <NavigationContext.Provider value={{
       currentScreen, navigate, navigateInstant, goBack, canGoBack, navigating,
-      stack, params, paramsStack, navigateTo,
+      stack, params, paramsStack, navigateTo, setCurrentParams,
       sidebarOpen, openSidebar, closeSidebar, lastModuleId,
       recentPages, removeRecentPage,
       screenRef, screenshots, saveScreenshot,

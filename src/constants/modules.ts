@@ -68,6 +68,7 @@ export const MODULES: AppModule[] = [
     id: '4',
     name: 'Procurement',
     iconType: 'procurement',
+    screen: 'Procurement',
     value: '47',
     valueLabel: 'PO Pending',
     submodules: [

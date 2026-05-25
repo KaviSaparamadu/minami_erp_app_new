@@ -34,7 +34,6 @@ const EMP_TABS: PageTabItem[] = [
   { key: 'salary-matrix', label: 'Salary Matrix', color: '#595959' },
 ];
 const FILTERS: Filter[] = ['All', 'Permanent', 'Contract', 'Casual'];
-const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
 
 const HEALTH_FIELDS: (keyof Employee)[] = [
   'employeeName', 'salaryBoard', 'designationCategory', 'designation',
@@ -53,19 +52,6 @@ function healthRingColor(pct: number): string {
   return '#30A84B';
 }
 
-function healthBadgeBg(pct: number): string {
-  if (pct < 25) return 'rgba(229,57,53,0.12)';
-  if (pct < 50) return 'rgba(251,140,0,0.12)';
-  if (pct < 75) return 'rgba(253,216,53,0.15)';
-  return 'rgba(48,168,75,0.12)';
-}
-
-function healthTextColor(pct: number): string {
-  if (pct < 25) return '#B71C1C';
-  if (pct < 50) return '#E65100';
-  if (pct < 75) return '#F57F17';
-  return '#2E7D32';
-}
 
 // ─── Info chip ────────────────────────────────────────────────────────────────
 function InfoChip({ label, value }: { label: string; value: string }) {
@@ -77,6 +63,97 @@ function InfoChip({ label, value }: { label: string; value: string }) {
         {value}
       </Text>
     </View>
+  );
+}
+
+// ─── Field labels for health modal ───────────────────────────────────────────
+const HEALTH_FIELD_LABELS: Partial<Record<keyof Employee, string>> = {
+  employeeName:        'Employee Name',
+  salaryBoard:         'Salary Board',
+  designationCategory: 'Designation Category',
+  designation:         'Designation',
+  designationGrade:    'Designation Grade',
+  employeeType:        'Employee Type',
+  entity:              'Entity',
+  workBranch:          'Work Branch',
+  department:          'Department',
+};
+
+// ─── Health detail modal ──────────────────────────────────────────────────────
+function HealthModal({ visible, employee, onClose }: {
+  visible: boolean;
+  employee: Employee;
+  onClose: () => void;
+}) {
+  const pct         = calcHealth(employee);
+  const ringColor   = healthRingColor(pct);
+  const isComplete  = pct === 100;
+  const filledCount = HEALTH_FIELDS.filter(f => !!employee[f]).length;
+  const totalCount  = HEALTH_FIELDS.length;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={hm.overlay} onPress={onClose}>
+        <Pressable style={hm.card} onPress={() => {}}>
+          {/* Top accent stripe */}
+          <View style={[hm.topBar, { backgroundColor: ringColor }]} />
+
+          {/* Header */}
+          <View style={hm.header}>
+            <View style={[hm.ring, { borderColor: ringColor }]}>
+              <Text style={[hm.ringPct, { color: ringColor }]}>{pct}%</Text>
+            </View>
+            <View style={hm.headerText}>
+              <Text style={hm.title}>Form Health</Text>
+              <Text style={hm.sub}>{filledCount} of {totalCount} fields complete</Text>
+            </View>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <MaterialCommunityIcons name="close" size={18} color="#9090A0" />
+            </Pressable>
+          </View>
+
+          {/* Status banner */}
+          {isComplete ? (
+            <View style={hm.completeBanner}>
+              <MaterialCommunityIcons name="check-decagram" size={15} color="#2E7D32" />
+              <Text style={hm.completeText}>Complete — all required fields are filled</Text>
+            </View>
+          ) : (
+            <View style={hm.warnBanner}>
+              <MaterialCommunityIcons name="alert-outline" size={14} color="#E65100" />
+              <Text style={hm.warnText}>{totalCount - filledCount} field(s) need attention</Text>
+            </View>
+          )}
+
+          {/* Field list */}
+          <ScrollView style={hm.list} showsVerticalScrollIndicator={false}>
+            {HEALTH_FIELDS.map(field => {
+              const filled = !!employee[field];
+              const val    = employee[field];
+              return (
+                <View key={field} style={hm.row}>
+                  <MaterialCommunityIcons
+                    name={filled ? 'check-circle' : 'alert-circle-outline'}
+                    size={16}
+                    color={filled ? '#30A84B' : '#FB8C00'}
+                  />
+                  <View style={hm.rowBody}>
+                    <Text style={hm.rowLabel}>
+                      {HEALTH_FIELD_LABELS[field] ?? String(field)}
+                    </Text>
+                    {filled ? (
+                      <Text style={hm.rowValue} numberOfLines={1}>{String(val)}</Text>
+                    ) : (
+                      <Text style={hm.rowMissing}>Not filled</Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -95,10 +172,9 @@ function EmployeeCard({
   onDelete: () => void;
 }) {
   const { colors, isDarkMode } = useTheme();
-  const initial = (employee.employeeName || '?').charAt(0).toUpperCase();
-  const avatarBg = AVATAR_COLORS[index % AVATAR_COLORS.length];
   const pct       = calcHealth(employee);
   const ringColor = healthRingColor(pct);
+  const [showHealth, setShowHealth] = useState(false);
 
   return (
     <View style={[ec.card, isDarkMode && ec.cardDark]}>
@@ -106,17 +182,18 @@ function EmployeeCard({
       <View style={ec.inner}>
         {/* Header */}
         <View style={ec.header}>
-          <View style={ec.avatarWrap}>
+          {/* Health circle — tap to open detail modal */}
+          <Pressable
+            onPress={() => setShowHealth(true)}
+            style={ec.avatarWrap}
+            hitSlop={6}>
             <View style={[ec.avatarRing, { borderColor: ringColor }]}>
-              <View style={[ec.avatar, { backgroundColor: avatarBg }]}>
-                <Text style={ec.avatarTxt}>{initial}</Text>
+              <View style={ec.avatar}>
+                <Text style={[ec.avatarPct, { color: ringColor }]}>{pct}%</Text>
               </View>
             </View>
-            <View style={[ec.pctBadge, { backgroundColor: healthBadgeBg(pct) }]}>
-              <Text style={[ec.pctTxt, ec.pctLabel, { color: healthTextColor(pct) }]}>Health </Text>
-              <Text style={[ec.pctTxt, { color: healthTextColor(pct) }]}>{pct}%</Text>
-            </View>
-          </View>
+          </Pressable>
+
           <View style={ec.nameBlock}>
             <Text style={[ec.name, { color: colors.primaryText }]} numberOfLines={1}>
               {employee.employeeName || '—'}
@@ -158,6 +235,12 @@ function EmployeeCard({
           </Pressable>
         </View>
       </View>
+
+      <HealthModal
+        visible={showHealth}
+        employee={employee}
+        onClose={() => setShowHealth(false)}
+      />
     </View>
   );
 }
@@ -701,10 +784,7 @@ const ec = StyleSheet.create({
   avatarWrap: { alignItems: 'center', gap: 4, flexShrink: 0 },
   avatarRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   avatar:     { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  pctBadge:   { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: 'rgba(48,168,75,0.12)' },
-  pctTxt:     { fontFamily: FontFamily.bold, fontSize: 7, fontWeight: '700', color: '#2E7D32' },
-  pctLabel:   { fontStyle: 'italic', fontWeight: '400' },
-  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  avatarPct:  { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
   nameBlock: { flex: 1, gap: 4 },
   name:      { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', lineHeight: 20 },
   badge:     { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(233,30,99,0.10)' },
@@ -845,4 +925,27 @@ const wb = StyleSheet.create({
     paddingVertical: 40, alignItems: 'center', justifyContent: 'center',
   },
   emptyTxt: { fontFamily: FontFamily.regular, fontSize: 13 },
+});
+
+// ─── Health modal styles ──────────────────────────────────────────────────────
+const hm = StyleSheet.create({
+  overlay:       { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  card:          { width: '100%', backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', maxHeight: '80%', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 12 },
+  topBar:        { height: 4 },
+  header:        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
+  ring:          { width: 44, height: 44, borderRadius: 22, borderWidth: 3, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  ringPct:       { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
+  headerText:    { flex: 1 },
+  title:         { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
+  sub:           { fontFamily: FontFamily.regular, fontSize: 11, color: '#8E8E93', marginTop: 2 },
+  completeBanner:{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(48,168,75,0.08)', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(48,168,75,0.15)' },
+  completeText:  { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#2E7D32', flex: 1 },
+  warnBanner:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(251,140,0,0.08)', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(251,140,0,0.15)' },
+  warnText:      { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#E65100', flex: 1 },
+  list:          { maxHeight: 380 },
+  row:           { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#F5F5F7' },
+  rowBody:       { flex: 1 },
+  rowLabel:      { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#3C3C50', marginBottom: 2 },
+  rowValue:      { fontFamily: FontFamily.regular, fontSize: 11, color: '#60607A' },
+  rowMissing:    { fontFamily: FontFamily.regular, fontSize: 11, color: '#FB8C00', fontStyle: 'italic' },
 });

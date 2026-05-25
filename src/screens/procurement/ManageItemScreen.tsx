@@ -20,7 +20,19 @@ import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { setItemSellingConfig } from '../../store/itemSellingStore';
 
-const CARD_ACCENT_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#8E8E8E', '#A0A0A0', '#606060'];
+// ── Health helpers ────────────────────────────────────────────────────────────
+const IS_HEALTH_FIELDS: Array<{ key: keyof ItemSellingRecord; label: string }> = [
+  { key: 'itemCode',        label: 'Item Code' },
+  { key: 'itemName',        label: 'Item Name' },
+  { key: 'itemDescription', label: 'Description' },
+];
+function calcISHealth(r: ItemSellingRecord): number {
+  const filled = IS_HEALTH_FIELDS.filter(f => !!r[f.key]).length;
+  return Math.round((filled / IS_HEALTH_FIELDS.length) * 100);
+}
+function isRingColor(pct: number): string {
+  return pct < 25 ? '#E53935' : pct < 50 ? '#FB8C00' : pct < 75 ? '#FDD835' : '#30A84B';
+}
 
 // ── Tab definitions ───────────────────────────────────────────────────────────
 
@@ -88,12 +100,76 @@ function ISInfoChip({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ── Item Selling health modal ─────────────────────────────────────────────────
+function SellingHealthModal({ visible, record, onClose }: {
+  visible: boolean; record: ItemSellingRecord; onClose: () => void;
+}) {
+  const pct         = calcISHealth(record);
+  const ringColor   = isRingColor(pct);
+  const isComplete  = pct === 100;
+  const filledCount = IS_HEALTH_FIELDS.filter(f => !!record[f.key]).length;
+  const totalCount  = IS_HEALTH_FIELDS.length;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={ism.overlay} onPress={onClose}>
+        <Pressable style={ism.card} onPress={() => {}}>
+          <View style={[ism.topBar, { backgroundColor: ringColor }]} />
+          <View style={ism.header}>
+            <View style={[ism.ring, { borderColor: ringColor }]}>
+              <Text style={[ism.ringPct, { color: ringColor }]}>{pct}%</Text>
+            </View>
+            <View style={ism.headerText}>
+              <Text style={ism.title}>Form Health</Text>
+              <Text style={ism.sub}>{filledCount} of {totalCount} fields complete</Text>
+            </View>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <MaterialCommunityIcons name="close" size={18} color="#9090A0" />
+            </Pressable>
+          </View>
+          {isComplete ? (
+            <View style={ism.completeBanner}>
+              <MaterialCommunityIcons name="check-decagram" size={15} color="#2E7D32" />
+              <Text style={ism.completeText}>Complete — all required fields are filled</Text>
+            </View>
+          ) : (
+            <View style={ism.warnBanner}>
+              <MaterialCommunityIcons name="alert-outline" size={14} color="#E65100" />
+              <Text style={ism.warnText}>{totalCount - filledCount} field(s) need attention</Text>
+            </View>
+          )}
+          <ScrollView style={ism.list} showsVerticalScrollIndicator={false}>
+            {IS_HEALTH_FIELDS.map(({ key, label }) => {
+              const filled = !!record[key];
+              const val    = record[key];
+              return (
+                <View key={key} style={ism.row}>
+                  <MaterialCommunityIcons
+                    name={filled ? 'check-circle' : 'alert-circle-outline'}
+                    size={16} color={filled ? '#30A84B' : '#FB8C00'} />
+                  <View style={ism.rowBody}>
+                    <Text style={ism.rowLabel}>{label}</Text>
+                    {filled
+                      ? <Text style={ism.rowValue} numberOfLines={1}>{String(val)}</Text>
+                      : <Text style={ism.rowMissing}>Not filled</Text>}
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 // ── Item Selling Card (mirrors EmployeeCard exactly) ──────────────────────────
 function ItemSellingCard({
   record, index, onEdit,
 }: { record: ItemSellingRecord; index: number; onEdit: () => void }) {
   const { colors, isDarkMode } = useTheme();
-  const accentColor = CARD_ACCENT_COLORS[index % CARD_ACCENT_COLORS.length];
+  const pct       = calcISHealth(record);
+  const ringColor = isRingColor(pct);
+  const [showHealth, setShowHealth] = useState(false);
 
   return (
     <View style={[isc.card, isDarkMode && isc.cardDark]}>
@@ -102,11 +178,13 @@ function ItemSellingCard({
 
         {/* Header */}
         <View style={isc.header}>
-          <View style={[isc.iconRing, { borderColor: accentColor }]}>
-            <View style={[isc.iconInner, { backgroundColor: accentColor }]}>
-              <MaterialCommunityIcons name="tag-multiple-outline" size={20} color="#FFF" />
+          <Pressable onPress={() => setShowHealth(true)} style={isc.iconWrap} hitSlop={6}>
+            <View style={[isc.iconRing, { borderColor: ringColor }]}>
+              <View style={isc.iconInner}>
+                <Text style={[isc.iconPct, { color: ringColor }]}>{pct}%</Text>
+              </View>
             </View>
-          </View>
+          </Pressable>
           <View style={isc.nameBlock}>
             <Text style={[isc.name, { color: colors.primaryText }]} numberOfLines={1}>{record.itemName}</Text>
             <View style={isc.badge}>
@@ -142,6 +220,7 @@ function ItemSellingCard({
           </Pressable>
         </View>
       </View>
+      <SellingHealthModal visible={showHealth} record={record} onClose={() => setShowHealth(false)} />
     </View>
   );
 }
@@ -673,8 +752,10 @@ const isc = StyleSheet.create({
   accent:         { width: 4 },
   inner:          { flex: 1 },
   header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 12 },
+  iconWrap:       { alignItems: 'center', flexShrink: 0 },
   iconRing:       { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
-  iconInner:      { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  iconInner:      { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  iconPct:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
   nameBlock:      { flex: 1, gap: 4 },
   name:           { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', lineHeight: 20 },
   badge:          { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(233,30,99,0.10)' },
@@ -772,4 +853,26 @@ const em = StyleSheet.create({
   footer:  { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#EBEBEB' },
   saveBtn: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#595959', borderRadius: 10, paddingVertical: 14 },
   saveTxt: { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: '700', color: '#FFF' },
+});
+
+const ism = StyleSheet.create({
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  card:           { width: '100%', backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', maxHeight: '80%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 12 },
+  topBar:         { height: 4 },
+  header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
+  ring:           { width: 44, height: 44, borderRadius: 22, borderWidth: 3, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  ringPct:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
+  headerText:     { flex: 1 },
+  title:          { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
+  sub:            { fontFamily: FontFamily.regular, fontSize: 11, color: '#8E8E93', marginTop: 2 },
+  completeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(48,168,75,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  completeText:   { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#2E7D32', flex: 1 },
+  warnBanner:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(251,140,0,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  warnText:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#E65100', flex: 1 },
+  list:           { maxHeight: 380 },
+  row:            { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#F5F5F7' },
+  rowBody:        { flex: 1 },
+  rowLabel:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', marginBottom: 2 },
+  rowValue:       { fontFamily: FontFamily.regular, fontSize: 11, color: '#5A5A6E' },
+  rowMissing:     { fontFamily: FontFamily.regular, fontSize: 11, color: '#FB8C00', fontStyle: 'italic' },
 });

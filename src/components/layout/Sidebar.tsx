@@ -225,7 +225,7 @@ function NavItem({ node, depth, current, expanded, onSelect, onToggle, dyn }: Na
         ]}
         accessibilityRole="button"
         accessibilityLabel={node.name}>
-
+ 
         <SidebarIcon name={node.icon} color={iconColor} size={iconSize} />
 
         <Text

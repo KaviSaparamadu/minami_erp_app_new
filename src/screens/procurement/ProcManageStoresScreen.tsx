@@ -554,23 +554,104 @@ function StoreItemModal({ visible, mode, item, onClose, onSave }: {
 }
 
 // ── Generic card ──────────────────────────────────────────────────────────────
-const AVATAR_COLORS = ['#595959', '#6B6B6B', '#7D7D7D', '#5A5A7A', '#606070', '#5C6060'];
+// ── Health helpers ────────────────────────────────────────────────────────────
+function calcCardHealth(code: string, title: string, subtitle?: string): number {
+  const fields = [code, title, subtitle];
+  const filled = fields.filter(f => !!f?.trim()).length;
+  return Math.round((filled / fields.length) * 100);
+}
+function cardRingColor(pct: number): string {
+  return pct < 25 ? '#E53935' : pct < 50 ? '#FB8C00' : pct < 75 ? '#FDD835' : '#30A84B';
+}
+
+// ── Store item health modal ────────────────────────────────────────────────────
+function StoreItemHealthModal({ visible, code, title, subtitle, onClose }: {
+  visible: boolean; code: string; title: string; subtitle?: string; onClose: () => void;
+}) {
+  const fields = [
+    { label: 'Code',     value: code },
+    { label: 'Name',     value: title },
+    { label: 'Location', value: subtitle },
+  ];
+  const pct         = calcCardHealth(code, title, subtitle);
+  const ringColor   = cardRingColor(pct);
+  const isComplete  = pct === 100;
+  const filledCount = fields.filter(f => !!f.value?.trim()).length;
+  const totalCount  = fields.length;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={shm.overlay} onPress={onClose}>
+        <Pressable style={shm.card} onPress={() => {}}>
+          <View style={[shm.topBar, { backgroundColor: ringColor }]} />
+          <View style={shm.header}>
+            <View style={[shm.ring, { borderColor: ringColor }]}>
+              <Text style={[shm.ringPct, { color: ringColor }]}>{pct}%</Text>
+            </View>
+            <View style={shm.headerText}>
+              <Text style={shm.title}>Form Health</Text>
+              <Text style={shm.sub}>{filledCount} of {totalCount} fields complete</Text>
+            </View>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <MaterialCommunityIcons name="close" size={18} color="#9090A0" />
+            </Pressable>
+          </View>
+          {isComplete ? (
+            <View style={shm.completeBanner}>
+              <MaterialCommunityIcons name="check-decagram" size={15} color="#2E7D32" />
+              <Text style={shm.completeText}>Complete — all required fields are filled</Text>
+            </View>
+          ) : (
+            <View style={shm.warnBanner}>
+              <MaterialCommunityIcons name="alert-outline" size={14} color="#E65100" />
+              <Text style={shm.warnText}>{totalCount - filledCount} field(s) need attention</Text>
+            </View>
+          )}
+          <ScrollView style={shm.list} showsVerticalScrollIndicator={false}>
+            {fields.map(({ label, value }) => {
+              const filled = !!value?.trim();
+              return (
+                <View key={label} style={shm.row}>
+                  <MaterialCommunityIcons
+                    name={filled ? 'check-circle' : 'alert-circle-outline'}
+                    size={16} color={filled ? '#30A84B' : '#FB8C00'} />
+                  <View style={shm.rowBody}>
+                    <Text style={shm.rowLabel}>{label}</Text>
+                    {filled
+                      ? <Text style={shm.rowValue} numberOfLines={1}>{value}</Text>
+                      : <Text style={shm.rowMissing}>Not filled</Text>}
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
 
 function ItemCard({ code, title, subtitle, index, onView, onEdit, onDelete }: {
   code: string; title: string; subtitle?: string; index: number;
   onView: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   const { colors, isDarkMode } = useTheme();
-  const avatarBg = AVATAR_COLORS[index % AVATAR_COLORS.length];
+  const pct       = calcCardHealth(code, title, subtitle);
+  const ringColor = cardRingColor(pct);
+  const [showHealth, setShowHealth] = useState(false);
   return (
     <View style={[hc.card, isDarkMode && hc.cardDark]}>
       <View style={hc.accent} />
       <View style={hc.inner}>
         <View style={hc.header}>
-          <View style={[hc.avatar, { backgroundColor: avatarBg }]}>
-            <Text style={hc.avatarTxt} numberOfLines={1}>{code.slice(0, 3)}</Text>
-          </View>
+          <Pressable onPress={() => setShowHealth(true)} style={hc.avatarWrap} hitSlop={6}>
+            <View style={[hc.avatarRing, { borderColor: ringColor }]}>
+              <View style={hc.avatar}>
+                <Text style={[hc.avatarPct, { color: ringColor }]}>{pct}%</Text>
+              </View>
+            </View>
+          </Pressable>
           <View style={hc.nameBlock}>
+            <Text style={hc.code} numberOfLines={1}>{code}</Text>
             <Text style={[hc.name, { color: colors.primaryText }]} numberOfLines={1}>{title}</Text>
             {subtitle ? <Text style={[hc.sub, { color: colors.placeholder }]} numberOfLines={1}>{subtitle}</Text> : null}
           </View>
@@ -590,6 +671,7 @@ function ItemCard({ code, title, subtitle, index, onView, onEdit, onDelete }: {
           </Pressable>
         </View>
       </View>
+      <StoreItemHealthModal visible={showHealth} code={code} title={title} subtitle={subtitle} onClose={() => setShowHealth(false)} />
     </View>
   );
 }
@@ -988,9 +1070,12 @@ const hc = StyleSheet.create({
   accent:      { width: 4, backgroundColor: DARK },
   inner:       { flex: 1 },
   header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 12 },
-  avatar:      { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarTxt:   { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
-  nameBlock:   { flex: 1, gap: 3 },
+  avatarWrap:  { alignItems: 'center', flexShrink: 0 },
+  avatarRing:  { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  avatar:      { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  avatarPct:   { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
+  nameBlock:   { flex: 1, gap: 2 },
+  code:        { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#E91E63', letterSpacing: 0.3 },
   name:        { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', lineHeight: 20 },
   sub:         { fontFamily: FontFamily.regular, fontSize: 12 },
   idx:         { fontFamily: FontFamily.regular, fontSize: 11, fontWeight: '500', alignSelf: 'flex-start', marginTop: 2 },
@@ -1045,4 +1130,26 @@ const dc = StyleSheet.create({
   cancelTxt: { fontFamily: FontFamily.medium, fontSize: 12, color: '#666' },
   confirmBtn:{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, borderRadius: 8, backgroundColor: '#E53935' },
   confirmTxt:{ fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF' },
+});
+
+const shm = StyleSheet.create({
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  card:           { width: '100%', backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', maxHeight: '80%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 12 },
+  topBar:         { height: 4 },
+  header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
+  ring:           { width: 44, height: 44, borderRadius: 22, borderWidth: 3, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  ringPct:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
+  headerText:     { flex: 1 },
+  title:          { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
+  sub:            { fontFamily: FontFamily.regular, fontSize: 11, color: '#8E8E93', marginTop: 2 },
+  completeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(48,168,75,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  completeText:   { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#2E7D32', flex: 1 },
+  warnBanner:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(251,140,0,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  warnText:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#E65100', flex: 1 },
+  list:           { maxHeight: 380 },
+  row:            { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#F5F5F7' },
+  rowBody:        { flex: 1 },
+  rowLabel:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', marginBottom: 2 },
+  rowValue:       { fontFamily: FontFamily.regular, fontSize: 11, color: '#5A5A6E' },
+  rowMissing:     { fontFamily: FontFamily.regular, fontSize: 11, color: '#FB8C00', fontStyle: 'italic' },
 });

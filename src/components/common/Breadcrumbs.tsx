@@ -138,7 +138,7 @@ const SUBMODULE_SCREEN: Record<string, string> = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
-  const { goBack, stack, navigate, navigateTo, paramsStack } = useNavigation();
+  const { goBack, stack, navigate, navigateTo, paramsStack, setCurrentParams } = useNavigation();
   const { isDarkMode } = useTheme();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
@@ -182,12 +182,22 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
 
   const handleCrumbPress = (screen: string) => {
     setActiveDropdown(null);
-    // Module-level crumbs always go to ModuleDetail so submodules are visible
+
+    // Tapping the breadcrumb of the screen you are already on always switches to the
+    // Modules tab in-place — works for ModuleDetailScreen, SubModuleLayout screens, and
+    // any other screen that watches params.tab.
+    if (screen === currentScreen) {
+      setCurrentParams({ tab: 'modules' });
+      return;
+    }
+
+    // Module-level crumbs navigate to ModuleDetail so submodules are always visible.
     const mod = MODULES.find(m => m.screen === screen);
     if (mod) {
       navigate('ModuleDetail' as any, { moduleId: mod.id } as any);
       return;
     }
+
     const idx = stack.indexOf(screen as any);
     if (idx >= 0) {
       navigateTo(screen as any);

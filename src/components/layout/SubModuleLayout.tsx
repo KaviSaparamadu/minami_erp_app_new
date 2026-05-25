@@ -1,22 +1,22 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Pressable,
-  Text,
   View,
   StyleSheet,
   ScrollView,
   RefreshControl,
 } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '../common/PageHeader';
-import { QuickAccessRow } from '../dashboard/QuickAccessRow';
 import { Breadcrumbs } from '../common/Breadcrumbs';
 import { RecentPageTabs } from '../common/RecentPageTabs';
 import { TabsSection } from '../dashboard/TabsSection';
-import { Spacing, Colors } from '../../constants/theme';
+import { DashboardView } from '../dashboard/DashboardView';
+import { ModuleTreeView } from '../dashboard/ModuleTreeView';
+import { Spacing } from '../../constants/theme';
+import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
+import { useNavigation } from '../../context/NavigationContext';
 import { useIsPreview } from '../../context/PreviewContext';
 
 type Tab = 'dashboard' | 'modules';
@@ -45,13 +45,34 @@ export function SubModuleLayout({
   selfManagesScroll = false,
   activeTab = 'modules',
   onTabChange,
-  onModulePress,
+  parentModuleId,
 }: SubModuleLayoutProps) {
   const { isDarkMode, colors } = useTheme();
+  const { currentScreen, params } = useNavigation();
   const isPreview = useIsPreview();
   const [tab, setTab] = useState<Tab>(activeTab);
   const [refreshing, setRefreshing] = useState(false);
-  const [showQuickAccess, setShowQuickAccess] = useState(false);
+
+  // Distinguish module-level screens (HR, Finance, Procurement…) from submodule screens.
+  // Module-level screens have their screen name registered in MODULES[].screen.
+  const isModuleScreen = MODULES.some(m => m.screen === currentScreen);
+  const parentModule   = parentModuleId ? MODULES.find(m => m.id === parentModuleId) : null;
+
+  // When a breadcrumb tap calls setCurrentParams({ tab: 'modules' }), sync both the
+  // local tab state AND the parent screen's onTabChange callback (e.g. StoreDetailScreen
+  // manages its own tab state internally and drives children content from it).
+  const tabParam = params?.tab as Tab | undefined;
+  useEffect(() => {
+    if (tabParam === 'modules' || tabParam === 'dashboard') {
+      setTab(tabParam);
+      onTabChange?.(tabParam);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam]);
+
+  // Tab-aware content flags
+  const showModuleTree = isModuleScreen  && tab === 'modules' && !!parentModule;
+  const showDashboard  = !isModuleScreen && tab === 'dashboard';
 
   const dyn = useMemo(() => createDynamicStyles(isDarkMode), [isDarkMode]);
 
@@ -81,24 +102,6 @@ export function SubModuleLayout({
       <PageHeader showBack={showBack} showBrand={true} hideGreeting={true} showBreadcrumbs={false} hideSearchIcon={true} />
 
       <View style={styles.whiteSection}>
-        <Pressable
-          onPress={() => setShowQuickAccess(v => !v)}
-          style={({ pressed }) => [styles.quickToggle, pressed && { opacity: 0.7 }]}>
-          <View style={styles.quickAccent} />
-          <Text style={styles.quickToggleTxt}>Quick Access</Text>
-          <MaterialCommunityIcons
-            name={showQuickAccess ? 'chevron-up' : 'chevron-down'}
-            size={14}
-            color="#9090A0"
-            style={{ marginLeft: 4 }}
-          />
-        </Pressable>
-        {showQuickAccess && (
-          <View style={styles.quickWrap}>
-            <QuickAccessRow onPress={onModulePress} hideTitle />
-          </View>
-        )}
-
         <RecentPageTabs />
 
         <TabsSection
@@ -119,11 +122,39 @@ export function SubModuleLayout({
           </View>
         )}
 
-        {selfManagesScroll ? (
+        {showDashboard ? (
+          // Submodule screen · Dashboard tab → DashboardView manages its own scroll
+          <View style={styles.contentArea}>
+            <DashboardView />
+          </View>
+
+        ) : showModuleTree ? (
+          // Module-level screen · Modules tab → submodule tiles
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.contentScrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="#E91E63"
+                colors={['#E91E63']}
+              />
+            }>
+            <View style={styles.content}>
+              <ModuleTreeView module={parentModule!} />
+            </View>
+          </ScrollView>
+
+        ) : selfManagesScroll ? (
+          // Screen manages its own scroll (complex tables / data screens)
           <View style={styles.contentArea}>
             {children}
           </View>
+
         ) : (
+          // Default: children in outer ScrollView
           <ScrollView
             style={styles.contentScroll}
             contentContainerStyle={styles.contentScrollContent}
@@ -156,38 +187,11 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   previewWrap: { flex: 1, backgroundColor: '#FFFFFF' },
 
-  quickToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 8,
-  },
-  quickAccent: {
-    width: 3,
-    height: 14,
-    borderRadius: 2,
-    backgroundColor: Colors.primaryHighlight,
-    marginRight: 7,
-  },
-  quickToggleTxt: {
-    fontFamily: 'System',
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1C1C1E',
-    marginRight: 4,
-  },
-  quickWrap: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: 0,
-    paddingBottom: 4,
-    backgroundColor: 'transparent',
-  },
-
   whiteSection: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
     overflow: 'hidden',
     marginTop: -5,
     flexDirection: 'column',
@@ -197,7 +201,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingRight: Spacing.md,
-    minHeight: 38,
+    marginTop: -4,
   },
 
   crumbFlex: {

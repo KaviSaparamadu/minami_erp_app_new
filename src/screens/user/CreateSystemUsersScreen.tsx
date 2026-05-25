@@ -34,12 +34,89 @@ const SU_TABS: PageTabItem[] = [
 ];
 const FILTERS: Filter[] = ['All', 'Active', 'Inactive'];
 
-const AVATAR_COLORS = ['#5E35B1', '#1565C0', '#00796B', '#AD1457', '#E65100', '#2E7D32'];
 const STATUS_COLORS: Record<UserStatus, string> = { Active: '#30A84B', Inactive: '#E53935' };
 const STATUS_BG: Record<UserStatus, string> = {
   Active: 'rgba(48,168,75,0.12)',
   Inactive: 'rgba(229,57,53,0.10)',
 };
+
+// ─── Health helpers ───────────────────────────────────────────────────────────
+const SU_HEALTH_FIELDS: Array<{ key: keyof SystemUser; label: string }> = [
+  { key: 'fullName',   label: 'Full Name' },
+  { key: 'username',   label: 'Username' },
+  { key: 'email',      label: 'Email' },
+  { key: 'roleName',   label: 'Role' },
+  { key: 'department', label: 'Department' },
+];
+function calcSUHealth(u: SystemUser): number {
+  const filled = SU_HEALTH_FIELDS.filter(f => !!u[f.key]).length;
+  return Math.round((filled / SU_HEALTH_FIELDS.length) * 100);
+}
+function suRingColor(pct: number): string {
+  return pct < 25 ? '#E53935' : pct < 50 ? '#FB8C00' : pct < 75 ? '#FDD835' : '#30A84B';
+}
+
+// ─── User health modal ────────────────────────────────────────────────────────
+function UserHealthModal({ visible, user, onClose }: {
+  visible: boolean; user: SystemUser; onClose: () => void;
+}) {
+  const pct         = calcSUHealth(user);
+  const ringColor   = suRingColor(pct);
+  const isComplete  = pct === 100;
+  const filledCount = SU_HEALTH_FIELDS.filter(f => !!user[f.key]).length;
+  const totalCount  = SU_HEALTH_FIELDS.length;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={uhm.overlay} onPress={onClose}>
+        <Pressable style={uhm.card} onPress={() => {}}>
+          <View style={[uhm.topBar, { backgroundColor: ringColor }]} />
+          <View style={uhm.header}>
+            <View style={[uhm.ring, { borderColor: ringColor }]}>
+              <Text style={[uhm.ringPct, { color: ringColor }]}>{pct}%</Text>
+            </View>
+            <View style={uhm.headerText}>
+              <Text style={uhm.title}>Form Health</Text>
+              <Text style={uhm.sub}>{filledCount} of {totalCount} fields complete</Text>
+            </View>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <MaterialCommunityIcons name="close" size={18} color="#9090A0" />
+            </Pressable>
+          </View>
+          {isComplete ? (
+            <View style={uhm.completeBanner}>
+              <MaterialCommunityIcons name="check-decagram" size={15} color="#2E7D32" />
+              <Text style={uhm.completeText}>Complete — all required fields are filled</Text>
+            </View>
+          ) : (
+            <View style={uhm.warnBanner}>
+              <MaterialCommunityIcons name="alert-outline" size={14} color="#E65100" />
+              <Text style={uhm.warnText}>{totalCount - filledCount} field(s) need attention</Text>
+            </View>
+          )}
+          <ScrollView style={uhm.list} showsVerticalScrollIndicator={false}>
+            {SU_HEALTH_FIELDS.map(({ key, label }) => {
+              const filled = !!user[key];
+              const val    = user[key];
+              return (
+                <View key={key} style={uhm.row}>
+                  <MaterialCommunityIcons
+                    name={filled ? 'check-circle' : 'alert-circle-outline'}
+                    size={16} color={filled ? '#30A84B' : '#FB8C00'} />
+                  <View style={uhm.rowBody}>
+                    <Text style={uhm.rowLabel}>{label}</Text>
+                    {filled
+                      ? <Text style={uhm.rowValue} numberOfLines={1}>{String(val)}</Text>
+                      : <Text style={uhm.rowMissing}>Not filled</Text>}
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
 
 // ─── Info chip ────────────────────────────────────────────────────────────────
 function InfoChip({ label, value }: { label: string; value: string }) {
@@ -67,8 +144,9 @@ function UserCard({
   onDelete: () => void;
 }) {
   const { colors, isDarkMode } = useTheme();
-  const initial = (user.fullName || '?').charAt(0).toUpperCase();
-  const avatarBg = AVATAR_COLORS[index % AVATAR_COLORS.length];
+  const pct       = calcSUHealth(user);
+  const ringColor = suRingColor(pct);
+  const [showHealth, setShowHealth] = useState(false);
 
   return (
     <View style={[uc.card, isDarkMode && uc.cardDark]}>
@@ -76,9 +154,13 @@ function UserCard({
       <View style={uc.inner}>
         {/* Header */}
         <View style={uc.header}>
-          <View style={[uc.avatar, { backgroundColor: avatarBg }]}>
-            <Text style={uc.avatarTxt}>{initial}</Text>
-          </View>
+          <Pressable onPress={() => setShowHealth(true)} style={uc.avatarWrap} hitSlop={6}>
+            <View style={[uc.avatarRing, { borderColor: ringColor }]}>
+              <View style={uc.avatar}>
+                <Text style={[uc.avatarPct, { color: ringColor }]}>{pct}%</Text>
+              </View>
+            </View>
+          </Pressable>
           <View style={uc.nameBlock}>
             <Text style={[uc.name, { color: colors.primaryText }]} numberOfLines={1}>
               {user.fullName || '—'}
@@ -120,6 +202,7 @@ function UserCard({
           </Pressable>
         </View>
       </View>
+      <UserHealthModal visible={showHealth} user={user} onClose={() => setShowHealth(false)} />
     </View>
   );
 }
@@ -527,9 +610,11 @@ const uc = StyleSheet.create({
   accent:   { width: 4 },
   inner:    { flex: 1 },
 
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 10 },
-  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarTxt: { fontFamily: FontFamily.bold, fontSize: 18, fontWeight: '700', color: '#FFF' },
+  header:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 10 },
+  avatarWrap: { alignItems: 'center', flexShrink: 0 },
+  avatarRing: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  avatar:     { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  avatarPct:  { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
   nameBlock: { flex: 1, gap: 3 },
   name:  { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', lineHeight: 20 },
   uname: { fontFamily: FontFamily.regular, fontSize: 11 },
@@ -613,4 +698,26 @@ const dc = StyleSheet.create({
     backgroundColor: '#E53935',
   },
   confirmTxt: { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF' },
+});
+
+const uhm = StyleSheet.create({
+  overlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  card:           { width: '100%', backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', maxHeight: '80%', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 12 },
+  topBar:         { height: 4 },
+  header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },
+  ring:           { width: 44, height: 44, borderRadius: 22, borderWidth: 3, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  ringPct:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700' },
+  headerText:     { flex: 1 },
+  title:          { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
+  sub:            { fontFamily: FontFamily.regular, fontSize: 11, color: '#8E8E93', marginTop: 2 },
+  completeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(48,168,75,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  completeText:   { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#2E7D32', flex: 1 },
+  warnBanner:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 16, marginBottom: 10, marginTop: 4, backgroundColor: 'rgba(251,140,0,0.10)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  warnText:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#E65100', flex: 1 },
+  list:           { maxHeight: 380 },
+  row:            { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#F5F5F7' },
+  rowBody:        { flex: 1 },
+  rowLabel:       { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', marginBottom: 2 },
+  rowValue:       { fontFamily: FontFamily.regular, fontSize: 11, color: '#5A5A6E' },
+  rowMissing:     { fontFamily: FontFamily.regular, fontSize: 11, color: '#FB8C00', fontStyle: 'italic' },
 });
