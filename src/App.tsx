@@ -53,6 +53,7 @@ import { JournalEntryScreen } from './screens/finance/JournalEntryScreen';
 import { ManagePOSPointsScreen } from './screens/finance/ManagePOSPointsScreen';
 import { SimpleInvoiceScreen } from './screens/finance/SimpleInvoiceScreen';
 import { ManageBankCardMachineScreen } from './screens/finance/ManageBankCardMachineScreen';
+import { StockInventoryFinanceScreen } from './screens/finance/StockInventoryFinanceScreen';
 import { StoresProvider } from './context/StoresContext';
 import { ProcurementScreen } from './screens/procurement/ProcurementScreen';
 import { PurchasingScreen } from './screens/procurement/PurchasingScreen';
@@ -153,6 +154,7 @@ function AppNavigator() {
       case 'ManagePOSPoints':            return <ManagePOSPointsScreen />;
       case 'SimpleInvoice':              return <SimpleInvoiceScreen />;
       case 'ManageBankCardMachine':      return <ManageBankCardMachineScreen />;
+      case 'StockInventoryFinance':      return <StockInventoryFinanceScreen />;
       case 'Procurement':                return <ProcurementScreen />;
       case 'Purchasing':                 return <PurchasingScreen />;
       case 'PurchasingGoods':            return <PurchasingGoodsScreen />;

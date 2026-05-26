@@ -21,6 +21,7 @@ export type ScreenName =
   | 'ManagePOSPoints' | 'SimpleInvoice' | 'ManageBankCardMachine'
   | 'Procurement' | 'Purchasing' | 'PurchasingGoods' | 'ManageItem' | 'StoresInventory' | 'Logistics'
   | 'ProcStores' | 'ProcManageStores' | 'ProcStoresReports' | 'StoreDetail'
+  | 'StockInventoryFinance'
   | 'ModuleDetail';
 
 export interface RecentPage {

@@ -1121,22 +1121,13 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
   }>(null);
   const [excReportData,  setExcReportData]  = useState<null | {
     mainQty: number; loseQtyNum: number;
-    mainCostPrice: string; loseCostPrice: string;
-    mainSellPrice: string; loseSellPrice: string;
     stockBefore: number; stockAfter: number;
     updatedItem: StoreItem; timestamp: string;
-    appliedGrn: GrnRecord | null;
   }>(null);
-  // Excess form — qty + pricing
+  // Excess form — qty only
   const [mainQty,        setMainQty]        = useState('');
   const [loseQty,        setLoseQty]        = useState('');
-  const [mainCostPrice,  setMainCostPrice]  = useState('');
-  const [loseCostPrice,  setLoseCostPrice]  = useState('');
-  const [mainSellPrice,  setMainSellPrice]  = useState('');
-  const [loseSellPrice,  setLoseSellPrice]  = useState('');
   const [showSerial,   setShowSerial]   = useState(false);
-  const [showGrn,      setShowGrn]      = useState(false);
-  const [appliedGrn,   setAppliedGrn]   = useState<GrnRecord | null>(null);
   const [activeImg,  setActiveImg]  = useState(0);
   const [thumbStart,  setThumbStart]  = useState(0);
   const [showImages, setShowImages] = useState(false);
@@ -1155,11 +1146,6 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
         // adjType intentionally not restored — radio starts unselected on every open
         if (d.mainQty)        setMainQty(d.mainQty);
         if (d.loseQty)        setLoseQty(d.loseQty);
-        if (d.mainCostPrice)  setMainCostPrice(d.mainCostPrice);
-        if (d.loseCostPrice)  setLoseCostPrice(d.loseCostPrice);
-        if (d.mainSellPrice)  setMainSellPrice(d.mainSellPrice);
-        if (d.loseSellPrice)  setLoseSellPrice(d.loseSellPrice);
-        if (d.appliedGrn)     setAppliedGrn(d.appliedGrn);
         if (d.damageStock)    setDamageStock(d.damageStock);
         if (d.dmgLoseQty)     setDmgLoseQty(d.dmgLoseQty);
         if (d.damageType)     setDamageType(d.damageType);
@@ -1176,35 +1162,14 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
     AsyncStorage.setItem(DRAFT_KEY, JSON.stringify({
       adjType,
       mainQty, loseQty,
-      mainCostPrice, loseCostPrice,
-      mainSellPrice, loseSellPrice,
-      appliedGrn,
       damageStock, dmgLoseQty,
       damageType, damageReason,
       selectedGrn, dmgStep,
     }));
-  }, [adjType, mainQty, loseQty, mainCostPrice, loseCostPrice, mainSellPrice, loseSellPrice,
-      appliedGrn, damageStock, dmgLoseQty, damageType, damageReason, selectedGrn, dmgStep, DRAFT_KEY]);
+  }, [adjType, mainQty, loseQty,
+      damageStock, dmgLoseQty, damageType, damageReason, selectedGrn, dmgStep, DRAFT_KEY]);
 
   useEffect(() => { saveDraft(); }, [saveDraft]);
-
-  // Auto-calculate sell prices from cost prices using item selling config
-  useEffect(() => {
-    
-    const cost = parseFloat(mainCostPrice);
-    const sell = calcSellPrice(item.itemCode, cost);
-    if (sell !== null) {
-      setMainSellPrice(sell.toFixed(2));
-    }
-  }, [mainCostPrice, item.itemCode]);
-
-  useEffect(() => {
-    const cost = parseFloat(loseCostPrice);
-    const sell = calcSellPrice(item.itemCode, cost);
-    if (sell !== null) {
-      setLoseSellPrice(sell.toFixed(2));
-    }
-  }, [loseCostPrice, item.itemCode]);
 
   const VISIBLE = 3;
   const canUp   = thumbStart > 0;
@@ -1216,26 +1181,6 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
     const next = dir === 'up' ? thumbStart - 1 : thumbStart + 1;
     setThumbStart(next);
     setActiveImg(dir === 'down' ? next + VISIBLE - 1 : next);
-  }
-
-  function applyGrn(record: GrnRecord) {
-    setAppliedGrn(record);
-    setMainCostPrice(record.mainCost);
-    setLoseCostPrice(record.loseCost);
-    setMainSellPrice(record.mainSell);
-    setLoseSellPrice(record.loseSell);
-    setMainQty(record.mainQty);
-    setLoseQty(record.loseQty);
-  }
-
-  function removeApplied() {
-    setAppliedGrn(null);
-    setMainCostPrice('');
-    setLoseCostPrice('');
-    setMainSellPrice('');
-    setLoseSellPrice('');
-    setMainQty('');
-    setLoseQty('');
   }
 
   // PanResponder for thumbnail strip swipe — recreated when thumbStart changes
@@ -1274,15 +1219,10 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
       setExcReportData({
         mainQty: qty,
         loseQtyNum: parseFloat(loseQty) || 0,
-        mainCostPrice,
-        loseCostPrice,
-        mainSellPrice,
-        loseSellPrice,
         stockBefore: item.stockBal,
         stockAfter:  item.stockBal + qty,
         updatedItem: updated,
         timestamp:   new Date().toLocaleString(),
-        appliedGrn,
       });
     } else {
       if (totalDmgQty <= 0) {
@@ -1354,10 +1294,6 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
     const rows: [string, string][] = [
       ['Main Qty Added', `${rd.mainQty} kg`],
       ['Lose Qty',       rd.loseQtyNum > 0 ? `${rd.loseQtyNum} g` : '—'],
-      ['Main Cost',      rd.mainCostPrice !== '' ? rd.mainCostPrice : '—'],
-      ['Lose Cost',      rd.loseCostPrice !== '' ? rd.loseCostPrice : '—'],
-      ['Main Sell',      rd.mainSellPrice !== '' ? rd.mainSellPrice : '—'],
-      ['Lose Sell',      rd.loseSellPrice !== '' ? rd.loseSellPrice : '—'],
     ];
     return (
       <View style={dmg.reportWrap}>
@@ -1385,15 +1321,6 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
             <Text style={dmg.reportSummLbl}>After</Text>
           </View>
         </View>
-
-        {rd.appliedGrn && (
-          <View style={dmg.reportMeta}>
-            <Text style={[dmg.reportTypeChip, { backgroundColor: 'rgba(48,168,75,0.12)', color: '#1B5E20' }]}>
-              GRN: {rd.appliedGrn.grnNo}
-            </Text>
-            <Text style={dmg.reportReasonTxt} numberOfLines={1}>{rd.appliedGrn.supplier}</Text>
-          </View>
-        )}
 
         <Text style={dmg.reportTableTitle}>Adjustment Details</Text>
         <View style={dmg.reportTable}>
@@ -1515,56 +1442,18 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
         {adjType === 'excess' && (
           <View style={sa.detailCard}>
 
-            {/* Applied GRN banner */}
-            {appliedGrn && (
-              <View style={sa.appliedCard}>
-                {/* Left accent bar */}
-                <View style={sa.appliedAccent} />
-
-                {/* Check icon circle */}
-                <View style={sa.appliedIconCircle}>
-                  <MaterialCommunityIcons name="check" size={12} color="#FFF" />
-                </View>
-
-                {/* Info */}
-                <View style={sa.appliedInfo}>
-                  <Text style={sa.appliedGrnNo}>{appliedGrn.grnNo}</Text>
-                  <View style={sa.appliedSubRow}>
-                    <View style={sa.appliedTag}>
-                      <Text style={sa.appliedTagTxt}>APPLIED</Text>
-                    </View>
-                    <Text style={sa.appliedSupplier} numberOfLines={1}>{appliedGrn.supplier}</Text>
-                  </View>
-                </View>
-
-                {/* Edit + Delete grouped */}
-                <View style={sa.appliedActions}>
-                  <Pressable onPress={() => setShowGrn(true)} hitSlop={6}
-                    style={({ pressed }) => [sa.appliedActionBtn, pressed && { opacity: 0.7 }]}>
-                    <MaterialCommunityIcons name="pencil-outline" size={13} color={Colors.primaryHighlight} />
-                  </Pressable>
-                  <View style={sa.appliedActionSep} />
-                  <Pressable onPress={removeApplied} hitSlop={6}
-                    style={({ pressed }) => [sa.appliedActionBtn, pressed && { opacity: 0.7 }]}>
-                    <MaterialCommunityIcons name="trash-can-outline" size={13} color="#E53935" />
-                  </Pressable>
-                </View>
-              </View>
-            )}
-
             {/* Column headers */}
             <View style={sa.exColHeaders}>
               <View style={sa.exHalf}><Text style={sa.exColHdr}>Main  /kg</Text></View>
               <View style={[sa.exHalf, sa.exHalfR]}><Text style={sa.exColHdr}>Lose  /g</Text></View>
             </View>
 
-            {/* ── 1. Quantity ── */}
+            {/* ── Quantity ── */}
             <View style={[sa.exRow, sa.exRowBorder]}>
               <View style={sa.exHalf}>
                 <Text style={sa.exLbl}>Main Qty</Text>
-                <View style={[sa.exBox, sa.exBoxQty, sa.exBoxQtyLarge, { flexDirection: 'row', alignItems: 'center' }, appliedGrn && { opacity: 0.45 }]}>
+                <View style={[sa.exBox, sa.exBoxQty, sa.exBoxQtyLarge, { flexDirection: 'row', alignItems: 'center' }]}>
                   <TextInput value={mainQty} onChangeText={setMainQty}
-                    editable={!appliedGrn}
                     keyboardType="numeric" style={[sa.exInput, sa.exInputQty, sa.exInputQtyLarge, { flex: 1 }]}
                     placeholder="0" placeholderTextColor="#C8F0CE" textAlign="center" />
                   <Text style={sa.exUnitTag}>/kg</Text>
@@ -1572,82 +1461,11 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
               </View>
               <View style={[sa.exHalf, sa.exHalfR]}>
                 <Text style={sa.exLbl}>Lose QTY</Text>
-                <View style={[sa.exBox, sa.exBoxQty, sa.exBoxQtyLarge, { flexDirection: 'row', alignItems: 'center' }, appliedGrn && { opacity: 0.45 }]}>
+                <View style={[sa.exBox, sa.exBoxQty, sa.exBoxQtyLarge, { flexDirection: 'row', alignItems: 'center' }]}>
                   <TextInput value={loseQty} onChangeText={setLoseQty}
-                    editable={!appliedGrn}
                     keyboardType="numeric" style={[sa.exInput, sa.exInputQty, sa.exInputQtyLarge, { flex: 1 }]}
                     placeholder="0" placeholderTextColor="#C8F0CE" textAlign="center" />
                   <Text style={sa.exUnitTag}>/g</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* ── Match Previous GRN For Excess ── */}
-            <Pressable
-              onPress={() => setShowGrn(true)}
-              style={({ pressed }) => [sa.grnMatchBtn, pressed && { opacity: 0.75 }]}>
-              <View style={sa.grnMatchIconCircle}>
-                <MaterialCommunityIcons name="file-clock-outline" size={14} color={Colors.primaryHighlight} />
-              </View>
-              <Text style={sa.grnMatchTxt}>Match Previous GRN For Excess</Text>
-              <MaterialCommunityIcons name="chevron-right" size={15} color={Colors.primaryHighlight} />
-            </Pressable>
-
-            {/* ── 2. Sell Price ── */}
-            <View style={[sa.exRow, sa.exRowBorder]}>
-              <View style={sa.exHalf}>
-                <View style={sa.exLblRow}>
-                  <Text style={sa.exLbl}>Sell Price · Main</Text>
-                  {mainSellPrice !== '' && mainCostPrice !== '' && (
-                    <View style={sa.autoTag}><Text style={sa.autoTagTxt}>Auto</Text></View>
-                  )}
-                </View>
-                <View style={[sa.exBox, { flexDirection: 'row', alignItems: 'center' }, appliedGrn && { opacity: 0.45 }]}>
-                  <TextInput value={mainSellPrice} onChangeText={setMainSellPrice}
-                    editable={!appliedGrn}
-                    keyboardType="numeric" style={[sa.exInput, { flex: 1 }]}
-                    placeholder="0.00" placeholderTextColor="#BBBBC0" />
-                  <Text style={sa.exUnitTagPrice}>/kg</Text>
-                </View>
-              </View>
-              <View style={sa.exHalfDivider} />
-              <View style={sa.exHalf}>
-                <View style={sa.exLblRow}>
-                  <Text style={sa.exLbl}>Sell Price · Lose</Text>
-                  {loseSellPrice !== '' && loseCostPrice !== '' && (
-                    <View style={sa.autoTag}><Text style={sa.autoTagTxt}>Auto</Text></View>
-                  )}
-                </View>
-                <View style={[sa.exBox, sa.exBoxLose, { flexDirection: 'row', alignItems: 'center' }, appliedGrn && { opacity: 0.45 }]}>
-                  <TextInput value={loseSellPrice} onChangeText={setLoseSellPrice}
-                    editable={!appliedGrn}
-                    keyboardType="numeric" style={[sa.exInput, { flex: 1 }]}
-                    placeholder="0.00" placeholderTextColor="#BBBBC0" />
-                  <Text style={sa.exUnitTagPrice}>/g</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* ── 3. Cost Price ── */}
-            <View style={sa.exRow}>
-              <View style={sa.exHalf}>
-                <Text style={sa.exLbl}>Cost Price . Main</Text>
-                <View style={[sa.exBox, { flexDirection: 'row', alignItems: 'center' }, appliedGrn && { opacity: 0.45 }]}>
-                  <TextInput value={mainCostPrice} onChangeText={setMainCostPrice}
-                    editable={!appliedGrn}
-                    keyboardType="numeric" style={[sa.exInput, { flex: 1 }]}
-                    placeholder="0.00" placeholderTextColor="#BBBBC0" />
-                  <Text style={sa.exUnitTagPrice}>/kg</Text>
-                </View>
-              </View>
-              <View style={[sa.exHalf, sa.exHalfR]}>
-                <Text style={sa.exLbl}>Cost Price . Lose</Text>
-                <View style={[sa.exBox, sa.exBoxLose, { flexDirection: 'row', alignItems: 'center' }, appliedGrn && { opacity: 0.45 }]}>
-                  <TextInput value={loseCostPrice} onChangeText={setLoseCostPrice}
-                    editable={!appliedGrn}
-                    keyboardType="numeric" style={[sa.exInput, { flex: 1 }]}
-                    placeholder="0.00" placeholderTextColor="#BBBBC0" />
-                  <Text style={sa.exUnitTagPrice}>/g</Text>
                 </View>
               </View>
             </View>
@@ -2011,14 +1829,6 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
         stockQty={serialQty}
         noteText={serialNote}
         onClose={() => setShowSerial(false)}
-      />
-    )}
-    {showGrn && (
-      <GrnPickerModal
-        item={item}
-        onApply={applyGrn}
-        onClose={() => setShowGrn(false)}
-        appliedGrnNo={appliedGrn?.grnNo}
       />
     )}
     </>

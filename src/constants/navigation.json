@@ -144,7 +144,8 @@
             { "id": "fo-pos",       "name": "POS",                      "icon": "fo-pos",       "screen": "POS" },
             { "id": "fo-points",    "name": "Manage POS Points",         "icon": "fo-pos-points","screen": "ManagePOSPoints" },
             { "id": "fo-invoice",   "name": "Simple Invoice",            "icon": "fo-invoice",   "screen": "SimpleInvoice" },
-            { "id": "fo-bank-card", "name": "Manage Bank Card Machine",  "icon": "fo-bank-card", "screen": "ManageBankCardMachine" }
+            { "id": "fo-bank-card", "name": "Manage Bank Card Machine",  "icon": "fo-bank-card", "screen": "ManageBankCardMachine" },
+            { "id": "fo-stock-inv", "name": "Stock & Inventory Finance", "icon": "fo-stock-inv", "screen": "StockInventoryFinance" }
           ]
         }
       ]

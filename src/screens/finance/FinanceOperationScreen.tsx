@@ -41,6 +41,13 @@ const FO_SUBMODULES: {
     description: 'Monitor, configure, and reconcile bank card machine transactions.',
     iconType: 'fo-bank-card',
   },
+  {
+    id: '5', screen: 'StockInventoryFinance',
+    name: 'Stock & Inventory Finance',
+    value: '0', valueLabel: 'Records',
+    description: 'Manage stock and inventory financial records, history, and adjustments.',
+    iconType: 'fo-stock-inv',
+  },
 ];
 
 export function FinanceOperationScreen() {

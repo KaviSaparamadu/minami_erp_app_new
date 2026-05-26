@@ -600,6 +600,18 @@ function FoBankCardIcon({ color }: { color: string }) {
   );
 }
 
+// Stock & Inventory Finance — box outline with 3 inner horizontal bars
+function FoStockInvIcon({ color }: { color: string }) {
+  return (
+    <View style={styles.center}>
+      <View style={[styles.foSiBox, { borderColor: color }]} />
+      <View style={[styles.foSiBar, { backgroundColor: color, top: 5 }]} />
+      <View style={[styles.foSiBar, { backgroundColor: color, top: 9 }]} />
+      <View style={[styles.foSiBar, { backgroundColor: color, top: 13 }]} />
+    </View>
+  );
+}
+
 // Purchasing — shopping cart with tick
 function PurchasingIcon({ color }: { color: string }) {
   return (
@@ -725,6 +737,7 @@ const ICON_MAP: Record<string, React.FC<{ color: string }>> = {
   'fo-pos-points':     FoPosPointsIcon,
   'fo-invoice':        FoInvoiceIcon,
   'fo-bank-card':      FoBankCardIcon,
+  'fo-stock-inv':      FoStockInvIcon,
   'proc-purchasing':   PurchasingIcon,
   'proc-stores':       StoresInventoryIcon,
   'proc-logistics':    LogisticsIcon,
@@ -1317,6 +1330,10 @@ const styles = StyleSheet.create({
   lgCab:    { position: 'absolute', top: 3, right: 0, width: 6, height: 7, borderWidth: 1.5, borderTopRightRadius: 2, borderBottomRightRadius: 1 },
   lgWheelL: { position: 'absolute', bottom: 1, left: 2, width: 4, height: 4, borderRadius: 2, borderWidth: 1.5 },
   lgWheelR: { position: 'absolute', bottom: 1, right: 2, width: 4, height: 4, borderRadius: 2, borderWidth: 1.5 },
+
+  // FO — Stock & Inventory Finance (box + bars)
+  foSiBox: { position: 'absolute', top: 1, left: 1, right: 1, bottom: 1, borderWidth: 1.5, borderRadius: 2 },
+  foSiBar: { position: 'absolute', left: 4, right: 4, height: 1.5, borderRadius: 1 },
 
   // FO — Bank Card Machine reader
   foBcrBody:   { position: 'absolute', top: 1, width: 12, height: 15, borderWidth: 1.5, borderRadius: 2 },

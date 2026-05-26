@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -12,8 +12,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import ImageCropPicker from 'react-native-image-crop-picker';
+import { pick as pickDocument, types as docTypes } from '@react-native-documents/picker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import GPIT_BTN from '../../../assets/images/GPIT Create Module Button.png';
+import { StockAdjustmentModal } from '../../components/common/StockAdjustmentModal';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { PageTabBar } from '../../components/common/PageTabBar';
 import type { PageTabItem } from '../../components/common/PageTabBar';
@@ -157,10 +160,12 @@ const gc = StyleSheet.create({
   btn:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8 },
   btnView:  { backgroundColor: 'rgba(89,89,89,0.08)' },
   btnEdit:  { backgroundColor: 'rgba(89,89,89,0.08)' },
-  btnDel:   { backgroundColor: 'rgba(233,30,99,0.08)' },
-  btnPrs:   { opacity: 0.7, transform: [{ scale: 0.97 }] },
-  btnTxt:   { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#595959' },
-  btnDelTxt:{ fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#E91E63' },
+  btnDel:    { backgroundColor: 'rgba(233,30,99,0.08)' },
+  btnAdj:    { backgroundColor: 'rgba(25,118,210,0.09)' },
+  btnPrs:    { opacity: 0.7, transform: [{ scale: 0.97 }] },
+  btnTxt:    { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#595959' },
+  btnDelTxt: { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#E91E63' },
+  btnAdjTxt: { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#1565C0' },
   emptyWrap:{ alignItems: 'center', paddingVertical: 50, paddingHorizontal: Spacing.xl, gap: 8 },
   emptyIcon:{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(89,89,89,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   emptyTtl: { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', textAlign: 'center' },
@@ -288,34 +293,100 @@ const dc = StyleSheet.create({
   confirmTxt: { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: FontWeight.bold, color: '#FFF' },
 });
 
+// ── Image source picker modal styles ─────────────────────────────────────────
+
+const ims = StyleSheet.create({
+  overlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  sheet:     { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 32, paddingTop: 12 },
+  handle:    { width: 38, height: 4, borderRadius: 2, backgroundColor: '#D0D0D8', alignSelf: 'center', marginBottom: 14 },
+  title:     { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', color: '#1C1C1E', textAlign: 'center', marginBottom: 12, paddingHorizontal: 20 },
+  row:       { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 },
+  rowPrs:    { backgroundColor: '#F5F5F7' },
+  iconBox:   { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(89,89,89,0.08)', alignItems: 'center', justifyContent: 'center' },
+  rowTxt:    { flex: 1, fontFamily: FontFamily.medium, fontSize: 15, color: '#1C1C1E' },
+  divider:   { height: 1, backgroundColor: '#F0F0F4', marginHorizontal: 20 },
+  cancelBtn: { marginHorizontal: 20, marginTop: 10, paddingVertical: 14, borderRadius: 12, backgroundColor: '#F0F0F5', alignItems: 'center' },
+  cancelTxt: { fontFamily: FontFamily.bold, fontSize: 15, fontWeight: '700', color: '#595959' },
+});
+
+// ── Image viewer / delete modal styles ────────────────────────────────────────
+
+const ivs = StyleSheet.create({
+  overlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
+  closeBtn:  { position: 'absolute', top: 50, right: 20, zIndex: 10, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  img:       { width: '100%', height: '75%' },
+  deleteBtn: { position: 'absolute', bottom: 50, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#E53935', paddingHorizontal: 28, paddingVertical: 13, borderRadius: 12 },
+  deleteTxt: { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#FFF' },
+  slotHint:  { position: 'absolute', bottom: 110, fontFamily: FontFamily.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+});
+
 // ── Create-Item modal wrapper — mirrors EmployeeFormModal structure ────────────
 
 const cm = StyleSheet.create({
-  overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-start', paddingTop: 60, paddingBottom: 20, paddingHorizontal: 12 },
-  cardWrapper:  { flex: 1, maxHeight: '95%', width: '100%' },
-  container:    { flex: 1, backgroundColor: '#F5F5F7', borderRadius: 10, overflow: 'hidden' },
-  closeBtn:     { position: 'absolute', top: -18, right: -5, zIndex: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: '#1C1C1E', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 6 },
-  xL:           { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '45deg' }] },
-  xR:           { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
-  resetBtn:     { position: 'absolute', top: 24, right: 6, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#1976D2', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
-  resetTxt:     { fontFamily: FontFamily.medium, fontSize: 11, color: '#FFF' },
-  header:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.md, gap: Spacing.md, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
-  headerIcon:   { width: 38, height: 38, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
-  headerTitle:  { flex: 1 },
-  titleTxt:     { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: '#595959', letterSpacing: 0.2 },
-  subTxt:       { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder, marginTop: 2 },
-  progressWrap: { backgroundColor: '#FFF', paddingHorizontal: Spacing.lg, paddingTop: 8, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
-  progressRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  progressBg:   { flex: 1, height: 6, backgroundColor: '#EEE', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: 6, borderRadius: 3, backgroundColor: '#E53935' },
-  progressAvg:  { height: 6, borderRadius: 3, backgroundColor: '#30A84B' },
-  progressLbl:  { fontFamily: FontFamily.regular, fontSize: 9, color: '#E53935' },
-  progressBadge:{ fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, color: '#30A84B', backgroundColor: 'rgba(48,168,75,0.1)' },
-  footer:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E5E5EA', gap: Spacing.sm },
-  backBtn:      { paddingVertical: 13, paddingHorizontal: Spacing.md, borderRadius: 8, borderWidth: 1.5, borderColor: '#D0D0D8', backgroundColor: '#FFF', minWidth: 80, alignItems: 'center' },
-  backBtnTxt:   { fontFamily: FontFamily.medium, fontSize: FontSize.sm, color: Colors.primaryText },
-  saveBtn:      { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#595959', borderRadius: 10, paddingVertical: 14 },
-  saveTxt:      { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF', letterSpacing: 0.5 },
+  overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-start', paddingTop: 100, paddingHorizontal: 12 },
+  cardWrapper: { flex: 1, maxHeight: '92%', width: '100%' },
+  container:   { flex: 1, backgroundColor: '#F5F5F7', borderRadius: 10, overflow: 'hidden' },
+  closeBtn:    { position: 'absolute', top: -18, right: -5, zIndex: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: '#1C1C1E', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 8 },
+  xL:          { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '45deg' }] },
+  xR:          { position: 'absolute', width: 14, height: 2, backgroundColor: '#FFF', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  resetBtn:    { position: 'absolute', top: 24, right: 6, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#1976D2', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
+  resetTxt:    { fontFamily: FontFamily.medium, fontSize: 11, color: '#FFF' },
+  header:      { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.sm, gap: Spacing.md, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
+  headerIcon:  { width: 38, height: 38, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1 },
+  titleTxt:    { fontFamily: FontFamily.bold, fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: '#1C1C1E', letterSpacing: 0.2 },
+  subTxt:      { fontFamily: FontFamily.regular, fontSize: FontSize.xs, color: Colors.placeholder, marginTop: 2 },
+  formScroll:  { flex: 1 },
+  formContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: 24 },
+  footer:      { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E5E5EA' },
+  saveBtn:     { alignItems: 'center', justifyContent: 'center', backgroundColor: '#595959', borderRadius: 10, paddingVertical: 14 },
+  saveTxt:     { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#FFF', letterSpacing: 0.5 },
+});
+
+// ── Create-form progress bar (matches HumanFormModal ProgressBar) ─────────────
+
+const cpb = StyleSheet.create({
+  wrap:      { backgroundColor: '#FFFFFF', paddingHorizontal: Spacing.lg, paddingTop: 8, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
+  track:     { height: 6, backgroundColor: '#EEE', borderRadius: 3, overflow: 'visible', position: 'relative' },
+  fill:      { height: 6, borderRadius: 3 },
+  marker:    { position: 'absolute', top: -3, width: 2, height: 12, backgroundColor: '#595959', borderRadius: 1 },
+  labels:    { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
+  labelLeft: { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
+  labelMid:  { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
+  labelRight:{ fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder },
+  labelAvg:  { color: '#30A84B', fontFamily: FontFamily.bold, fontWeight: FontWeight.bold },
+});
+
+// ── Create-form section head (matches HumanFormModal SectionHead) ─────────────
+
+const csh = StyleSheet.create({
+  row:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: Spacing.md, marginBottom: Spacing.sm },
+  bar:  { width: 3, height: 13, borderRadius: 2, backgroundColor: Colors.primaryHighlight },
+  txt:  { fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: Colors.placeholder, textTransform: 'uppercase', letterSpacing: 0.8 },
+  line: { flex: 1, height: 1, backgroundColor: '#E8E8EE' },
+});
+
+// ── Create-form field styles (bottom-border, matches HumanFormModal Field) ─────
+
+const cff = StyleSheet.create({
+  wrapper:          { marginBottom: Spacing.sm },
+  label:            { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.placeholder, marginBottom: 5 },
+  labelFoc:         { color: Colors.primaryText },
+  req:              { color: Colors.primaryHighlight },
+  input:            { fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText, paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', paddingHorizontal: 0 },
+  inputFoc:         { borderBottomColor: Colors.primaryText },
+  selectTrigger:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0' },
+  selectValue:      { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText },
+  selectPlaceholder:{ color: Colors.placeholder },
+  selectRow:        { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  packRow:          { flexDirection: 'row', gap: 14, marginBottom: Spacing.sm },
+  packField:        { flex: 1 },
+  packLabel:        { fontFamily: FontFamily.medium, fontSize: 9, color: Colors.placeholder, marginBottom: 3 },
+  packInput:        { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: Colors.primaryText, paddingVertical: 6, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', paddingHorizontal: 0 },
+  packUnit:         { fontFamily: FontFamily.regular, fontSize: 9, color: Colors.placeholder, marginTop: 2 },
+  gpitBtn:          { width: 30, height: 30, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  gpitImg:          { width: 28, height: 28 },
+  imgArrow:         { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.06)' },
 });
 
 // ── Info chip ─────────────────────────────────────────────────────────────────
@@ -404,7 +475,8 @@ function ItemCard({
   const { colors, isDarkMode } = useTheme();
   const pct       = calcHealth(item);
   const ringColor = healthRing(pct);
-  const [showHealth, setShowHealth] = useState(false);
+  const [showHealth,  setShowHealth]  = useState(false);
+  const [showStockAdj, setShowStockAdj] = useState(false);
 
   return (
     <View style={[gc.card, isDarkMode && gc.cardDark]}>
@@ -452,6 +524,13 @@ function ItemCard({
             <TableIcons.Edit />
             <Text style={gc.btnTxt}>Edit</Text>
           </Pressable>
+          <Pressable
+            onPress={() => setShowStockAdj(true)}
+            style={({ pressed }) => [gc.btn, gc.btnAdj, pressed && gc.btnPrs]}
+            hitSlop={4}>
+            <MaterialCommunityIcons name="tune-variant" size={13} color="#1565C0" />
+            <Text style={gc.btnAdjTxt}>Stk Adj.</Text>
+          </Pressable>
           <View style={{ flex: 1 }} />
           <Pressable onPress={onDelete} style={({ pressed }) => [gc.btn, gc.btnDel, pressed && gc.btnPrs]} hitSlop={4}>
             <TableIcons.Trash />
@@ -465,7 +544,88 @@ function ItemCard({
         item={item}
         onClose={() => setShowHealth(false)}
       />
+
+      {/* Stock Adjustment modal — Excess type for stall adjustments */}
+      <StockAdjustmentModal
+        visible={showStockAdj}
+        onClose={() => setShowStockAdj(false)}
+        adjType="Excess"
+        itemName={item.description}
+        itemCode={item.code}
+        initialQtyMain={String(item.stockQty)}
+        initialQtyLose="0"
+      />
     </View>
+  );
+}
+
+// ── Image source picker (Camera / Gallery / File / Cancel) ───────────────────
+
+function ImageSourceModal({ visible, onSelect, onCancel }: {
+  visible: boolean;
+  onSelect: (src: 'camera' | 'gallery' | 'file') => void;
+  onCancel: () => void;
+}) {
+  const OPTIONS: { key: 'camera' | 'gallery' | 'file'; label: string; icon: string }[] = [
+    { key: 'camera',  label: 'Camera',  icon: 'camera-outline' },
+    { key: 'gallery', label: 'Gallery', icon: 'image-multiple-outline' },
+    { key: 'file',    label: 'File',    icon: 'file-image-outline' },
+  ];
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
+      <Pressable style={ims.overlay} onPress={onCancel}>
+        <Pressable style={ims.sheet} onPress={() => {}}>
+          <View style={ims.handle} />
+          <Text style={ims.title}>Upload Image</Text>
+          {OPTIONS.map((opt, idx) => (
+            <React.Fragment key={opt.key}>
+              {idx > 0 && <View style={ims.divider} />}
+              <Pressable
+                style={({ pressed }) => [ims.row, pressed && ims.rowPrs]}
+                onPress={() => onSelect(opt.key)}>
+                <View style={ims.iconBox}>
+                  <MaterialCommunityIcons name={opt.icon as any} size={22} color="#595959" />
+                </View>
+                <Text style={ims.rowTxt}>{opt.label}</Text>
+                <MaterialCommunityIcons name="chevron-right" size={18} color="#C0C0C8" />
+              </Pressable>
+            </React.Fragment>
+          ))}
+          <Pressable
+            onPress={onCancel}
+            style={({ pressed }) => [ims.cancelBtn, pressed && { opacity: 0.7 }]}>
+            <Text style={ims.cancelTxt}>Cancel</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// ── Full-screen image viewer with delete ──────────────────────────────────────
+
+function ImageViewerModal({ visible, uri, onClose, onDelete }: {
+  visible: boolean; uri: string; onClose: () => void; onDelete: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade"
+      onRequestClose={onClose} statusBarTranslucent>
+      <View style={ivs.overlay}>
+        <Pressable onPress={onClose} style={ivs.closeBtn} hitSlop={10}>
+          <MaterialCommunityIcons name="close" size={22} color="#FFF" />
+        </Pressable>
+        {!!uri && (
+          <Image source={{ uri }} style={ivs.img} resizeMode="contain" />
+        )}
+        <Text style={ivs.slotHint}>Tap the image to zoom • swipe down to close</Text>
+        <Pressable
+          onPress={onDelete}
+          style={({ pressed }) => [ivs.deleteBtn, pressed && { opacity: 0.8 }]}>
+          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#FFF" />
+          <Text style={ivs.deleteTxt}>Delete Image</Text>
+        </Pressable>
+      </View>
+    </Modal>
   );
 }
 
@@ -631,15 +791,125 @@ function ItemFormModal({ visible, mode, item, onClose, onSave }: {
   );
 }
 
-// ── Create Item modal — mirrors EmployeeFormModal structure ───────────────────
+// ── Create-form helpers (matching HumanFormModal components) ─────────────────
+
+function calcCreateProgress(form: CreateItemForm): number {
+  const tracked = [form.category, form.subCategory, form.brand, form.itemName, form.itemGeneric];
+  const filled = tracked.filter(Boolean).length;
+  return Math.round((filled / tracked.length) * 100);
+}
+
+function cmFillColor(pct: number): string {
+  if (pct < 25) return '#E53935';
+  if (pct < 50) return '#FB8C00';
+  if (pct < 75) return '#FDD835';
+  return '#30A84B';
+}
+
+function CreateProgressBar({ pct }: { pct: number }) {
+  const required = 15;
+  const fillColor = cmFillColor(pct);
+  return (
+    <View style={cpb.wrap}>
+      <View style={cpb.track}>
+        <View style={[cpb.fill, { width: `${pct}%` as any, backgroundColor: fillColor }]} />
+        <View style={[cpb.marker, { left: `${required}%` as any }]} />
+      </View>
+      <View style={cpb.labels}>
+        <Text style={cpb.labelLeft}>Results Weighted On</Text>
+        <Text style={cpb.labelMid}>Required — {required}%</Text>
+        <Text style={[cpb.labelRight, pct >= required && cpb.labelAvg]}>
+          {pct >= required ? 'Average ✓' : `${Math.round(pct)}%`}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function CreateSectionHead({ text }: { text: string }) {
+  return (
+    <View style={csh.row}>
+      <View style={csh.bar} />
+      <Text style={csh.txt}>{text}</Text>
+      <View style={csh.line} />
+    </View>
+  );
+}
+
+function CreateField({ label, value, onChangeText, placeholder, keyboardType, required }: {
+  label: string; value: string; onChangeText?: (t: string) => void;
+  placeholder?: string; keyboardType?: 'default' | 'numeric'; required?: boolean;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={cff.wrapper}>
+      <Text style={[cff.label, focused && cff.labelFoc]}>
+        {label}{required && <Text style={cff.req}> *</Text>}
+      </Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={Colors.placeholder}
+        keyboardType={keyboardType ?? 'default'}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[cff.input, focused && cff.inputFoc]}
+      />
+    </View>
+  );
+}
+
+function CreateSelect({ label, value, placeholder, required, showGpit }: {
+  label: string; value: string; placeholder: string; required?: boolean; showGpit?: boolean;
+}) {
+  return (
+    <View style={cff.wrapper}>
+      <Text style={cff.label}>{label}{required && <Text style={cff.req}> *</Text>}</Text>
+      <View style={cff.selectRow}>
+        <View style={[cff.selectTrigger, { flex: 1 }]}>
+          <Text style={[cff.selectValue, !value && cff.selectPlaceholder]} numberOfLines={1}>
+            {value || placeholder}
+          </Text>
+          <MaterialCommunityIcons name="chevron-down" size={18} color={Colors.placeholder} />
+        </View>
+        {showGpit && (
+          <Pressable style={cff.gpitBtn} hitSlop={6}>
+            <Image source={GPIT_BTN} style={cff.gpitImg} resizeMode="contain" />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// ── Create Item modal — mirrors HumanFormModal structure ──────────────────────
 
 function CreateItemModal({ visible, onClose, onCreated }: {
   visible: boolean; onClose: () => void;
   onCreated: (data: Omit<GoodItem, 'id'>) => void;
 }) {
-  const [phase, setPhase] = useState<'search' | 'create'>('search');
-  const [query, setQuery] = useState('');
-  const [form,  setForm]  = useState<CreateItemForm>(EMPTY_FORM);
+  const [phase,  setPhase]  = useState<'search' | 'create'>('search');
+  const [query,  setQuery]  = useState('');
+  const [form,   setForm]   = useState<CreateItemForm>(EMPTY_FORM);
+  const [images, setImages] = useState<string[]>([]);
+
+  // Image strip — arrow navigation
+  const imgScrollRef    = useRef<ScrollView>(null);
+  const imgOffset       = useRef(0);
+  const imgContentWidth = useRef(0);
+  const imgLayoutWidth  = useRef(0);
+  const [imgCanLeft,  setImgCanLeft]  = useState(false);
+  const [imgCanRight, setImgCanRight] = useState(false);
+  const [imgBoxWidth, setImgBoxWidth] = useState(75);
+
+  // Image source picker modal
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerIndex,   setPickerIndex]   = useState(0);
+
+  // Image full-screen viewer modal
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerIndex,   setViewerIndex]   = useState(0);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -649,7 +919,62 @@ function CreateItemModal({ visible, onClose, onCreated }: {
     );
   }, [query]);
 
-  function resetAll() { setPhase('search'); setQuery(''); setForm(EMPTY_FORM); }
+  function resetAll() {
+    setPhase('search'); setQuery(''); setForm(EMPTY_FORM); setImages([]);
+    ImageCropPicker.clean().catch(() => {});
+  }
+
+  // Tap on a slot: empty → open picker; filled → open viewer
+  function handleSlotPress(index: number) {
+    if (images[index]) {
+      setViewerIndex(index);
+      setViewerVisible(true);
+    } else {
+      setPickerIndex(index);
+      setPickerVisible(true);
+    }
+  }
+
+  // Called after user picks a source in ImageSourceModal
+  async function handleSourceSelect(source: 'camera' | 'gallery' | 'file') {
+    setPickerVisible(false);
+    const idx = pickerIndex;
+    try {
+      if (source === 'camera') {
+        const img = await ImageCropPicker.openCamera({
+          width: 800, height: 800, cropping: true,
+          cropperStatusBarColor: '#1C1C1E',
+          cropperToolbarColor: '#1C1C1E',
+          cropperToolbarWidgetColor: '#FFFFFF',
+          cropperActiveWidgetColor: Colors.primaryHighlight,
+          freeStyleCropEnabled: true,
+        });
+        setImages(prev => { const n = [...prev]; n[idx] = img.path; return n; });
+      } else if (source === 'gallery') {
+        const img = await ImageCropPicker.openPicker({
+          width: 800, height: 800, cropping: true,
+          cropperStatusBarColor: '#1C1C1E',
+          cropperToolbarColor: '#1C1C1E',
+          cropperToolbarWidgetColor: '#FFFFFF',
+          cropperActiveWidgetColor: Colors.primaryHighlight,
+          freeStyleCropEnabled: true,
+        });
+        setImages(prev => { const n = [...prev]; n[idx] = img.path; return n; });
+      } else {
+        const result = await pickDocument({ type: [docTypes.images] });
+        if (result[0]?.uri) {
+          setImages(prev => { const n = [...prev]; n[idx] = result[0].uri!; return n; });
+        }
+      }
+    } catch {
+      // user cancelled — no action needed
+    }
+  }
+
+  function deleteImage() {
+    setImages(prev => { const n = [...prev]; n[viewerIndex] = ''; return n; });
+    setViewerVisible(false);
+  }
 
   function field<K extends keyof CreateItemForm>(key: K) {
     return (v: CreateItemForm[K]) => setForm(f => ({ ...f, [key]: v }));
@@ -710,16 +1035,7 @@ function CreateItemModal({ visible, onClose, onCreated }: {
               </View>
 
               {/* Progress bar — Phase 2 only */}
-              {phase === 'create' && (
-                <View style={cm.progressWrap}>
-                  <View style={cm.progressRow}>
-                    <Text style={cm.progressLbl}>Required ~24%</Text>
-                    <View style={cm.progressBg}><View style={[cm.progressFill, { width: '35%' }]} /></View>
-                    <View style={cm.progressBg}><View style={[cm.progressAvg,  { width: '55%' }]} /></View>
-                    <Text style={cm.progressBadge}>Average ✓</Text>
-                  </View>
-                </View>
-              )}
+              {phase === 'create' && <CreateProgressBar pct={calcCreateProgress(form)} />}
 
               {/* ── Phase 1 — Search ── */}
               {phase === 'search' && (
@@ -775,56 +1091,42 @@ function CreateItemModal({ visible, onClose, onCreated }: {
               {/* ── Phase 2 — Create form ── */}
               {phase === 'create' && (
                 <>
-                  <ScrollView style={ci.formScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                    <CiFieldSelect label="Item Category"  value={form.category}    placeholder="Spare Parts"       showGpit />
-                    <View style={ci.formGroup}>
-                      <Text style={ci.formLbl}>*Item Sub Category</Text>
-                      <TextInput value={form.subCategory} onChangeText={field('subCategory')} style={ci.textInput} placeholderTextColor="#BBBBC0" />
-                    </View>
-                    <CiFieldSelect label="*Item Brand"    value={form.brand}       placeholder="Search and select" showGpit />
-                    <View style={ci.formGroup}>
-                      <Text style={ci.formLbl}>*Item Name</Text>
-                      <TextInput value={form.itemName} onChangeText={field('itemName')} style={ci.textInput} placeholderTextColor="#BBBBC0" />
-                    </View>
-                    <CiFieldSelect label="Group Name"     value={form.groupName}   placeholder="Search and select" showGpit />
+                  <ScrollView style={cm.formScroll} contentContainerStyle={cm.formContent}
+                    keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-                    {/* Packing Size */}
-                    <Text style={ci.sectionLbl}>Item Packing Size</Text>
-                    <View style={ci.packRow}>
+                    <CreateSectionHead text="Category" />
+                    <CreateSelect label="Item Category" value={form.category} placeholder="Select category" showGpit />
+
+                    <CreateSectionHead text="Item Details" />
+                    <CreateField label="Item Sub Category" value={form.subCategory} onChangeText={field('subCategory')} required />
+                    <CreateSelect label="Item Brand" value={form.brand} placeholder="Search and select" required showGpit />
+                    <CreateField label="Item Name" value={form.itemName} onChangeText={field('itemName')} required />
+                    <CreateSelect label="Group Name" value={form.groupName} placeholder="Search and select" showGpit />
+
+                    <CreateSectionHead text="Packing Size" />
+                    <View style={cff.packRow}>
                       {(['packLength', 'packBreadth', 'packHeight'] as const).map((k, i) => (
-                        <View key={k} style={[ci.packField, i < 2 && { marginRight: 6 }]}>
-                          <TextInput value={form[k]} onChangeText={field(k)} style={ci.packInput}
-                            keyboardType="numeric" placeholder={['Length', 'Breadth', 'Height'][i]} placeholderTextColor="#BBBBC0" />
-                          <Text style={ci.packUnit}>mm</Text>
+                        <View key={k} style={cff.packField}>
+                          <Text style={cff.packLabel}>{['Length (mm)', 'Breadth (mm)', 'Height (mm)'][i]}</Text>
+                          <TextInput value={form[k]} onChangeText={field(k)} keyboardType="numeric"
+                            placeholder="0" placeholderTextColor={Colors.placeholder} style={cff.packInput} />
                         </View>
                       ))}
                     </View>
 
-                    {/* Item Variance */}
-                    <View style={ci.sectionCard}>
-                      <Text style={ci.sectionTitle}>Item Variance 1</Text>
-                      <Text style={ci.formLbl}>Type</Text>
-                      <View style={[ci.selectBox, { marginHorizontal: 0, marginBottom: 8 }]}>
-                        <Text style={ci.selectPlaceholder}>Select Item Variance</Text>
-                        <MaterialCommunityIcons name="chevron-down" size={15} color="#9090A0" />
-                      </View>
-                      <Text style={ci.formLbl}>Attribute</Text>
-                      <View style={[ci.selectBox, { marginHorizontal: 0 }]}>
-                        <Text style={ci.selectPlaceholder}>Select Item Variance Attribute</Text>
-                        <MaterialCommunityIcons name="chevron-down" size={15} color="#9090A0" />
-                      </View>
-                      <Pressable style={ci.addMoreBtn}>
-                        <MaterialCommunityIcons name="plus-circle-outline" size={14} color="#30A84B" />
-                        <Text style={ci.addMoreTxt}>Add More</Text>
-                      </Pressable>
-                    </View>
+                    <CreateSectionHead text="Item Variance" />
+                    <CreateSelect label="Type" value={form.variantType} placeholder="Select Item Variance" />
+                    <CreateSelect label="Attribute" value={form.variantAttr} placeholder="Select Item Variance Attribute" />
+                    <Pressable style={ci.addMoreBtn}>
+                      <MaterialCommunityIcons name="plus-circle-outline" size={14} color="#30A84B" />
+                      <Text style={ci.addMoreTxt}>Add More</Text>
+                    </Pressable>
 
-                    {/* Special Parameters */}
-                    <View style={ci.sectionCard}>
-                      <Text style={ci.sectionTitle}>Special Item Parameters</Text>
-                      <CiFieldSelect label="*Item Generic" value={form.itemGeneric} placeholder="Search and select" showGpit />
-                      <Text style={[ci.formLbl, { marginTop: 8, paddingHorizontal: 0 }]}>*Serial Number</Text>
-                      <View style={ci.radioRow}>
+                    <CreateSectionHead text="Special Parameters" />
+                    <CreateSelect label="Item Generic" value={form.itemGeneric} placeholder="Search and select" required showGpit />
+                    <View style={[cff.wrapper, { marginTop: Spacing.sm }]}>
+                      <Text style={cff.label}>Serial Number<Text style={cff.req}> *</Text></Text>
+                      <View style={[ci.radioRow, { marginTop: 6 }]}>
                         {(['auto', 'manufacture', 'none'] as SerialType[]).map(t => (
                           <Pressable key={t} style={ci.radioOpt} onPress={() => field('serialType')(t)}>
                             <View style={[ci.radioDot, form.serialType === t && ci.radioDotActive]} />
@@ -836,32 +1138,134 @@ function CreateItemModal({ visible, onClose, onCreated }: {
                       </View>
                     </View>
 
-                    {/* Upload Images */}
-                    <Text style={ci.sectionLbl}>Upload Common Item Image</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ci.imgScroll} contentContainerStyle={ci.imgScrollContent}>
-                      {[1, 2, 3, 4, 5].map(n => (
-                        <View key={n} style={ci.imgPlaceholder}>
-                          <MaterialCommunityIcons name="image-outline" size={26} color="#C8C8D4" />
-                        </View>
-                      ))}
-                    </ScrollView>
+                    <CreateSectionHead text="Images & Media" />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 }}>
 
-                    {/* Upload Video */}
-                    <Text style={[ci.sectionLbl, { marginTop: 4 }]}>Upload Video</Text>
-                    <View style={[ci.radioRow, { paddingHorizontal: 14, marginBottom: 10 }]}>
-                      {(['Upload File', 'URL'] as const).map(t => (
-                        <Pressable key={t} style={ci.radioOpt}>
-                          <View style={ci.radioDot} />
-                          <Text style={ci.radioLbl}>{t}</Text>
-                        </Pressable>
-                      ))}
+                      {/* Left arrow */}
+                      <Pressable
+                        onPress={() => {
+                          const step = imgBoxWidth + 8;
+                          const next = Math.max(0, imgOffset.current - step);
+                          imgScrollRef.current?.scrollTo({ x: next, animated: true });
+                        }}
+                        style={[cff.imgArrow, !imgCanLeft && { opacity: 0.25 }]}
+                        disabled={!imgCanLeft}
+                        hitSlop={6}>
+                        <MaterialCommunityIcons name="chevron-left" size={18} color="#595959" />
+                      </Pressable>
+
+                      {/* Scrollable image strip — always shows 3 full boxes */}
+                      <ScrollView
+                        ref={imgScrollRef}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={{ flex: 1 }}
+                        contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+                        onLayout={e => {
+                          const w = e.nativeEvent.layout.width;
+                          imgLayoutWidth.current = w;
+                          // 3 boxes, 2 gaps of 8 px each
+                          setImgBoxWidth(Math.floor((w - 16) / 3));
+                          setImgCanRight(imgContentWidth.current > w + 2);
+                        }}
+                        onContentSizeChange={w => {
+                          imgContentWidth.current = w;
+                          setImgCanRight(w > imgLayoutWidth.current + 2);
+                        }}
+                        onScroll={e => {
+                          const x = e.nativeEvent.contentOffset.x;
+                          imgOffset.current = x;
+                          const maxOff = imgContentWidth.current - imgLayoutWidth.current;
+                          setImgCanLeft(x > 2);
+                          setImgCanRight(x < maxOff - 2);
+                        }}
+                        scrollEventThrottle={16}>
+                        {[0, 1, 2, 3, 4].map(i => {
+                          const filled = !!images[i];
+                          return (
+                            <Pressable
+                              key={i}
+                              onPress={() => handleSlotPress(i)}
+                              style={({ pressed }) => [{
+                                width:           imgBoxWidth,
+                                height:          imgBoxWidth,
+                                borderRadius:    8,
+                                borderWidth:     filled ? 0 : 1,
+                                borderColor:     '#DCDCE0',
+                                backgroundColor: filled ? 'transparent' : '#F5F5F7',
+                                alignItems:      'center',
+                                justifyContent:  'center',
+                                overflow:        'hidden',
+                              }, pressed && { opacity: 0.7 }]}>
+                              {filled ? (
+                                <>
+                                  <Image
+                                    source={{ uri: images[i] }}
+                                    style={{ width: imgBoxWidth, height: imgBoxWidth }}
+                                    resizeMode="cover"
+                                  />
+                                  {/* View / delete hint badge */}
+                                  <View style={{
+                                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                                    backgroundColor: 'rgba(0,0,0,0.38)',
+                                    paddingVertical: 3, alignItems: 'center',
+                                  }}>
+                                    <MaterialCommunityIcons name="eye-outline" size={12} color="#FFF" />
+                                  </View>
+                                </>
+                              ) : (
+                                <MaterialCommunityIcons name="image-plus" size={24} color="#C8C8D4" />
+                              )}
+                            </Pressable>
+                          );
+                        })}
+                      </ScrollView>
+
+                      {/* Right arrow */}
+                      <Pressable
+                        onPress={() => {
+                          const step   = imgBoxWidth + 8;
+                          const maxOff = imgContentWidth.current - imgLayoutWidth.current;
+                          const next   = Math.min(maxOff, imgOffset.current + step);
+                          imgScrollRef.current?.scrollTo({ x: next, animated: true });
+                        }}
+                        style={[cff.imgArrow, !imgCanRight && { opacity: 0.25 }]}
+                        disabled={!imgCanRight}
+                        hitSlop={6}>
+                        <MaterialCommunityIcons name="chevron-right" size={18} color="#595959" />
+                      </Pressable>
                     </View>
 
-                    {/* Sales Item Name */}
-                    <View style={ci.sectionCard}>
-                      <Text style={ci.sectionTitle}>Sales Item Name</Text>
-                      <Text style={ci.salesQ}>Do you use same as Item description?</Text>
-                      <View style={[ci.radioRow, { paddingHorizontal: 0, marginBottom: 10 }]}>
+                    {/* Image source picker */}
+                    <ImageSourceModal
+                      visible={pickerVisible}
+                      onSelect={handleSourceSelect}
+                      onCancel={() => setPickerVisible(false)}
+                    />
+
+                    {/* Full-screen image viewer */}
+                    <ImageViewerModal
+                      visible={viewerVisible}
+                      uri={images[viewerIndex] ?? ''}
+                      onClose={() => setViewerVisible(false)}
+                      onDelete={deleteImage}
+                    />
+                    <View style={[cff.wrapper, { marginTop: Spacing.sm }]}>
+                      <Text style={cff.label}>Upload Video</Text>
+                      <View style={[ci.radioRow, { marginTop: 6 }]}>
+                        {(['Upload File', 'URL'] as const).map(t => (
+                          <Pressable key={t} style={ci.radioOpt}>
+                            <View style={ci.radioDot} />
+                            <Text style={ci.radioLbl}>{t}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+
+                    <CreateSectionHead text="Sales Name" />
+                    <View style={cff.wrapper}>
+                      <Text style={cff.label}>Do you use same as Item description?</Text>
+                      <View style={[ci.radioRow, { marginTop: 6, marginBottom: Spacing.sm }]}>
                         {([true, false] as const).map(v => (
                           <Pressable key={String(v)} style={ci.radioOpt} onPress={() => field('sameAsDesc')(v)}>
                             <View style={[ci.radioDot, form.sameAsDesc === v && ci.radioDotActive]} />
@@ -881,14 +1285,10 @@ function CreateItemModal({ visible, onClose, onCreated }: {
                       </View>
                     </View>
 
-                    <View style={{ height: 20 }} />
                   </ScrollView>
 
-                  {/* Footer — matches EmployeeFormModal footer */}
+                  {/* Footer — Save only, matching HumanFormModal */}
                   <View style={cm.footer}>
-                    <Pressable style={({ pressed }) => [cm.backBtn, pressed && { opacity: 0.8 }]} onPress={() => setPhase('search')}>
-                      <Text style={cm.backBtnTxt}>Back</Text>
-                    </Pressable>
                     <Pressable style={({ pressed }) => [cm.saveBtn, pressed && { opacity: 0.85 }]} onPress={handleSave}>
                       <Text style={cm.saveTxt}>Save Item</Text>
                     </Pressable>
