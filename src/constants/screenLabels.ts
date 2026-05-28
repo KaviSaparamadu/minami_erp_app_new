@@ -42,6 +42,7 @@ export const SCREEN_LABELS: Record<string, string> = {
   ManagePOSPoints:            'Manage POS Points',
   SimpleInvoice:              'Simple Invoice',
   ManageBankCardMachine:      'Manage Bank Card Machine',
+  StockInventoryFinance:      'Stock & Inventory Finance',
   // Procurement
   Procurement:                'Procurement',
   Purchasing:                 'Purchasing',

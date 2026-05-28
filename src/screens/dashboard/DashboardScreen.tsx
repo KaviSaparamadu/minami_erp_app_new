@@ -29,6 +29,9 @@ const NUM_COLS = 3;
 
 type Tab = 'modules' | 'dashboard';
 
+// ---------------------------------------------------------------------------
+// Main screen
+// ---------------------------------------------------------------------------
 export function DashboardScreen() {
   const { navigate } = useNavigation();
   const { width } = useWindowDimensions();
@@ -37,11 +40,12 @@ export function DashboardScreen() {
 
   const [tab, setTab] = useState<Tab>('modules');
   const [refreshing, setRefreshing] = useState(false);
+
   const panResponder = useRef<any>(null);
 
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
-  // Set up swipe gesture handling
+  // ---- Swipe gesture ------------------------------------------------------
   useEffect(() => {
     panResponder.current = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -50,16 +54,15 @@ export function DashboardScreen() {
       },
       onPanResponderRelease: (_evt: GestureResponderEvent, state: PanResponderGestureState) => {
         const threshold = 50;
-        // Swipe right (from left to right) - go to dashboard
         if (state.dx > threshold && tab !== 'dashboard') {
           setTab('dashboard');
         }
-        // Swipe left (from right to left) - go to modules
         if (state.dx < -threshold && tab !== 'modules') {
           setTab('modules');
         }
       },
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   function handleModulePress(module: AppModule) {
@@ -68,12 +71,11 @@ export function DashboardScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate data refresh (1.5 seconds)
     await new Promise<void>(resolve => setTimeout(resolve, 1500));
     setRefreshing(false);
   };
 
-
+  // ---- Render -------------------------------------------------------------
   return (
     <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
       <PageHeader
@@ -82,7 +84,6 @@ export function DashboardScreen() {
         dashboardSearch={true}
         hideSearchBar={false}
       />
-
 
       {/* White section with fixed and scrollable content */}
       <View style={styles.whiteSection} {...panResponder.current?.panHandlers}>
@@ -110,7 +111,7 @@ export function DashboardScreen() {
           />
         </View>
 
-        {/* Scrollable content only */}
+        {/* Scrollable content */}
         <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentScrollContent}
@@ -119,17 +120,16 @@ export function DashboardScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={isDarkMode ? '#E91E63' : '#E91E63'}
+              tintColor="#E91E63"
               colors={['#E91E63']}
             />
           }>
 
-          {/* Content */}
           {tab === 'modules' ? (
             <ModulesGrid
               data={MODULES}
-              renderItem={(module, width) => (
-                <ModuleCard module={module} width={width} onPress={handleModulePress} />
+              renderItem={(module, w) => (
+                <ModuleCard module={module} width={w} onPress={handleModulePress} />
               )}
               cardWidth={cardWidth}
               numColumns={NUM_COLS}
@@ -147,15 +147,40 @@ export function DashboardScreen() {
   );
 }
 
-function TabButton({ label, active, onPress, dyn, isFirst, isLast }: { label: string; active: boolean; onPress: () => void; dyn: any; isFirst?: boolean; isLast?: boolean }) {
+// ---------------------------------------------------------------------------
+// Tab button
+// ---------------------------------------------------------------------------
+function TabButton({
+  label,
+  active,
+  onPress,
+  dyn,
+  isFirst,
+  isLast,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  dyn: any;
+  isFirst?: boolean;
+  isLast?: boolean;
+}) {
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.tabBtn, isFirst && styles.tabBtnFirst, isLast && styles.tabBtnLast]} activeOpacity={0.7}>
-      <Text style={[styles.tabLabel, dyn.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.tabBtn, isFirst && styles.tabBtnFirst, isLast && styles.tabBtnLast]}
+      activeOpacity={0.7}>
+      <Text style={[styles.tabLabel, dyn.tabLabel, active && styles.tabLabelActive]}>
+        {label}
+      </Text>
       {active && <View style={styles.tabUnderline} />}
     </TouchableOpacity>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Dynamic + static styles
+// ---------------------------------------------------------------------------
 function createDynamicStyles(_colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
     safe: { backgroundColor: '#5A5A5A' },
@@ -249,45 +274,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: H_PAD,
     paddingTop: Spacing.md,
     paddingBottom: 40,
-  },
-
-  pillWrap: {
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.primaryHighlight,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: Colors.primaryHighlight,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  pillText: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  pillBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  pillBadgeText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primaryHighlight,
   },
 });

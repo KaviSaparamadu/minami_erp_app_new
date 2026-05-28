@@ -20,7 +20,6 @@ import {
 const SCREEN_H = Dimensions.get('window').height;
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
-import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { TableIcons } from '../../components/common/DataTable';
 import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
@@ -2370,7 +2369,7 @@ function CreateItemModal({ visible, onClose }: { visible: boolean; onClose: () =
 export function StoreDetailScreen() {
   const { navigate, params } = useNavigation();
   const { stores } = useStores();
-  const [tab,            setTab]            = useState<Tab>('modules');
+  const [tab,            setTab]            = useState<Tab>('dashboard');
   const [pageTab,        setPageTab]        = useState<PageTab>('items-availability');
   const [showCreateItem, setShowCreateItem] = useState(false);
 
@@ -2392,39 +2391,31 @@ export function StoreDetailScreen() {
       selfManagesScroll={true}>
 
       <View style={scr.container}>
-        {tab !== 'dashboard' && (
-          <>
-            {/* ── Store info bar ── */}
-            <View style={scr.storeBar}>
-              <View style={scr.storeBarAccent} />
-              <View style={{ flex: 1 }}>
-                <Text style={scr.storeBarName} numberOfLines={1}>{title}</Text>
-                <Text style={scr.storeBarCode} numberOfLines={1}>{storeCode}</Text>
-              </View>
-              <Pressable
-                onPress={() => navigate('ProcStores')}
-                style={({ pressed }) => [scr.changeBtn, pressed && { opacity: 0.6 }]}>
-                <Text style={scr.changeBtnTxt}>Change Stores</Text>
-              </Pressable>
-            </View>
+        {/* ── Store info bar ── */}
+        <View style={scr.storeBar}>
+          <View style={scr.storeBarAccent} />
+          <View style={{ flex: 1 }}>
+            <Text style={scr.storeBarName} numberOfLines={1}>{title}</Text>
+            <Text style={scr.storeBarCode} numberOfLines={1}>{storeCode}</Text>
+          </View>
+          <Pressable
+            onPress={() => navigate('ProcStores')}
+            style={({ pressed }) => [scr.changeBtn, pressed && { opacity: 0.6 }]}>
+            <Text style={scr.changeBtnTxt}>Change Stores</Text>
+          </Pressable>
+        </View>
 
-            <View style={scr.tabBarWrap}>
-              <PageTabBar
-                tabs={STORE_TABS}
-                active={pageTab}
-                onChange={(t) => { setPageTab(t as PageTab); setTab('modules'); }}
-                variant="segment"
-              />
-            </View>
-          </>
-        )}
+        <View style={scr.tabBarWrap}>
+          <PageTabBar
+            tabs={STORE_TABS}
+            active={pageTab}
+            onChange={(t) => setPageTab(t as PageTab)}
+            variant="segment"
+          />
+        </View>
 
-        <View style={[scr.panel, tab !== 'dashboard' && scr.panelOffset]}>
-          {tab === 'dashboard' ? (
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-              <DashboardView />
-            </ScrollView>
-          ) : pageTab === 'items-availability' ? (
+        <View style={[scr.panel, scr.panelOffset]}>
+          {pageTab === 'items-availability' ? (
             <ItemsAvailabilityView storeCode={storeCode} />
           ) : pageTab === 'items' ? (
             <ItemsTabView onCreateItem={() => setShowCreateItem(true)} />
@@ -2791,7 +2782,6 @@ const sa = StyleSheet.create({
   grnMatchIconCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(233,30,99,0.10)', alignItems: 'center', justifyContent: 'center' },
   grnMatchTxt:        { flex: 1, fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: Colors.primaryHighlight },
   exHalfDivider:      { width: 1, alignSelf: 'stretch', borderLeftWidth: 1, borderStyle: 'dotted', borderColor: '#D0D0D8', marginHorizontal: 6 },
-
 
   // Excess stock card header
   excessCardHdr:      { flexDirection: 'row', alignItems: 'center', gap: 7, paddingTop: 12, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F5' },

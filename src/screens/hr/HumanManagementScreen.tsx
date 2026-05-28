@@ -8,16 +8,23 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
+  useWindowDimensions,
+  PanResponder,
+  GestureResponderEvent,
+  PanResponderGestureState,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
-import { DashboardView } from '../../components/dashboard/DashboardView';
+import { PageHeader } from '../../components/common/PageHeader';
+import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
+import { ModuleCard } from '../../components/dashboard/ModuleCard';
 import { UIIcon } from '../../components/common/UIIcon';
-import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
 import { HumanFormModal, ModalMode } from '../../components/hr/HumanFormModal';
 import { TableIcons } from '../../components/common/DataTable';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
+import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
@@ -37,13 +44,11 @@ function mapRowToHuman(row: HumanRow): Human {
   };
 }
 
-const H_PAD = 6;
+const H_PAD = 12;
+const NUM_COLS = 3;
+const GAP = 10;
 
-type Tab = 'dashboard' | 'modules';
-
-const HR_TABS: PageTabItem[] = [
-  { key: 'human', label: 'Human', color: '#595959' },
-];
+type Tab = 'modules' | 'dashboard';
 
 type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
@@ -443,9 +448,11 @@ function HumanDashboardView({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function HumanManagementScreen() {
   const { navigate } = useNavigation();
+  const { width } = useWindowDimensions();
+  const { colors, isDarkMode } = useTheme();
+  const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
-  const [tab,          setTab]          = useState<Tab>('modules');
-  const [pageTab,      setPageTab]      = useState<string>('human');
+  const [tab,          setTab]          = useState<Tab>('dashboard');
   const [rows,         setRows]         = useState<HumanRow[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [filter,       setFilter]       = useState<Filter>('All');
@@ -453,10 +460,34 @@ export function HumanManagementScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<ModalMode>('create');
   const [selected,     setSelected]     = useState<Human | null>(null);
-  const [refreshing,        setRefreshing]        = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDelete,     setPendingDelete]     = useState<HumanRow | null>(null);
   const [loadError,    setLoadError]    = useState<string | null>(null);
+  const [refreshing,   setRefreshing]   = useState(false);
+
+  const panResponder = useRef<any>(null);
+
+  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+
+  // ---- Swipe gesture ------------------------------------------------------
+  useEffect(() => {
+    panResponder.current = PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_evt: GestureResponderEvent, state: PanResponderGestureState) => {
+        return Math.abs(state.dx) > 10 && Math.abs(state.dy) < 10;
+      },
+      onPanResponderRelease: (_evt: GestureResponderEvent, state: PanResponderGestureState) => {
+        const threshold = 50;
+        if (state.dx > threshold && tab !== 'dashboard') {
+          setTab('dashboard');
+        }
+        if (state.dx < -threshold && tab !== 'modules') {
+          setTab('modules');
+        }
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   const loadHumans = useCallback(async () => {
     setLoading(true);
@@ -512,59 +543,73 @@ export function HumanManagementScreen() {
     loadHumans();
   }
 
-  function handleQuickAccess(module: AppModule) {
+  function handleModulePress(module: AppModule) {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
-
-  async function handleDashboardRefresh() {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    await loadHumans();
+    await new Promise<void>(resolve => setTimeout(resolve, 1500));
     setRefreshing(false);
-  }
+  };
 
   return (
-    <>
-      <SubModuleLayout parentModuleId="1"
-        title="Human Management"
-        showBack={true}
-        activeTab={tab}
-        onTabChange={setTab}
-        onModulePress={handleQuickAccess}
-        showSubmodulesTab={false}
-        showSubTab={true}
-        subTabLabel="Create Human"
-        selfManagesScroll={true}
-      >
-        <View style={styles.tabContainer}>
-          {tab !== 'dashboard' && (
-            <View style={styles.tabBarWrap}>
-              <PageTabBar
-                tabs={HR_TABS}
-                active={pageTab}
-                onChange={(t) => { setPageTab(t); setTab('modules'); }}
-                variant="segment"
-              />
-            </View>
-          )}
-          <View style={[styles.tabPanel, tab !== 'dashboard' && styles.tabPanelOffset]}>
-            {tab === 'dashboard' ? (
-              <ScrollView
-                style={styles.contentScroll}
-                contentContainerStyle={styles.contentScrollContent}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={handleDashboardRefresh}
-                    tintColor="#595959"
-                  />
-                }>
-                <View style={styles.dashboardContent}>
-                  <DashboardView />
-                </View>
-              </ScrollView>
-            ) : (
+    <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
+      <PageHeader
+        showBack={false}
+        showBrand={true}
+        hideGreeting={true}
+        hideSearchIcon={true}
+      />
+
+      {/* White section with fixed and scrollable content */}
+      <View style={styles.whiteSection} {...panResponder.current?.panHandlers}>
+
+        {/* Tabs - Fixed in white area */}
+        <View style={[styles.tabsContainer, dyn.tabsBorder]}>
+          <TabButton
+            label="Modules"
+            active={tab === 'modules'}
+            onPress={() => setTab('modules')}
+            dyn={dyn}
+            isFirst
+          />
+          <TabButton
+            label="Dashboard"
+            active={tab === 'dashboard'}
+            onPress={() => setTab('dashboard')}
+            dyn={dyn}
+            isLast
+          />
+        </View>
+
+        {/* Scrollable content */}
+        <ScrollView
+          style={styles.contentScroll}
+          contentContainerStyle={styles.contentScrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#595959"
+              colors={['#595959']}
+            />
+          }>
+
+          {tab === 'modules' ? (
+            <ModulesGrid
+              data={MODULES}
+              renderItem={(module, w) => (
+                <ModuleCard module={module} width={w} onPress={handleModulePress} />
+              )}
+              cardWidth={cardWidth}
+              numColumns={NUM_COLS}
+              gap={GAP}
+              hPad={H_PAD}
+            />
+          ) : (
+            <View style={styles.dashboardContent}>
               <HumanDashboardView
                 counts={counts}
                 filter={filter}
@@ -580,10 +625,10 @@ export function HumanManagementScreen() {
                 onRefresh={loadHumans}
                 loadError={loadError}
               />
-            )}
-          </View>
-        </View>
-      </SubModuleLayout>
+            </View>
+          )}
+        </ScrollView>
+      </View>
 
       <HumanFormModal
         visible={modalVisible}
@@ -624,13 +669,51 @@ export function HumanManagementScreen() {
           </View>
         </View>
       </Modal>
-    </>
+    </SafeAreaView>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Tab button
+// ---------------------------------------------------------------------------
+function TabButton({
+  label,
+  active,
+  onPress,
+  dyn,
+  isFirst,
+  isLast,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  dyn: any;
+  isFirst?: boolean;
+  isLast?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.tabBtn, isFirst && styles.tabBtnFirst, isLast && styles.tabBtnLast]}
+      activeOpacity={0.7}>
+      <Text style={[styles.tabLabel, dyn.tabLabel, active && styles.tabLabelActive]}>
+        {label}
+      </Text>
+      {active && <View style={styles.tabUnderline} />}
+    </TouchableOpacity>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic + static styles
+// ---------------------------------------------------------------------------
 function createDynamicStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
     safe: { backgroundColor: '#5A5A5A' },
+    tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
+    tabsBorder: {
+      borderBottomColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
+    },
     searchBar: {
       backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
       borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA',
@@ -639,8 +722,6 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
     searchWrapper: {
       backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
     },
-    tabLabel: { color: isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93' },
-    tabsBorder: { borderBottomColor: isDarkMode ? '#3A3A3C' : '#E5E5EA' },
     pillTxt: { color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#5A5A62' },
   });
 }
@@ -654,63 +735,57 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
+    flexDirection: 'column',
   },
 
-  quickWrap: {
-    paddingHorizontal: H_PAD,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
-    backgroundColor: '#FFFFFF',
-  },
-
-  // ── Tabs ──
   tabsContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: H_PAD,
     paddingVertical: 6,
     borderBottomWidth: 1,
     backgroundColor: '#FFFFFF',
   },
+
   tabBtn: {
     flex: 1,
     paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   tabBtnFirst: {
     alignItems: 'flex-start',
     paddingLeft: 12,
-    paddingRight: 4,
+    paddingRight: 0,
   },
+
   tabBtnLast: {
     alignItems: 'flex-end',
-    paddingLeft: 4,
+    paddingLeft: 0,
     paddingRight: 12,
   },
+
   tabLabel: {
     fontFamily: FontFamily.medium,
     fontSize: FontSize.sm,
   },
+
   tabLabelActive: {
     fontFamily: FontFamily.bold,
-    fontWeight: '700',
     color: Colors.primaryHighlight,
   },
+
   tabUnderline: {
     position: 'absolute',
-    bottom: -7,
+    bottom: -6,
     left: 0,
     right: 0,
     height: 2,
     backgroundColor: Colors.primaryHighlight,
     borderRadius: 2,
-  },
-
-
-  dashboardContent: {
-    flex: 1,
   },
 
   contentScroll: {
@@ -719,23 +794,14 @@ const styles = StyleSheet.create({
 
   contentScrollContent: {
     flexGrow: 1,
+    paddingTop: Spacing.md,
+    paddingBottom: 80,
   },
 
-  tabContainer: {
-    flex: 1,
-    paddingTop: 8,
-  },
-
-  tabBarWrap: {
-    paddingHorizontal: Spacing.md,
-  },
-
-  tabPanel: {
-    flex: 1,
-  },
-
-  tabPanelOffset: {
-    marginTop: 8,
+  dashboardContent: {
+    paddingHorizontal: H_PAD,
+    paddingTop: Spacing.md,
+    paddingBottom: 40,
   },
 });
 

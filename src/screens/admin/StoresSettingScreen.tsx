@@ -453,7 +453,7 @@ function ReOrderStatusListView({ items, onAdd, onEdit, onView, onDelete, onRefre
 // ── Screen ────────────────────────────────────────────────────────────────────
 export function StoresSettingScreen() {
   const { navigate } = useNavigation();
-  const [tab,     setTab]     = useState<Tab>('modules');
+  const [tab,     setTab]     = useState<Tab>('dashboard');
   const [pageTab, setPageTab] = useState('re-order-status');
 
   const [items,             setItems]            = useState<ReOrderStatus[]>([]);
@@ -501,31 +501,23 @@ export function StoresSettingScreen() {
         selfManagesScroll={true}>
 
         <View style={styles.tabContainer}>
-          {tab !== 'dashboard' && (
-            <View style={styles.tabBarWrap}>
-              <PageTabBar
-                tabs={SS_TABS}
-                active={pageTab}
-                onChange={t => { setPageTab(t); setTab('modules'); }}
-                variant="segment"
-              />
-            </View>
-          )}
-          <View style={[styles.tabPanel, tab !== 'dashboard' && styles.tabPanelOffset]}>
-            {tab === 'dashboard' ? (
-              <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentScrollContent} showsVerticalScrollIndicator={false}>
-                <View style={styles.dashboardContent} />
-              </ScrollView>
-            ) : (
-              <ReOrderStatusListView
-                items={items}
-                onAdd={openCreate}
-                onEdit={openEdit}
-                onView={openView}
-                onDelete={openDelete}
-                onRefresh={() => {}}
-              />
-            )}
+          <View style={styles.tabBarWrap}>
+            <PageTabBar
+              tabs={SS_TABS}
+              active={pageTab}
+              onChange={setPageTab}
+              variant="segment"
+            />
+          </View>
+          <View style={[styles.tabPanel, styles.tabPanelOffset]}>
+            <ReOrderStatusListView
+              items={items}
+              onAdd={openCreate}
+              onEdit={openEdit}
+              onView={openView}
+              onDelete={openDelete}
+              onRefresh={() => {}}
+            />
           </View>
         </View>
       </SubModuleLayout>

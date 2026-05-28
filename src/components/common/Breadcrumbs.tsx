@@ -41,6 +41,11 @@ const SCREEN_PARENT: Record<string, string> = {
   FinanceUtilities:         'Finance',
   LedgerManagement:         'Finance',
   FinanceOperation:         'Finance',
+  POS:                      'FinanceOperation',
+  ManagePOSPoints:          'FinanceOperation',
+  SimpleInvoice:            'FinanceOperation',
+  ManageBankCardMachine:    'FinanceOperation',
+  StockInventoryFinance:    'FinanceOperation',
   // Procurement
   Procurement:              'Dashboard',
   Purchasing:               'Procurement',
@@ -92,6 +97,13 @@ const CRUMB_CHILDREN: Record<string, NavChild[]> = {
     { label: 'Finance Utilities', screen: 'FinanceUtilities', icon: 'finance-utilities' },
     { label: 'Ledger Management', screen: 'LedgerManagement', icon: 'ledger' },
     { label: 'Finance Operation', screen: 'FinanceOperation', icon: 'finance-operation' },
+  ],
+  FinanceOperation: [
+    { label: 'POS',                      screen: 'POS',                   icon: 'fo-pos' },
+    { label: 'Manage POS Points',         screen: 'ManagePOSPoints',       icon: 'fo-pos-points' },
+    { label: 'Simple Invoice',            screen: 'SimpleInvoice',         icon: 'fo-invoice' },
+    { label: 'Manage Bank Card Machine',  screen: 'ManageBankCardMachine', icon: 'fo-bank-card' },
+    { label: 'Stock & Inventory Finance', screen: 'StockInventoryFinance', icon: 'fo-stock-inv' },
   ],
   Procurement: [
     { label: 'Purchasing',         screen: 'Purchasing',      icon: 'proc-purchasing' },
@@ -183,18 +195,30 @@ export function Breadcrumbs({ variant = 'light', style }: BreadcrumbsProps) {
   const handleCrumbPress = (screen: string) => {
     setActiveDropdown(null);
 
-    // Tapping the breadcrumb of the screen you are already on always switches to the
-    // Modules tab in-place — works for ModuleDetailScreen, SubModuleLayout screens, and
-    // any other screen that watches params.tab.
     if (screen === currentScreen) {
-      setCurrentParams({ tab: 'modules' });
+      // Module-level screens (HR, Finance, Procurement, SystemAdmin) use SubModuleLayout,
+      // whose default view (overlay = null) already shows the submodule list.
+      // Tapping the breadcrumb here should RESET any active overlay so the
+      // submodule list becomes visible again.
+      // We use Date.now() so the value is always new and the effect always fires,
+      // even if the user taps the breadcrumb multiple times in a row.
+      const isModuleScreen = MODULES.some(m => m.screen === screen);
+      if (isModuleScreen) {
+        setCurrentParams({ _resetAt: Date.now() });
+      } else {
+        // Non-module screens (HumanManagement, UserManagement, etc.):
+        // signal the screen that its own breadcrumb label was tapped so it can
+        // perform its primary action (e.g. open the create form).
+        // Date.now() guarantees a new value on every tap so the effect always fires.
+        setCurrentParams({ _crumbSelfPress: Date.now() });
+      }
       return;
     }
 
-    // Module-level crumbs navigate to ModuleDetail so submodules are always visible.
+    // Module-level crumbs navigate directly to the module's own screen.
     const mod = MODULES.find(m => m.screen === screen);
     if (mod) {
-      navigate('ModuleDetail' as any, { moduleId: mod.id } as any);
+      navigate(screen as any);
       return;
     }
 

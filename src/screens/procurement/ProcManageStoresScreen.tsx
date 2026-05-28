@@ -804,7 +804,7 @@ function DeleteConfirmModal({ visible, label, onCancel, onConfirm }: {
 // ── Screen ────────────────────────────────────────────────────────────────────
 export function ProcManageStoresScreen() {
   const { navigate } = useNavigation();
-  const [tab,     setTab]     = useState<Tab>('modules');
+  const [tab,     setTab]     = useState<Tab>('dashboard');
   const [pageTab, setPageTab] = useState('store');
 
   // Store tab state — shared via context so ProcStoresScreen can read them
@@ -884,22 +884,16 @@ export function ProcManageStoresScreen() {
         selfManagesScroll={true}>
 
         <View style={styles.tabContainer}>
-          {tab !== 'dashboard' && (
-            <View style={styles.tabBarWrap}>
-              <PageTabBar
-                tabs={MS_TABS}
-                active={pageTab}
-                onChange={t => { setPageTab(t); setTab('modules'); }}
-                variant="segment"
-              />
-            </View>
-          )}
-          <View style={[styles.tabPanel, tab !== 'dashboard' && styles.tabPanelOffset]}>
-            {tab === 'dashboard' ? (
-              <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentScrollContent} showsVerticalScrollIndicator={false}>
-                <View style={styles.dashboardContent} />
-              </ScrollView>
-            ) : pageTab === 'store' ? (
+          <View style={styles.tabBarWrap}>
+            <PageTabBar
+              tabs={MS_TABS}
+              active={pageTab}
+              onChange={setPageTab}
+              variant="segment"
+            />
+          </View>
+          <View style={[styles.tabPanel, styles.tabPanelOffset]}>
+            {pageTab === 'store' ? (
               <ListView
                 items={stores}
                 onAdd={openCreateStore}

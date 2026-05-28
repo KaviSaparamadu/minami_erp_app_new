@@ -81,7 +81,7 @@ function StoreRow({ rowStores, startSlot, onEmptyPress, onStorePress }: {
 export function ProcStoresScreen() {
   const { stores } = useStores();
   const { navigate } = useNavigation();
-  const [tab, setTab] = useState<Tab>('modules');
+  const [tab, setTab] = useState<Tab>('dashboard');
   const [search, setSearch] = useState('');
 
   const filtered = stores.filter(s => {

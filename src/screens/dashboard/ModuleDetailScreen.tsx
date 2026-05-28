@@ -29,7 +29,7 @@ interface ModuleDetailScreenProps {
 }
 
 export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const { params } = useNavigation();
 
   const [tab, setTab] = useState<Tab>('modules');
@@ -90,7 +90,6 @@ export function ModuleDetailScreen({ moduleId = '' }: ModuleDetailScreenProps) {
           tabs={['Modules' as const, 'Dashboard' as const]}
           activeTab={tab === 'modules' ? 'Modules' : 'Dashboard'}
           onTabChange={handleTabChange}
-          colors={colors}
           isDarkMode={isDarkMode}
         />
 

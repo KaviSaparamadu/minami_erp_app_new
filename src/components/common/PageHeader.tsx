@@ -117,7 +117,7 @@ export function PageHeader({
         {/* Left: menu */}
         <Pressable
           onPress={openSidebar}
-          style={({ pressed }) => [styles.iconBtn, dynamicStyles.iconBtn, pressed && dynamicStyles.iconBtnPressed]}
+          style={({ pressed }) => [styles.iconBtn, { backgroundColor: 'transparent', borderWidth: 0 }, pressed && { opacity: 0.6 }]}
           accessibilityLabel="Open menu"
           accessibilityRole="button"
           hitSlop={10}>

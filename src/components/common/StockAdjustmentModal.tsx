@@ -25,6 +25,8 @@ export type StockAdjType =
 export interface StockAdjSubmitData {
   qtyMain:             string;
   qtyLose:             string;
+  qtyCreatedMain?:     string;   // Excess only — qty found as excess
+  qtyCreatedLose?:     string;
   mainCostPrice:       string;
   loseCostPrice:       string;
   mainSellPrice:       string;
@@ -395,8 +397,10 @@ export function StockAdjustmentModal({
   const meta = TYPE_META[adjType];
 
   // ── State ─────────────────────────────────────────────────────────────────
-  const [qtyMain,       setQtyMain]       = useState(initialQtyMain);
-  const [qtyLose,       setQtyLose]       = useState(initialQtyLose);
+  const [qtyMain,          setQtyMain]          = useState(initialQtyMain);
+  const [qtyLose,          setQtyLose]          = useState(initialQtyLose);
+  const [qtyCreatedMain,   setQtyCreatedMain]   = useState('');
+  const [qtyCreatedLose,   setQtyCreatedLose]   = useState('');
   const [mainCostPrice, setMainCostPrice] = useState(initialMainCostPrice);
   const [loseCostPrice, setLoseCostPrice] = useState(initialLoseCostPrice);
   const [mainSellPrice, setMainSellPrice] = useState(initialMainSellPrice);
@@ -405,12 +409,15 @@ export function StockAdjustmentModal({
   const [appliedGrn,   setAppliedGrn]   = useState<GrnRecord | null>(null);
   const [showPicker,   setShowPicker]   = useState(false);
   const [remarks,      setRemarks]      = useState('');
+  const [pricingMode,  setPricingMode]  = useState<'customize' | 'match-grn'>('customize');
 
   // Reset on open
   React.useEffect(() => {
     if (visible) {
       setQtyMain(initialQtyMain);
       setQtyLose(initialQtyLose);
+      setQtyCreatedMain('');
+      setQtyCreatedLose('');
       setMainCostPrice(initialMainCostPrice);
       setLoseCostPrice(initialLoseCostPrice);
       setMainSellPrice(initialMainSellPrice);
@@ -418,12 +425,15 @@ export function StockAdjustmentModal({
       setAppliedGrn(null);
       setShowPicker(false);
       setRemarks('');
+      setPricingMode('customize');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const pricesLocked = appliedGrn !== null;
-  const canSubmit    = qtyMain.trim() !== '' && qtyLose.trim() !== '';
+  const canSubmit    = qtyMain.trim() !== '' && qtyLose.trim() !== '' &&
+    (adjType !== 'Excess' || (qtyCreatedMain.trim() !== '' && qtyCreatedLose.trim() !== '')) &&
+    (adjType !== 'Excess' || pricingMode === 'customize' || appliedGrn !== null);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -443,9 +453,19 @@ export function StockAdjustmentModal({
     setLoseSellPrice('');
   }
 
+  function handleSetPricingMode(mode: 'customize' | 'match-grn') {
+    setPricingMode(mode);
+    setAppliedGrn(null);
+    setMainCostPrice('');
+    setLoseCostPrice('');
+    setMainSellPrice('');
+    setLoseSellPrice('');
+  }
+
   function handleSubmit() {
     onSubmit?.({
       qtyMain, qtyLose,
+      ...(adjType === 'Excess' && { qtyCreatedMain, qtyCreatedLose }),
       mainCostPrice, loseCostPrice,
       mainSellPrice, loseSellPrice,
       priceMatchedFromGrn: appliedGrn?.id ?? null,
@@ -527,24 +547,45 @@ export function StockAdjustmentModal({
                   <View style={m.colDiv} />
                   <View style={m.colCell}><Text style={m.colHdr}>LOSE  /g</Text></View>
                 </View>
-                <View style={m.gridRow}>
-                  <View style={m.colLabel} />
-                  <View style={m.colCell}>
-                    <QtyInput label="Main Qty" value={qtyMain} onChangeText={setQtyMain} placeholder="0" required />
-                  </View>
-                  <View style={m.colDiv} />
-                  <View style={m.colCell}>
-                    <QtyInput label="Lose Qty" value={qtyLose} onChangeText={setQtyLose} placeholder="0" required />
-                  </View>
-                </View>
-                {adjType === 'Excess' && (
-                  <View style={m.noteRow}>
-                    <MaterialCommunityIcons name="information-outline" size={13} color="#1976D2" />
-                    <Text style={[m.noteTxt, { color: '#1976D2' }]}>
-                      Enter the main quantity on hand and the excess quantity recorded.
-                    </Text>
+
+                {adjType === 'Excess' ? (
+                  <>
+                    {/* Row 1 — Qty Created (excess found) */}
+                    <View style={m.gridRow}>
+                      <View style={m.colLabel}><Text style={m.rowLbl}>Qty{'\n'}Created</Text></View>
+                      <View style={m.colCell}>
+                        <QtyInput label="Main" value={qtyCreatedMain} onChangeText={setQtyCreatedMain} placeholder="0" required />
+                      </View>
+                      <View style={m.colDiv} />
+                      <View style={m.colCell}>
+                        <QtyInput label="Lose" value={qtyCreatedLose} onChangeText={setQtyCreatedLose} placeholder="0" required />
+                      </View>
+                    </View>
+                    {/* Row 2 — Qty Sent */}
+                    <View style={[m.gridRow, { marginTop: 12 }]}>
+                      <View style={m.colLabel}><Text style={m.rowLbl}>Qty{'\n'}Sent</Text></View>
+                      <View style={m.colCell}>
+                        <QtyInput label="Main" value={qtyMain} onChangeText={setQtyMain} placeholder="0" required />
+                      </View>
+                      <View style={m.colDiv} />
+                      <View style={m.colCell}>
+                        <QtyInput label="Lose" value={qtyLose} onChangeText={setQtyLose} placeholder="0" required />
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  <View style={m.gridRow}>
+                    <View style={m.colLabel} />
+                    <View style={m.colCell}>
+                      <QtyInput label="Main Qty" value={qtyMain} onChangeText={setQtyMain} placeholder="0" required />
+                    </View>
+                    <View style={m.colDiv} />
+                    <View style={m.colCell}>
+                      <QtyInput label="Lose Qty" value={qtyLose} onChangeText={setQtyLose} placeholder="0" required />
+                    </View>
                   </View>
                 )}
+
                 {adjType === 'Damage' && (
                   <View style={[m.noteRow, { backgroundColor: 'rgba(229,57,53,0.06)' }]}>
                     <MaterialCommunityIcons name="alert-outline" size={13} color="#E53935" />
@@ -561,111 +602,232 @@ export function StockAdjustmentModal({
               <SectionHead icon="tag-outline" label="Pricing" />
               <View style={m.section}>
 
-                {/* ── Match GRN button  (above price fields) ── */}
-                <Pressable
-                  onPress={() => setShowPicker(true)}
-                  style={({ pressed }) => [
-                    m.grnBtn,
-                    { borderColor: meta.accent },
-                    appliedGrn && { backgroundColor: `${meta.accent}0D`, borderStyle: 'solid' },
-                    pressed && { opacity: 0.72 },
-                  ]}>
-                  <View style={[m.grnBtnIcon, { backgroundColor: `${meta.accent}18` }]}>
-                    <MaterialCommunityIcons name="file-clock-outline" size={14} color={meta.accent} />
-                  </View>
-                  <Text style={[m.grnBtnTxt, { color: meta.accent }]}>
-                    {appliedGrn ? 'Match Previous GRN' : 'Match Previous GRN'}
-                  </Text>
-                  <MaterialCommunityIcons name="chevron-right" size={16} color={meta.accent} />
-                </Pressable>
-
-                {/* ── Applied GRN card (shown after applying) ── */}
-                {appliedGrn && (
-                  <View style={[m.appliedCard, { borderLeftColor: meta.accent }]}>
-                    {/* Left accent stripe */}
-                    <View style={[m.appliedStripe, { backgroundColor: meta.accent }]} />
-
-                    {/* Check circle */}
-                    <View style={[m.appliedCheck, { backgroundColor: meta.accent }]}>
-                      <MaterialCommunityIcons name="check" size={11} color="#FFF" />
-                    </View>
-
-                    {/* GRN info */}
-                    <View style={m.appliedInfo}>
-                      <Text style={[m.appliedGrnNo, { color: meta.accent }]}>{appliedGrn.id}</Text>
-                      <Text style={m.appliedSupplier} numberOfLines={1}>{appliedGrn.supplier}</Text>
-                    </View>
-
-                    {/* Edit + Delete */}
-                    <View style={m.appliedActions}>
-                      <Pressable
-                        onPress={() => setShowPicker(true)}
-                        hitSlop={6}
-                        style={({ pressed }) => [m.appliedActionBtn, pressed && { opacity: 0.6 }]}>
-                        <MaterialCommunityIcons name="pencil-outline" size={14} color={meta.accent} />
-                      </Pressable>
-                      <View style={m.appliedActionSep} />
-                      <Pressable
-                        onPress={handleDeleteGrn}
-                        hitSlop={6}
-                        style={({ pressed }) => [m.appliedActionBtn, pressed && { opacity: 0.6 }]}>
-                        <MaterialCommunityIcons name="trash-can-outline" size={14} color="#E53935" />
-                      </Pressable>
-                    </View>
+                {/* ── Mode toggle (Excess only) ── */}
+                {adjType === 'Excess' && (
+                  <View style={m.modeRow}>
+                    <Pressable
+                      onPress={() => handleSetPricingMode('customize')}
+                      style={[
+                        m.modeOpt,
+                        pricingMode === 'customize' && { borderColor: meta.accent, backgroundColor: `${meta.accent}10` },
+                      ]}>
+                      <MaterialCommunityIcons
+                        name="pencil-box-outline"
+                        size={14}
+                        color={pricingMode === 'customize' ? meta.accent : '#9090A0'}
+                      />
+                      <Text style={[m.modeOptTxt, pricingMode === 'customize' && { color: meta.accent }]}>
+                        Customize Price
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleSetPricingMode('match-grn')}
+                      style={[
+                        m.modeOpt,
+                        pricingMode === 'match-grn' && { borderColor: meta.accent, backgroundColor: `${meta.accent}10` },
+                      ]}>
+                      <MaterialCommunityIcons
+                        name="file-clock-outline"
+                        size={14}
+                        color={pricingMode === 'match-grn' ? meta.accent : '#9090A0'}
+                      />
+                      <Text style={[m.modeOptTxt, pricingMode === 'match-grn' && { color: meta.accent }]}>
+                        Match Previous GRN
+                      </Text>
+                    </Pressable>
                   </View>
                 )}
 
-                {/* ── Column headers ── */}
-                <View style={[m.colHeaderRow, { marginTop: 12 }]}>
-                  <View style={m.colLabel} />
-                  <View style={m.colCell}><Text style={m.colHdr}>MAIN  /kg</Text></View>
-                  <View style={m.colDiv} />
-                  <View style={m.colCell}><Text style={m.colHdr}>LOSE  /g</Text></View>
-                </View>
+                {/* ── Price inputs: non-Excess OR Excess in customize mode ── */}
+                {(adjType !== 'Excess' || pricingMode === 'customize') && (
+                  <>
+                    {/* GRN match button for non-Excess types */}
+                    {adjType !== 'Excess' && (
+                      <Pressable
+                        onPress={() => setShowPicker(true)}
+                        style={({ pressed }) => [
+                          m.grnBtn,
+                          { borderColor: meta.accent },
+                          appliedGrn && { backgroundColor: `${meta.accent}0D`, borderStyle: 'solid' },
+                          pressed && { opacity: 0.72 },
+                        ]}>
+                        <View style={[m.grnBtnIcon, { backgroundColor: `${meta.accent}18` }]}>
+                          <MaterialCommunityIcons name="file-clock-outline" size={14} color={meta.accent} />
+                        </View>
+                        <Text style={[m.grnBtnTxt, { color: meta.accent }]}>Match Previous GRN</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={16} color={meta.accent} />
+                      </Pressable>
+                    )}
 
-                {/* Cost Price row */}
-                <View style={m.gridRow}>
-                  <View style={m.colLabel}>
-                    <Text style={m.rowLbl}>Cost{'\n'}Price</Text>
-                  </View>
-                  <View style={m.colCell}>
-                    <PriceInput
-                      value={mainCostPrice}
-                      onChangeText={v => { setMainCostPrice(v); setAppliedGrn(null); }}
-                      unit="/kg" locked={pricesLocked}
-                    />
-                  </View>
-                  <View style={m.colDiv} />
-                  <View style={m.colCell}>
-                    <PriceInput
-                      value={loseCostPrice}
-                      onChangeText={v => { setLoseCostPrice(v); setAppliedGrn(null); }}
-                      unit="/g" locked={pricesLocked}
-                    />
-                  </View>
-                </View>
+                    {/* Applied GRN card (non-Excess only) */}
+                    {adjType !== 'Excess' && appliedGrn && (
+                      <View style={[m.appliedCard, { borderLeftColor: meta.accent }]}>
+                        <View style={[m.appliedStripe, { backgroundColor: meta.accent }]} />
+                        <View style={[m.appliedCheck, { backgroundColor: meta.accent }]}>
+                          <MaterialCommunityIcons name="check" size={11} color="#FFF" />
+                        </View>
+                        <View style={m.appliedInfo}>
+                          <Text style={[m.appliedGrnNo, { color: meta.accent }]}>{appliedGrn.id}</Text>
+                          <Text style={m.appliedSupplier} numberOfLines={1}>{appliedGrn.supplier}</Text>
+                        </View>
+                        <View style={m.appliedActions}>
+                          <Pressable
+                            onPress={() => setShowPicker(true)}
+                            hitSlop={6}
+                            style={({ pressed }) => [m.appliedActionBtn, pressed && { opacity: 0.6 }]}>
+                            <MaterialCommunityIcons name="pencil-outline" size={14} color={meta.accent} />
+                          </Pressable>
+                          <View style={m.appliedActionSep} />
+                          <Pressable
+                            onPress={handleDeleteGrn}
+                            hitSlop={6}
+                            style={({ pressed }) => [m.appliedActionBtn, pressed && { opacity: 0.6 }]}>
+                            <MaterialCommunityIcons name="trash-can-outline" size={14} color="#E53935" />
+                          </Pressable>
+                        </View>
+                      </View>
+                    )}
 
-                {/* Sell Price row */}
-                <View style={[m.gridRow, { marginTop: 8 }]}>
-                  <View style={m.colLabel}>
-                    <Text style={m.rowLbl}>Sell{'\n'}Price</Text>
-                  </View>
-                  <View style={m.colCell}>
-                    <PriceInput
-                      value={mainSellPrice}
-                      onChangeText={v => { setMainSellPrice(v); setAppliedGrn(null); }}
-                      unit="/kg" locked={pricesLocked}
-                    />
-                  </View>
-                  <View style={m.colDiv} />
-                  <View style={m.colCell}>
-                    <PriceInput
-                      value={loseSellPrice}
-                      onChangeText={v => { setLoseSellPrice(v); setAppliedGrn(null); }}
-                      unit="/g" locked={pricesLocked}
-                    />
-                  </View>
-                </View>
+                    {/* Column headers */}
+                    <View style={[m.colHeaderRow, { marginTop: adjType === 'Excess' ? 8 : 12 }]}>
+                      <View style={m.colLabel} />
+                      <View style={m.colCell}>
+                        <Text style={m.colHdr}>MAIN  /kg</Text>
+                        {adjType === 'Excess' && <Text style={m.colHdrUnit}>price per kg</Text>}
+                      </View>
+                      <View style={m.colDiv} />
+                      <View style={m.colCell}>
+                        <Text style={m.colHdr}>LOSE  /g</Text>
+                        {adjType === 'Excess' && <Text style={m.colHdrUnit}>price per g</Text>}
+                      </View>
+                    </View>
+
+                    {/* Sell Price row */}
+                    <View style={m.gridRow}>
+                      <View style={m.colLabel}>
+                        <Text style={m.rowLbl}>Sell{'\n'}Price</Text>
+                      </View>
+                      <View style={m.colCell}>
+                        <PriceInput
+                          value={mainSellPrice}
+                          onChangeText={v => { setMainSellPrice(v); if (adjType !== 'Excess') { setAppliedGrn(null); } }}
+                          unit="/kg" locked={pricesLocked && adjType !== 'Excess'}
+                        />
+                      </View>
+                      <View style={m.colDiv} />
+                      <View style={m.colCell}>
+                        <PriceInput
+                          value={loseSellPrice}
+                          onChangeText={v => { setLoseSellPrice(v); if (adjType !== 'Excess') { setAppliedGrn(null); } }}
+                          unit="/g" locked={pricesLocked && adjType !== 'Excess'}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Cost Price row */}
+                    <View style={[m.gridRow, { marginTop: 8 }]}>
+                      <View style={m.colLabel}>
+                        <Text style={m.rowLbl}>Cost{'\n'}Price</Text>
+                      </View>
+                      <View style={m.colCell}>
+                        <PriceInput
+                          value={mainCostPrice}
+                          onChangeText={v => { setMainCostPrice(v); if (adjType !== 'Excess') { setAppliedGrn(null); } }}
+                          unit="/kg" locked={pricesLocked && adjType !== 'Excess'}
+                        />
+                      </View>
+                      <View style={m.colDiv} />
+                      <View style={m.colCell}>
+                        <PriceInput
+                          value={loseCostPrice}
+                          onChangeText={v => { setLoseCostPrice(v); if (adjType !== 'Excess') { setAppliedGrn(null); } }}
+                          unit="/g" locked={pricesLocked && adjType !== 'Excess'}
+                        />
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                {/* ── Excess: Match Previous GRN mode ── */}
+                {adjType === 'Excess' && pricingMode === 'match-grn' && (
+                  appliedGrn ? (
+                    <>
+                      {/* Applied GRN card */}
+                      <View style={[m.appliedCard, { borderLeftColor: meta.accent, marginTop: 8 }]}>
+                        <View style={[m.appliedStripe, { backgroundColor: meta.accent }]} />
+                        <View style={[m.appliedCheck, { backgroundColor: meta.accent }]}>
+                          <MaterialCommunityIcons name="check" size={11} color="#FFF" />
+                        </View>
+                        <View style={m.appliedInfo}>
+                          <Text style={[m.appliedGrnNo, { color: meta.accent }]}>{appliedGrn.id}</Text>
+                          <Text style={m.appliedSupplier} numberOfLines={1}>{appliedGrn.supplier}</Text>
+                        </View>
+                        <View style={m.appliedActions}>
+                          <Pressable
+                            onPress={() => setShowPicker(true)}
+                            hitSlop={6}
+                            style={({ pressed }) => [m.appliedActionBtn, pressed && { opacity: 0.6 }]}>
+                            <MaterialCommunityIcons name="pencil-outline" size={14} color={meta.accent} />
+                          </Pressable>
+                          <View style={m.appliedActionSep} />
+                          <Pressable
+                            onPress={handleDeleteGrn}
+                            hitSlop={6}
+                            style={({ pressed }) => [m.appliedActionBtn, pressed && { opacity: 0.6 }]}>
+                            <MaterialCommunityIcons name="trash-can-outline" size={14} color="#E53935" />
+                          </Pressable>
+                        </View>
+                      </View>
+
+                      {/* Locked price preview */}
+                      <View style={[m.colHeaderRow, { marginTop: 10 }]}>
+                        <View style={m.colLabel} />
+                        <View style={m.colCell}><Text style={m.colHdr}>MAIN  /kg</Text></View>
+                        <View style={m.colDiv} />
+                        <View style={m.colCell}><Text style={m.colHdr}>LOSE  /g</Text></View>
+                      </View>
+                      <View style={m.gridRow}>
+                        <View style={m.colLabel}><Text style={m.rowLbl}>Sell{'\n'}Price</Text></View>
+                        <View style={m.colCell}>
+                          <PriceInput value={mainSellPrice} onChangeText={() => {}} unit="/kg" locked />
+                        </View>
+                        <View style={m.colDiv} />
+                        <View style={m.colCell}>
+                          <PriceInput value={loseSellPrice} onChangeText={() => {}} unit="/g" locked />
+                        </View>
+                      </View>
+                      <View style={[m.gridRow, { marginTop: 8 }]}>
+                        <View style={m.colLabel}><Text style={m.rowLbl}>Cost{'\n'}Price</Text></View>
+                        <View style={m.colCell}>
+                          <PriceInput value={mainCostPrice} onChangeText={() => {}} unit="/kg" locked />
+                        </View>
+                        <View style={m.colDiv} />
+                        <View style={m.colCell}>
+                          <PriceInput value={loseCostPrice} onChangeText={() => {}} unit="/g" locked />
+                        </View>
+                      </View>
+
+                      {/* Lock hint */}
+                      <View style={[m.noteRow, { backgroundColor: `${meta.accent}08`, marginTop: 10 }]}>
+                        <MaterialCommunityIcons name="lock-outline" size={13} color={meta.accent} />
+                        <Text style={[m.noteTxt, { color: meta.accent }]}>
+                          Prices locked from selected GRN. Tap the edit icon above to change.
+                        </Text>
+                      </View>
+                    </>
+                  ) : (
+                    /* No GRN selected yet — show trigger */
+                    <Pressable
+                      onPress={() => setShowPicker(true)}
+                      style={({ pressed }) => [m.grnBtn, { borderColor: meta.accent, marginTop: 8 }, pressed && { opacity: 0.72 }]}>
+                      <View style={[m.grnBtnIcon, { backgroundColor: `${meta.accent}18` }]}>
+                        <MaterialCommunityIcons name="file-clock-outline" size={14} color={meta.accent} />
+                      </View>
+                      <Text style={[m.grnBtnTxt, { color: meta.accent }]}>Select a Previous GRN</Text>
+                      <MaterialCommunityIcons name="chevron-right" size={16} color={meta.accent} />
+                    </Pressable>
+                  )
+                )}
 
               </View>
 
@@ -705,7 +867,9 @@ export function StockAdjustmentModal({
                   pressed && { opacity: 0.85 },
                 ]}>
                 <MaterialCommunityIcons name="check" size={15} color="#FFF" />
-                <Text style={m.footerSubmitTxt}>Submit Adjustment</Text>
+                <Text style={m.footerSubmitTxt}>
+                  {adjType === 'Excess' && pricingMode === 'match-grn' ? 'Apply & Save' : 'Submit Adjustment'}
+                </Text>
               </Pressable>
             </View>
 
@@ -757,6 +921,7 @@ const m = StyleSheet.create({
   colCell:      { flex: 1 },
   colDiv:       { width: 1, backgroundColor: '#EBEBF0', marginHorizontal: 8, alignSelf: 'stretch' },
   colHdr:       { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#9090A0', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: 'center' },
+  colHdrUnit:   { fontFamily: FontFamily.regular, fontSize: 8, color: '#B0B0C0', textAlign: 'center', marginTop: 1 },
   gridRow:      { flexDirection: 'row', alignItems: 'center' },
   rowLbl:       { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', color: '#6060A0', lineHeight: 14 },
 
@@ -778,6 +943,11 @@ const m = StyleSheet.create({
   appliedActions:  { flexDirection: 'row', alignItems: 'center', paddingRight: 12, gap: 2 },
   appliedActionBtn:{ width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
   appliedActionSep:{ width: 1, height: 16, backgroundColor: '#DCDCE0', marginHorizontal: 2 },
+
+  // Pricing mode toggle (Excess only)
+  modeRow:    { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  modeOpt:    { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 10, borderRadius: 9, borderWidth: 1.5, borderColor: '#DCDCE0', backgroundColor: '#FAFAFC' },
+  modeOptTxt: { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#9090A0' },
 
   remarksInput: { borderWidth: 1, borderColor: '#DCDCE0', borderRadius: 9, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, fontFamily: FontFamily.regular, fontSize: 13, color: '#1C1C1E', minHeight: 72, backgroundColor: '#FAFAFC', marginTop: 10 },
 

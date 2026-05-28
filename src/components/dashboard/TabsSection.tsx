@@ -1,18 +1,18 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSize } from '../../constants/theme';
 
 type TabName = 'Dashboard' | 'Modules' | 'Submodules';
 
 interface TabsSectionProps {
   tabs: readonly TabName[];
-  activeTab: TabName;
-  onTabChange: (tab: TabName) => void;
-  colors: any;
+  /** Pass null to show no tab as active (both labels appear unselected). */
+  activeTab: TabName | null;
+  onTabChange: (tab: string) => void;
   isDarkMode: boolean;
 }
 
-export function TabsSection({ tabs, activeTab, onTabChange, colors, isDarkMode }: TabsSectionProps) {
+export function TabsSection({ tabs, activeTab, onTabChange, isDarkMode }: TabsSectionProps) {
   const borderBottomColor = isDarkMode ? '#3A3A3C' : '#E5E5EA';
   const labelColor = isDarkMode ? 'rgba(255,255,255,0.55)' : '#8E8E93';
 
@@ -51,26 +51,28 @@ export function TabsSection({ tabs, activeTab, onTabChange, colors, isDarkMode }
 }
 
 const styles = StyleSheet.create({
+  // Matches DashboardScreen's tabsContainer exactly
   tabsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
-    marginHorizontal: 0,
-    marginBottom: 0,
-    paddingHorizontal: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderBottomWidth: 1,
+    backgroundColor: '#FFFFFF',
   },
+  // Matches DashboardScreen's tabBtn exactly
   tabBtn: {
-    paddingVertical: 7,
+    flex: 1,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     alignItems: 'center',
-    flex: 1,
     justifyContent: 'center',
   },
   tabBtn3Cols: {
     flex: 1,
   },
+  // Matches DashboardScreen's tabBtnFirst exactly
   tabBtnFirst: {
     alignItems: 'flex-start',
     paddingLeft: 12,
@@ -79,6 +81,7 @@ const styles = StyleSheet.create({
   tabBtnMiddle: {
     alignItems: 'center',
   },
+  // Matches DashboardScreen's tabBtnLast exactly
   tabBtnLast: {
     alignItems: 'flex-end',
     paddingLeft: 0,
@@ -92,9 +95,10 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontWeight: '700',
   },
+  // Matches DashboardScreen's tabUnderline exactly (bottom: -6 covers the border line)
   tabUnderline: {
     position: 'absolute',
-    bottom: -1,
+    bottom: -6,
     left: 0,
     right: 0,
     height: 2,

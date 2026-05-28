@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
-import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { TableIcons } from '../../components/common/DataTable';
 import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
@@ -360,7 +359,7 @@ function SystemUsersListView({
 export function CreateSystemUsersScreen() {
   const { navigate } = useNavigation();
 
-  const [tab,          setTab]          = useState<Tab>('modules');
+  const [tab,          setTab]          = useState<Tab>('dashboard');
   const [pageTab,      setPageTab]      = useState<string>('system-users');
   const [users,        setUsers]        = useState<SystemUser[]>([]);
   const [loading]                       = useState(false);
@@ -369,7 +368,6 @@ export function CreateSystemUsersScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<SystemUserModalMode>('create');
   const [selected,     setSelected]     = useState<SystemUser | null>(null);
-  const [refreshing,        setRefreshing]        = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDelete,     setPendingDelete]     = useState<SystemUser | null>(null);
 
@@ -416,9 +414,7 @@ export function CreateSystemUsersScreen() {
   }
 
   async function handleRefresh() {
-    setRefreshing(true);
     await new Promise<void>(resolve => setTimeout(resolve, 800));
-    setRefreshing(false);
   }
 
   return (
@@ -436,45 +432,29 @@ export function CreateSystemUsersScreen() {
         selfManagesScroll={true}
       >
         <View style={styles.tabContainer}>
-          {tab !== 'dashboard' && (
-            <View style={styles.tabBarWrap}>
-              <PageTabBar
-                tabs={SU_TABS}
-                active={pageTab}
-                onChange={(t) => { setPageTab(t); setTab('modules'); }}
-                variant="segment"
-              />
-            </View>
-          )}
-          <View style={[styles.tabPanel, tab !== 'dashboard' && styles.tabPanelOffset]}>
-            {tab === 'dashboard' ? (
-              <ScrollView
-                style={styles.contentScroll}
-                contentContainerStyle={styles.contentScrollContent}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#595959" />
-                }>
-                <View style={styles.dashboardContent}>
-                  <DashboardView />
-                </View>
-              </ScrollView>
-            ) : (
-              <SystemUsersListView
-                counts={counts}
-                filter={filter}
-                setFilter={setFilter}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                onOpenCreate={openCreate}
-                onView={openView}
-                onEdit={openEdit}
-                onDelete={handleDelete}
-                filteredUsers={filteredUsers}
-                loading={loading}
-                onRefresh={handleRefresh}
-              />
-            )}
+          <View style={styles.tabBarWrap}>
+            <PageTabBar
+              tabs={SU_TABS}
+              active={pageTab}
+              onChange={setPageTab}
+              variant="segment"
+            />
+          </View>
+          <View style={[styles.tabPanel, styles.tabPanelOffset]}>
+            <SystemUsersListView
+              counts={counts}
+              filter={filter}
+              setFilter={setFilter}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onOpenCreate={openCreate}
+              onView={openView}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              filteredUsers={filteredUsers}
+              loading={loading}
+              onRefresh={handleRefresh}
+            />
           </View>
         </View>
       </SubModuleLayout>

@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
-import { DashboardView } from '../../components/dashboard/DashboardView';
 import { UIIcon } from '../../components/common/UIIcon';
 import { TableIcons } from '../../components/common/DataTable';
 import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
@@ -518,7 +517,7 @@ function SalaryMatrixView() {
 export function EmployeeManagementScreen() {
   const { navigate } = useNavigation();
 
-  const [tab,          setTab]          = useState<Tab>('modules');
+  const [tab,          setTab]          = useState<Tab>('dashboard');
   const [pageTab,      setPageTab]      = useState<string>('employee');
   const [employees,    setEmployees]    = useState<Employee[]>([]);
   const [loading]                       = useState(false);
@@ -528,7 +527,6 @@ export function EmployeeManagementScreen() {
   const [modalMode,    setModalMode]    = useState<EmployeeModalMode>('create');
   const [selected,     setSelected]     = useState<Employee | null>(null);
   const [workBranches] = useState<WorkBranch[]>([]);
-  const [refreshing,      setRefreshing]      = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDelete,     setPendingDelete]     = useState<Employee | null>(null);
 
@@ -577,11 +575,6 @@ export function EmployeeManagementScreen() {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
-  async function handleDashboardRefresh() {
-    setRefreshing(true);
-    await new Promise<void>(resolve => setTimeout(resolve, 800));
-    setRefreshing(false);
-  }
 
   return (
     <>
@@ -597,30 +590,16 @@ export function EmployeeManagementScreen() {
         selfManagesScroll={true}
       >
         <View style={styles.tabContainer}>
-          {tab !== 'dashboard' && (
-            <View style={styles.tabBarWrap}>
-              <PageTabBar
-                tabs={EMP_TABS}
-                active={pageTab}
-                onChange={(t) => { setPageTab(t); setTab('modules'); }}
-                variant="segment"
-              />
-            </View>
-          )}
-          <View style={[styles.tabPanel, tab !== 'dashboard' && styles.tabPanelOffset]}>
-            {tab === 'dashboard' ? (
-              <ScrollView
-                style={styles.contentScroll}
-                contentContainerStyle={styles.contentScrollContent}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl refreshing={refreshing} onRefresh={handleDashboardRefresh} tintColor="#595959" />
-                }>
-                <View style={styles.dashboardContent}>
-                  <DashboardView />
-                </View>
-              </ScrollView>
-            ) : pageTab === 'salary-matrix' ? (
+          <View style={styles.tabBarWrap}>
+            <PageTabBar
+              tabs={EMP_TABS}
+              active={pageTab}
+              onChange={setPageTab}
+              variant="segment"
+            />
+          </View>
+          <View style={[styles.tabPanel, styles.tabPanelOffset]}>
+            {pageTab === 'salary-matrix' ? (
               <SalaryMatrixView />
             ) : (
               <EmployeeListView
@@ -635,7 +614,7 @@ export function EmployeeManagementScreen() {
                 onDelete={handleDelete}
                 filteredEmployees={filteredEmployees}
                 loading={loading}
-                onRefresh={handleDashboardRefresh}
+                onRefresh={() => {}}
               />
             )}
           </View>

@@ -225,7 +225,7 @@ function ScrollableSegmentTabBar({
 // ── Screen ────────────────────────────────────────────────────────────────────
 export function EmployeeSettingsScreen() {
   const { navigate } = useNavigation();
-  const [tab,     setTab]     = useState<Tab>('modules');
+  const [tab,     setTab]     = useState<Tab>('dashboard');
   const [pageTab, setPageTab] = useState<string>('salary-board');
 
   function handleQuickAccess(module: AppModule) {
@@ -246,32 +246,21 @@ export function EmployeeSettingsScreen() {
       selfManagesScroll={true}>
 
       <View style={styles.tabContainer}>
-        {tab !== 'dashboard' && (
-          <View style={styles.tabBarWrap}>
-            <ScrollableSegmentTabBar
-              tabs={EMP_SETTING_TABS}
-              active={pageTab}
-              onChange={(t) => { setPageTab(t); setTab('modules'); }}
-            />
-          </View>
-        )}
+        <View style={styles.tabBarWrap}>
+          <ScrollableSegmentTabBar
+            tabs={EMP_SETTING_TABS}
+            active={pageTab}
+            onChange={setPageTab}
+          />
+        </View>
 
-        <View style={[styles.tabPanel, tab !== 'dashboard' && styles.tabPanelOffset]}>
-          {tab === 'dashboard' ? (
-            <ScrollView
-              style={styles.contentScroll}
-              contentContainerStyle={styles.contentScrollContent}
-              showsVerticalScrollIndicator={false}>
-              <View style={styles.dashboardContent} />
-            </ScrollView>
-          ) : (
-            <ScrollView
-              style={styles.contentScroll}
-              contentContainerStyle={styles.contentScrollContent}
-              showsVerticalScrollIndicator={false}>
-              <TabPlaceholder label={activeTabItem?.label ?? pageTab} />
-            </ScrollView>
-          )}
+        <View style={[styles.tabPanel, styles.tabPanelOffset]}>
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.contentScrollContent}
+            showsVerticalScrollIndicator={false}>
+            <TabPlaceholder label={activeTabItem?.label ?? pageTab} />
+          </ScrollView>
         </View>
       </View>
     </SubModuleLayout>

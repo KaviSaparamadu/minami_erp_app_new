@@ -4,24 +4,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View,
-  useWindowDimensions,
 } from 'react-native';
 import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { SubmoduleDetailCard } from '../../components/dashboard/SubmoduleDetailCard';
-import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
-import { ModuleCard } from '../../components/dashboard/ModuleCard';
-import { DashboardView } from '../../components/dashboard/DashboardView';
 import { Colors, FontFamily, FontSize, Spacing } from '../../constants/theme';
-import { MODULES } from '../../constants/modules';
-import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
 import type { ScreenName } from '../../context/NavigationContext';
-
-const H_PAD = 6;
-const GRID_GAP = 10;
-const GRID_COLS = 3;
 
 type Tab = 'dashboard' | 'modules';
 
@@ -105,59 +94,14 @@ function SubmodulesView({
   );
 }
 
-// ─── Modules grid ─────────────────────────────────────────────────────────────
-function ModulesView({
-  onModulePress,
-  refreshing,
-  onRefresh,
-}: {
-  onModulePress: (module: AppModule) => void;
-  refreshing: boolean;
-  onRefresh: () => void;
-}) {
-  const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const cardWidth = (width - H_PAD * 2 - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS;
-
-  return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: Spacing.sm, gap: 8 }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primaryHighlight} />
-      }>
-      <View style={{ paddingHorizontal: 8 }}>
-        <Text style={{ fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', color: colors.primaryText, marginBottom: 12 }}>
-          Available Modules
-        </Text>
-      </View>
-      <ModulesGrid
-        data={MODULES}
-        cardWidth={cardWidth}
-        numColumns={GRID_COLS}
-        gap={GRID_GAP}
-        hPad={0}
-        renderItem={(module, w) => (
-          <ModuleCard key={module.id} module={module} width={w} onPress={() => onModulePress(module)} />
-        )}
-      />
-    </ScrollView>
-  );
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function UserManagementScreen() {
   const { navigate } = useNavigation();
-  const [tab, setTab] = useState<Tab>('modules');
+  const [tab, setTab] = useState<Tab>('dashboard');
   const [refreshing, setRefreshing] = useState(false);
 
   function handleSubmodulePress(screen: ScreenName) {
     navigate(screen);
-  }
-
-  function handleModulePress(module: AppModule) {
-    navigate('ModuleDetail', { moduleId: module.id });
   }
 
   async function handleRefresh() {
@@ -176,29 +120,11 @@ export function UserManagementScreen() {
       showSubTab={true}
       subTabLabel="Sub Modules"
     >
-      {tab === 'dashboard' ? (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primaryHighlight} />
-          }>
-          <DashboardView />
-        </ScrollView>
-      ) : tab === 'modules' ? (
-        <ModulesView
-          onModulePress={handleModulePress}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
-      ) : (
-        <SubmodulesView
-          onPress={handleSubmodulePress}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
-      )}
+      <SubmodulesView
+        onPress={handleSubmodulePress}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+      />
     </SubModuleLayout>
   );
 }
