@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -8,23 +8,15 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
-  useWindowDimensions,
-  PanResponder,
-  GestureResponderEvent,
-  PanResponderGestureState,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { PageHeader } from '../../components/common/PageHeader';
-import { ModulesGrid } from '../../components/dashboard/ModulesGrid';
-import { ModuleCard } from '../../components/dashboard/ModuleCard';
+import { SubModuleLayout } from '../../components/layout/SubModuleLayout';
 import { UIIcon } from '../../components/common/UIIcon';
+import { PageTabBar, PageTabItem } from '../../components/common/PageTabBar';
 import { HumanFormModal, ModalMode } from '../../components/hr/HumanFormModal';
 import { TableIcons } from '../../components/common/DataTable';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
-import { MODULES } from '../../constants/modules';
 import type { AppModule } from '../../constants/modules';
 import { useTheme } from '../../hooks/useTheme';
 import { useNavigation } from '../../context/NavigationContext';
@@ -44,14 +36,12 @@ function mapRowToHuman(row: HumanRow): Human {
   };
 }
 
-const H_PAD = 12;
-const NUM_COLS = 3;
-const GAP = 10;
-
-type Tab = 'modules' | 'dashboard';
-
 type Filter = 'All' | Country;
 const FILTERS: Filter[] = ['All', 'Sri Lanka', 'Japan'];
+
+const HU_TABS: PageTabItem[] = [
+  { key: 'human', label: 'Human', color: '#595959' },
+];
 
 function calcHumanHealth(human: Human): number {
   const isSL = human.country === 'Sri Lanka';
@@ -448,11 +438,9 @@ function HumanDashboardView({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export function HumanManagementScreen() {
   const { navigate } = useNavigation();
-  const { width } = useWindowDimensions();
   const { colors, isDarkMode } = useTheme();
-  const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
-  const [tab,          setTab]          = useState<Tab>('dashboard');
+  const [pageTab,      setPageTab]      = useState<string>('human');
   const [rows,         setRows]         = useState<HumanRow[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [filter,       setFilter]       = useState<Filter>('All');
@@ -463,31 +451,6 @@ export function HumanManagementScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDelete,     setPendingDelete]     = useState<HumanRow | null>(null);
   const [loadError,    setLoadError]    = useState<string | null>(null);
-  const [refreshing,   setRefreshing]   = useState(false);
-
-  const panResponder = useRef<any>(null);
-
-  const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
-
-  // ---- Swipe gesture ------------------------------------------------------
-  useEffect(() => {
-    panResponder.current = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_evt: GestureResponderEvent, state: PanResponderGestureState) => {
-        return Math.abs(state.dx) > 10 && Math.abs(state.dy) < 10;
-      },
-      onPanResponderRelease: (_evt: GestureResponderEvent, state: PanResponderGestureState) => {
-        const threshold = 50;
-        if (state.dx > threshold && tab !== 'dashboard') {
-          setTab('dashboard');
-        }
-        if (state.dx < -threshold && tab !== 'modules') {
-          setTab('modules');
-        }
-      },
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
 
   const loadHumans = useCallback(async () => {
     setLoading(true);
@@ -547,88 +510,43 @@ export function HumanManagementScreen() {
     navigate('ModuleDetail', { moduleId: module.id });
   }
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await new Promise<void>(resolve => setTimeout(resolve, 1500));
-    setRefreshing(false);
-  };
-
   return (
-    <SafeAreaView style={[styles.safe, dyn.safe]} edges={['top', 'left', 'right']}>
-      <PageHeader
+    <>
+      <SubModuleLayout
+        parentModuleId="1"
+        title="Human Management"
         showBack={false}
-        showBrand={true}
-        hideGreeting={true}
-        hideSearchIcon={true}
-      />
-
-      {/* White section with fixed and scrollable content */}
-      <View style={styles.whiteSection} {...panResponder.current?.panHandlers}>
-
-        {/* Tabs - Fixed in white area */}
-        <View style={[styles.tabsContainer, dyn.tabsBorder]}>
-          <TabButton
-            label="Modules"
-            active={tab === 'modules'}
-            onPress={() => setTab('modules')}
-            dyn={dyn}
-            isFirst
-          />
-          <TabButton
-            label="Dashboard"
-            active={tab === 'dashboard'}
-            onPress={() => setTab('dashboard')}
-            dyn={dyn}
-            isLast
-          />
+        onModulePress={handleModulePress}
+        selfManagesScroll={true}
+      >
+        <View style={styles.tabContainer}>
+          <View style={styles.tabBarWrap}>
+            <PageTabBar
+              tabs={HU_TABS}
+              active={pageTab}
+              onChange={setPageTab}
+              variant="segment"
+            />
+          </View>
+          <View style={[styles.tabPanel, styles.tabPanelOffset]}>
+            <HumanDashboardView
+              counts={counts}
+              filter={filter}
+              setFilter={setFilter}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onOpenCreate={openCreate}
+              onView={openView}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              filteredRows={filteredRows}
+              loading={loading}
+              onRefresh={loadHumans}
+              loadError={loadError}
+            />
+          </View>
         </View>
-
-        {/* Scrollable content */}
-        <ScrollView
-          style={styles.contentScroll}
-          contentContainerStyle={styles.contentScrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#595959"
-              colors={['#595959']}
-            />
-          }>
-
-          {tab === 'modules' ? (
-            <ModulesGrid
-              data={MODULES}
-              renderItem={(module, w) => (
-                <ModuleCard module={module} width={w} onPress={handleModulePress} />
-              )}
-              cardWidth={cardWidth}
-              numColumns={NUM_COLS}
-              gap={GAP}
-              hPad={H_PAD}
-            />
-          ) : (
-            <View style={styles.dashboardContent}>
-              <HumanDashboardView
-                counts={counts}
-                filter={filter}
-                setFilter={setFilter}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                onOpenCreate={openCreate}
-                onView={openView}
-                onEdit={openEdit}
-                onDelete={handleDelete}
-                filteredRows={filteredRows}
-                loading={loading}
-                onRefresh={loadHumans}
-                loadError={loadError}
-              />
-            </View>
-          )}
-        </ScrollView>
-      </View>
+      </SubModuleLayout>
 
       <HumanFormModal
         visible={modalVisible}
@@ -669,38 +587,7 @@ export function HumanManagementScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tab button
-// ---------------------------------------------------------------------------
-function TabButton({
-  label,
-  active,
-  onPress,
-  dyn,
-  isFirst,
-  isLast,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  dyn: any;
-  isFirst?: boolean;
-  isLast?: boolean;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.tabBtn, isFirst && styles.tabBtnFirst, isLast && styles.tabBtnLast]}
-      activeOpacity={0.7}>
-      <Text style={[styles.tabLabel, dyn.tabLabel, active && styles.tabLabelActive]}>
-        {label}
-      </Text>
-      {active && <View style={styles.tabUnderline} />}
-    </TouchableOpacity>
+    </>
   );
 }
 
@@ -729,64 +616,10 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
 
-  whiteSection: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-    flexDirection: 'column',
-  },
-
-  tabsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: H_PAD,
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    backgroundColor: '#FFFFFF',
-  },
-
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  tabBtnFirst: {
-    alignItems: 'flex-start',
-    paddingLeft: 12,
-    paddingRight: 0,
-  },
-
-  tabBtnLast: {
-    alignItems: 'flex-end',
-    paddingLeft: 0,
-    paddingRight: 12,
-  },
-
-  tabLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSize.sm,
-  },
-
-  tabLabelActive: {
-    fontFamily: FontFamily.bold,
-    color: Colors.primaryHighlight,
-  },
-
-  tabUnderline: {
-    position: 'absolute',
-    bottom: -6,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: Colors.primaryHighlight,
-    borderRadius: 2,
-  },
+  tabContainer:   { flex: 1, paddingTop: 8 },
+  tabBarWrap:     { paddingHorizontal: Spacing.md },
+  tabPanel:       { flex: 1 },
+  tabPanelOffset: { marginTop: 8 },
 
   contentScroll: {
     flex: 1,
@@ -799,7 +632,7 @@ const styles = StyleSheet.create({
   },
 
   dashboardContent: {
-    paddingHorizontal: H_PAD,
+    paddingHorizontal: 12,
     paddingTop: Spacing.md,
     paddingBottom: 40,
   },

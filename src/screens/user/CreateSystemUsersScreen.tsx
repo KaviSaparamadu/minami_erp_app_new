@@ -117,7 +117,7 @@ function UserHealthModal({ visible, user, onClose }: {
   );
 }
 
-// ─── Info chip ────────────────────────────────────────────────────────────────
+//  Info chip 
 function InfoChip({ label, value }: { label: string; value: string }) {
   const { colors } = useTheme();
   return (

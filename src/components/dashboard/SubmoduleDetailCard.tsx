@@ -27,6 +27,7 @@ export function SubmoduleDetailCard({
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   const iconName = MODULE_ICON_MAP[iconType] ?? 'clipboard';
+  const iconColor = '#FF4D7D';
 
   return (
     <Pressable
@@ -38,7 +39,7 @@ export function SubmoduleDetailCard({
 
       {/* Icon */}
       <View style={[styles.iconBox, dyn.iconBox]}>
-        <UIIcon name={iconName} color={isDarkMode ? '#AEAEB2' : '#3C3C43'} size={22} />
+        <UIIcon name={iconName} color={iconColor} size={22} />
       </View>
 
       {/* Content */}
@@ -72,11 +73,11 @@ function createDynamicStyles(colors: any, isDarkMode: boolean) {
   return StyleSheet.create({
     card: {
       backgroundColor: isDarkMode ? '#2C2C2E' : '#FFFFFF',
-      borderColor: isDarkMode ? '#3A3A3C' : '#EDEDF0',
-      shadowColor: isDarkMode ? '#000' : '#8E8E9340',
+      borderColor: isDarkMode ? '#3A3A3C' : '#F5D3DF',
+      shadowColor: isDarkMode ? '#000' : '#E8C2D2',
     },
     iconBox: {
-      backgroundColor: isDarkMode ? '#3A3A3C' : '#F2F2F7',
+      backgroundColor: isDarkMode ? '#3A3A3C' : '#F8D4E1',
     },
     title: { color: isDarkMode ? '#FFFFFF' : '#1C1C1E' },
     description: { color: isDarkMode ? 'rgba(255,255,255,0.5)' : '#8E8E93' },

@@ -73,9 +73,9 @@ export function RecentPageTabs() {
   const { width } = useWindowDimensions();
   const {
     
-    recentPages, removeRecentPage,
+    recentPages, removeRecentPage, clearAllRecentPages,
     navigateInstant, currentScreen, params: currentParams,
-    screenshots, saveScreenshot,
+    screenshots, saveScreenshot, setCurrentParams,
   } = useNavigation();
 
   if (isPreview) return null;
@@ -138,7 +138,12 @@ export function RecentPageTabs() {
                   <Pressable
                     onPress={() => {
                       setActiveSubmodule(null);
-                      navigateInstant(page.screen, page.params ?? undefined);
+                      if (isActive) {
+                        // Already on this screen — reset any active overlay instead of re-navigating
+                        setCurrentParams({ _resetAt: Date.now() });
+                      } else {
+                        navigateInstant(page.screen, page.params ?? undefined);
+                      }
                     }}
                     style={styles.tabLabelBtn}>
                     <Text style={[styles.tabText, isActive && styles.tabTextActive]} numberOfLines={1}>
@@ -273,9 +278,9 @@ export function RecentPageTabs() {
                               <Text style={styles.cardTitle} numberOfLines={1}>{label}</Text>
                               <Pressable
                                 onPress={() => removeRecentPage(page.key)}
-                                hitSlop={8}
-                                style={styles.cardCloseBtn}>
-                                <MaterialCommunityIcons name="close" size={13} color="#888888" />
+                                hitSlop={10}
+                                style={({ pressed }) => [styles.cardCloseBtn, pressed && styles.cardCloseBtnPressed]}>
+                                <MaterialCommunityIcons name="close" size={12} color="#666" />
                               </Pressable>
                             </View>
 
@@ -298,6 +303,16 @@ export function RecentPageTabs() {
                     </View>
                   )}
                 </ScrollView>
+
+                {/* Footer — Close all tabs */}
+                {recentPages.length > 0 && (
+                  <Pressable
+                    onPress={() => { clearAllRecentPages(); setModalOpen(false); }}
+                    style={({ pressed }) => [styles.closeAllRow, pressed && styles.closeAllRowPressed]}>
+                    <MaterialCommunityIcons name="trash-can-outline" size={16} color="#E53935" />
+                    <Text style={styles.closeAllTxt}>Close all tabs</Text>
+                  </Pressable>
+                )}
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -475,6 +490,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  clearAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(229,57,53,0.09)',
+    marginRight: 8,
+  },
+  clearAllTxt: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#E53935',
+  },
+
   // ── Card grid ────────────────────────────────────────────────────────────────
   grid: {
     paddingTop: 4,
@@ -550,12 +582,16 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
   },
   cardCloseBtn: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#EDEDF0',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  cardCloseBtnPressed: {
+    backgroundColor: '#D8D8DC',
   },
 
   // Preview area
@@ -579,5 +615,26 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     opacity: 0.7,
+  },
+
+  // ── Close-all footer strip ────────────────────────────────────────────────────
+  closeAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E0E0E5',
+    backgroundColor: '#FFFFFF',
+  },
+  closeAllRowPressed: {
+    backgroundColor: 'rgba(229,57,53,0.06)',
+  },
+  closeAllTxt: {
+    fontFamily: FontFamily.medium,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#E53935',
   },
 });

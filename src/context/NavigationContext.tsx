@@ -51,6 +51,7 @@ interface NavigationContextValue {
   lastModuleId?: string;
   recentPages: RecentPage[];
   removeRecentPage: (key: string) => void;
+  clearAllRecentPages: () => void;
   screenRef: React.RefObject<View | null>;
   screenshots: Record<string, string>;
   saveScreenshot: (key: string) => Promise<void>;
@@ -189,6 +190,10 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     setRecentPages(prev => prev.filter(p => p.key !== key));
   }, []);
 
+  const clearAllRecentPages = useCallback(() => {
+    setRecentPages([]);
+  }, []);
+
   const currentScreen = stack[stack.length - 1];
   const canGoBack     = stack.length > 1;
   const params        = paramsStack[paramsStack.length - 1];
@@ -198,7 +203,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
       currentScreen, navigate, navigateInstant, goBack, canGoBack, navigating,
       stack, params, paramsStack, navigateTo, setCurrentParams,
       sidebarOpen, openSidebar, closeSidebar, lastModuleId,
-      recentPages, removeRecentPage,
+      recentPages, removeRecentPage, clearAllRecentPages,
       screenRef, screenshots, saveScreenshot,
     }}>
       {children}

@@ -189,7 +189,7 @@ function PendingAdjCard({ record, index, onApplied }: { record: PendingAdjRecord
 
         <View style={pc.inner}>
 
-          {/* ── Header: type badge · status · index ── */}
+          {/* ── Header: type tag · status · index ── */}
           <View style={pc.header}>
             <View style={[pc.typeBadge, { backgroundColor: typeStyle.bg }]}>
               <Text style={[pc.typeTxt, { color: typeStyle.text }]}>{TYPE_FULL[record.type]}</Text>
@@ -373,21 +373,25 @@ function DamageApproveModal({
 
           <View style={[am.card, { flex: 1 }, isDarkMode && am.cardDark]}>
 
-            {/* ── Header (no inline close — it's floating above) ── */}
+            {/* ── Top accent stripe ── */}
+            <View style={am.topAccent} />
+
+            {/* ── Header ── */}
             <View style={[am.header, { borderBottomColor: div }]}>
               <Text style={[am.title, { color: colors.primaryText }]}>Approve Damage</Text>
               <View style={am.subtitleRow}>
                 <MaterialCommunityIcons name="barcode" size={11} color={colors.placeholder} />
                 <Text style={[am.serialTxt, { color: colors.placeholder }]}>{record.serialNo}</Text>
               </View>
-              <Text style={[am.itemTxt, { color: colors.primaryText }]} numberOfLines={2}>{record.item}</Text>
+              <Text style={[am.itemTxt, { color: colors.primaryText }]} numberOfLines={2}>{record.itemNo}</Text>
             </View>
 
-            {/* ── Bulk controls ── */}
+            {/* ── Bulk controls: [Approve All] ── progress ── [Clear all] ── */}
             <View style={[am.bulkRow, { borderBottomColor: div }]}>
               <Pressable
                 onPress={approveAll}
                 disabled={!hasPending}
+                hitSlop={8}
                 style={({ pressed }) => [am.bulkBtn, !hasPending && am.bulkBtnDimmed, pressed && { opacity: 0.7 }]}>
                 <MaterialCommunityIcons name="check-all" size={13} color={hasPending ? '#2E7D32' : '#A0A0A6'} />
                 <Text style={[am.bulkBtnTxt, { color: hasPending ? '#2E7D32' : '#A0A0A6' }]}>Approve All</Text>
@@ -395,7 +399,7 @@ function DamageApproveModal({
 
               <View style={am.progressWrap}>
                 <Text style={[am.progressLabel, { color: allApplied ? '#2E7D32' : colors.placeholder }]}>
-                  {appliedCnt}/{total} applied
+                  {appliedCnt}/{total}
                 </Text>
                 <View style={[am.progressTrack, { backgroundColor: isDarkMode ? '#3A3A3C' : '#E0E0E6' }]}>
                   <View style={[am.progressFill, {
@@ -405,7 +409,12 @@ function DamageApproveModal({
                 </View>
               </View>
 
-              <Pressable onPress={clearAll} disabled={approvedCnt === 0} hitSlop={8}>
+              <Pressable
+                onPress={clearAll}
+                disabled={approvedCnt === 0}
+                hitSlop={8}
+                style={({ pressed }) => [am.clearBtn, approvedCnt === 0 && am.clearBtnDimmed, pressed && { opacity: 0.7 }]}>
+                <MaterialCommunityIcons name="close-circle-outline" size={13} color={approvedCnt === 0 ? '#C0C0C6' : '#C62828'} />
                 <Text style={[am.clearTxt, approvedCnt === 0 && am.clearTxtDisabled]}>Clear all</Text>
               </Pressable>
             </View>
@@ -637,7 +646,7 @@ function ExcessApproveModal({
                 <MaterialCommunityIcons name="barcode" size={11} color={colors.placeholder} />
                 <Text style={[am.serialTxt, { color: colors.placeholder }]}>{record.serialNo}</Text>
               </View>
-              <Text style={[am.itemTxt, { color: colors.primaryText }]} numberOfLines={2}>{record.item}</Text>
+              <Text style={[am.itemTxt, { color: colors.primaryText }]} numberOfLines={2}>{record.itemNo}</Text>
             </View>
 
             {/* Content — two-screen flow */}
@@ -939,13 +948,12 @@ function PendingFinanceApprovalTab({ onRefresh, refreshing, records, onRecordApp
   const [searchQuery, setSearchQuery] = useState('');
 
   const filtered = useMemo(() => {
+    const base = records.filter(r => r.type === 'Damage' || r.type === 'Excess');
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return records;
-    return records.filter(r =>
+    if (!q) return base;
+    return base.filter(r =>
       r.serialNo.toLowerCase().includes(q) ||
       r.type.toLowerCase().includes(q) ||
-      r.goodsVehicle.toLowerCase().includes(q) ||
-      r.item.toLowerCase().includes(q) ||
       r.actionStockAdj.toLowerCase().includes(q),
     );
   }, [searchQuery, records]);
@@ -981,7 +989,7 @@ function PendingFinanceApprovalTab({ onRefresh, refreshing, records, onRecordApp
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search by serial no., type, item…"
+            placeholder="Search by serial no. or type…"
             placeholderTextColor="#8E8E93"
             style={[pa.searchInput, { color: colors.primaryText }]}
             autoCapitalize="none"
@@ -1064,7 +1072,6 @@ const MOCK_HISTORY: HistoryAdjRecord[] = [
 
 function HistoryAdjCard({ record, index }: { record: HistoryAdjRecord; index: number }) {
   const { colors, isDarkMode } = useTheme();
-  const typeStyle   = TYPE_COLORS[record.type];
   const statusStyle = HISTORY_STATUS_COLORS[record.status];
 
   return (
@@ -1076,9 +1083,6 @@ function HistoryAdjCard({ record, index }: { record: HistoryAdjRecord; index: nu
 
         {/* ── Header ── */}
         <View style={pc.header}>
-          <View style={[pc.typeBadge, { backgroundColor: typeStyle.bg }]}>
-            <Text style={[pc.typeTxt, { color: typeStyle.text }]}>{TYPE_FULL[record.type]}</Text>
-          </View>
           <View style={{ flex: 1 }} />
           <Text style={[pc.idx, { color: colors.placeholder }]}>#{index + 1}</Text>
         </View>
@@ -1678,21 +1682,25 @@ const am = StyleSheet.create({
   floatClose:        { position: 'absolute', top: -15, right: -4, zIndex: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: '#1C1C1E', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.28, shadowRadius: 4, elevation: 8 },
   floatCloseXL:      { position: 'absolute', width: 13, height: 2, backgroundColor: '#FFFFFF', borderRadius: 1, transform: [{ rotate: '45deg'  }] },
   floatCloseXR:      { position: 'absolute', width: 13, height: 2, backgroundColor: '#FFFFFF', borderRadius: 1, transform: [{ rotate: '-45deg' }] },
+  // ── Top accent stripe ──
+  topAccent:         { height: 4, backgroundColor: '#C62828' },
   // ── Header ──
-  header:            { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 13, borderBottomWidth: 1 },
-  title:             { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', marginBottom: 5 },
+  header:            { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 11, borderBottomWidth: 1 },
+  title:             { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', marginBottom: 4 },
   subtitleRow:       { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
   serialTxt:         { fontFamily: FontFamily.regular, fontSize: 11 },
   itemTxt:           { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: '500', lineHeight: 17 },
-  // ── Bulk controls bar ──
-  bulkRow:           { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, gap: 8 },
+  // ── Bulk controls bar (Approve All · progress · Clear all on one row) ──
+  bulkRow:           { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 9, borderBottomWidth: 1, gap: 8 },
   bulkBtn:           { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 8, backgroundColor: 'rgba(46,125,50,0.09)' },
   bulkBtnDimmed:     { opacity: 0.38 },
   bulkBtnTxt:        { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600' },
-  clearTxt:          { fontFamily: FontFamily.regular, fontSize: 12, fontStyle: 'italic', color: '#C62828' },
+  clearBtn:          { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 8, backgroundColor: 'rgba(198,40,40,0.09)' },
+  clearBtnDimmed:    { opacity: 0.38 },
+  clearTxt:          { fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: '#C62828' },
   clearTxtDisabled:  { color: '#C0C0C6' },
   // ── Progress ──
-  progressWrap:      { flex: 1, alignItems: 'center', gap: 3 },
+  progressWrap:      { flex: 1, alignItems: 'center', gap: 3, paddingHorizontal: 4 },
   progressLabel:     { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700' },
   progressTrack:     { width: '100%', height: 5, borderRadius: 3, overflow: 'hidden' },
   progressFill:      { height: '100%', backgroundColor: '#F59E0B', borderRadius: 3 },

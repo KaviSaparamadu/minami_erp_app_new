@@ -73,10 +73,7 @@ export function SubModuleLayout({
   const GAP      = 10;
   const cardWidth = (width - H_PAD * 2 - (NUM_COLS - 1) * GAP) / NUM_COLS;
 
-  // Distinguish module-level screens (HR, Finance, Procurement…) from submodule screens.
-  // Module-level screens have their screen name registered in MODULES[].screen.
-  const isModuleScreen = MODULES.some(m => m.screen === currentScreen);
-  const parentModule   = parentModuleId ? MODULES.find(m => m.id === parentModuleId) : null;
+  const parentModule = parentModuleId ? MODULES.find(m => m.id === parentModuleId) : null;
 
   // Reset overlay whenever the active screen changes — ensures tabs are never
   // left active after breadcrumb navigation to another module.
@@ -106,6 +103,16 @@ export function SubModuleLayout({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetAt]);
+
+  // Sub-module screens fire _crumbSelfPress when the user taps their own breadcrumb label.
+  // Treat it the same as _resetAt — dismiss any active overlay and return to default content.
+  const crumbSelfPress = params?._crumbSelfPress as number | undefined;
+  useEffect(() => {
+    if (crumbSelfPress != null) {
+      setOverlay(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crumbSelfPress]);
 
   const dyn = useMemo(() => createDynamicStyles(isDarkMode), [isDarkMode]);
 
@@ -166,14 +173,11 @@ export function SubModuleLayout({
           isDarkMode={isDarkMode}
         />
 
-        {/* Breadcrumbs: visible when no overlay OR when the Modules tab is active
-            (so the modules grid is anchored below the breadcrumb trail).
-            Hidden for the Dashboard overlay to keep that view full-width/clean. */}
-        {(overlay === null || overlay === 'modules') && (
-          <View style={styles.crumbRow}>
-            <Breadcrumbs variant="light" style={styles.crumbFlex} />
-          </View>
-        )}
+        {/* Breadcrumbs always visible — clicking the current screen label resets any
+            active overlay so the user can always return to module content. */}
+        <View style={styles.crumbRow}>
+          <Breadcrumbs variant="light" style={styles.crumbFlex} />
+        </View>
 
         {overlay === null && stickyContent && (
           <View style={styles.stickyWrap}>
@@ -219,8 +223,8 @@ export function SubModuleLayout({
             <DashboardView />
           </ScrollView>
 
-        ) : isModuleScreen && parentModule ? (
-          // ── No overlay · module screen → submodule list ───────────────────────
+        ) : parentModule && !children ? (
+          // ── No overlay · module screen or ModuleDetail without children → submodule list ─
           <ScrollView
             style={styles.contentScroll}
             contentContainerStyle={styles.contentScrollContent}
