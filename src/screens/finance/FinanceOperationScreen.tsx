@@ -43,10 +43,17 @@ const FO_SUBMODULES: {
   },
   {
     id: '5', screen: 'StockInventoryFinance',
-    name: 'Stock & Inventory Finance',
+    name: 'Stock And Inventory Adjustment',
     value: '0', valueLabel: 'Records',
-    description: 'Manage stock and inventory financial records, history, and adjustments.',
+    description: 'Manage stock and inventory adjustment records, history, and entries.',
     iconType: 'fo-stock-inv',
+  },
+  {
+    id: '6', screen: 'StockInventorySellingPrice',
+    name: 'Stock And Inventory Selling Price',
+    value: '0', valueLabel: 'Records',
+    description: 'Configure and manage selling prices for stock and inventory items.',
+    iconType: 'fo-stock-sell',
   },
 ];
 

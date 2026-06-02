@@ -22,6 +22,7 @@ export type ScreenName =
   | 'Procurement' | 'Purchasing' | 'PurchasingGoods' | 'ManageItem' | 'StoresInventory' | 'Logistics'
   | 'ProcStores' | 'ProcManageStores' | 'ProcStoresReports' | 'StoreDetail'
   | 'StockInventoryFinance'
+  | 'StockInventorySellingPrice'
   | 'ModuleDetail';
 
 export interface RecentPage {

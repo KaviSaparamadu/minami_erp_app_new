@@ -45,10 +45,13 @@ const SCREEN_PARENT: Record<string, string> = {
   ManagePOSPoints:          'FinanceOperation',
   SimpleInvoice:            'FinanceOperation',
   ManageBankCardMachine:    'FinanceOperation',
-  StockInventoryFinance:    'FinanceOperation',
+  StockInventoryFinance:        'FinanceOperation',
+  StockInventorySellingPrice:   'FinanceOperation',
   // Procurement
   Procurement:              'Dashboard',
   Purchasing:               'Procurement',
+  PurchasingGoods:          'Purchasing',
+  ManageItem:               'Purchasing',
   StoresInventory:          'Procurement',
   Logistics:                'Procurement',
   ProcStores:               'StoresInventory',
@@ -103,12 +106,17 @@ const CRUMB_CHILDREN: Record<string, NavChild[]> = {
     { label: 'Manage POS Points',         screen: 'ManagePOSPoints',       icon: 'fo-pos-points' },
     { label: 'Simple Invoice',            screen: 'SimpleInvoice',         icon: 'fo-invoice' },
     { label: 'Manage Bank Card Machine',  screen: 'ManageBankCardMachine', icon: 'fo-bank-card' },
-    { label: 'Stock & Inventory Finance', screen: 'StockInventoryFinance', icon: 'fo-stock-inv' },
+    { label: 'Stock And Inventory Adjustment',    screen: 'StockInventoryFinance',       icon: 'fo-stock-inv'  },
+    { label: 'Stock And Inventory Selling Price', screen: 'StockInventorySellingPrice',  icon: 'fo-stock-sell' },
   ],
   Procurement: [
     { label: 'Purchasing',         screen: 'Purchasing',      icon: 'proc-purchasing' },
     { label: 'Stores & Inventory', screen: 'StoresInventory', icon: 'proc-stores' },
     { label: 'Logistics',          screen: 'Logistics',       icon: 'proc-logistics' },
+  ],
+  Purchasing: [
+    { label: 'Goods',        screen: 'PurchasingGoods', icon: 'inventory' },
+    { label: 'Manage Item',  screen: 'ManageItem',      icon: 'package-variant-closed-outline' },
   ],
   StoresInventory: [
     { label: 'Stores',        screen: 'ProcStores',        icon: 'store' },

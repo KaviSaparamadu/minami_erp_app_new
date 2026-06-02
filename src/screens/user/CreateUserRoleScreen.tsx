@@ -47,7 +47,7 @@ function roleRingColor(pct: number): string {
   return pct < 25 ? '#E53935' : pct < 50 ? '#FB8C00' : pct < 75 ? '#FDD835' : '#30A84B';
 }
 
-// ─── Role health modal ────────────────────────────────────────────────────────
+// ─── Role health modal 
 function RoleHealthModal({ visible, role, onClose }: {
   visible: boolean; role: UserRole; onClose: () => void;
 }) {

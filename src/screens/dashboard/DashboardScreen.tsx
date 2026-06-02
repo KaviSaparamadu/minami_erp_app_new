@@ -48,7 +48,7 @@ export function DashboardScreen() {
   // ---- Swipe gesture ------------------------------------------------------
   useEffect(() => {
     panResponder.current = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_evt: GestureResponderEvent, state: PanResponderGestureState) => {
         return Math.abs(state.dx) > 10 && Math.abs(state.dy) < 10;
       },

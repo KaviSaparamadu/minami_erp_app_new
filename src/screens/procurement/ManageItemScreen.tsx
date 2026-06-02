@@ -89,6 +89,60 @@ const ITEM_SELLING_DATA: ItemSellingRecord[] = [
   { id: '6', itemCode: 'SP01-HL01-0006', itemName: 'Wagon R Stingray', itemDescription: 'Spare Parts Vehicle Head Light SUZUKI WAGON R STINGRAY (R-h-s) MR FZ Series – 2013/09 to present' },
 ];
 
+type GoodsFilter = 'All' | 'Brand New' | 'Used';
+
+interface ManageGoodsItem {
+  id: string;
+  code: string;
+  title: string;
+  subtitle: string;
+  condition: 'BRAND NEW' | 'USED';
+  stockQty: number;
+  price: string;
+  currency: string;
+  grn: string;
+  grnDate: string;
+  qty: number;
+  status: 'In Stock' | 'Out of Stock';
+  imageColor: string;
+  thumbColors: string[];
+}
+
+const MANAGE_GOODS_ITEMS: ManageGoodsItem[] = [
+  {
+    id: '1', code: 'SP01-HL01-0000',
+    title: 'Spare Parts Head Light HINO SCOOP (L-H-S)',
+    subtitle: 'DUTRO – KK BU306M – 1999/05 TO 2004-06 LED KDSW23DCSD',
+    condition: 'BRAND NEW', stockQty: 15, price: '30,000', currency: '¥',
+    grn: 'SG-6', grnDate: '2026-05-08', qty: 5, status: 'In Stock',
+    imageColor: '#252525', thumbColors: ['#212121', '#4A4A4A', '#6F6F6F', '#383838'],
+  },
+  {
+    id: '2', code: 'SP01-D01-0002',
+    title: 'Spare Parts Dashboard HINO Profia (Black)',
+    subtitle: 'TRUCK FN – KL FN2P – 2002/11 TO PRESENT, TRUCK FN – KL FN2P – 2000/02 TO 2002-10 KDSW23DCSD',
+    condition: 'USED', stockQty: 2, price: '84,500', currency: '¥',
+    grn: 'EX-7', grnDate: '2026-05-08', qty: 2, status: 'In Stock',
+    imageColor: '#1B3C5D', thumbColors: ['#13293B', '#345C7D', '#54789C', '#1E4A72'],
+  },
+  {
+    id: '3', code: 'SP01-D01-0003',
+    title: 'Spare Parts Dashboard Mitsubishi Caner Wide (Black)',
+    subtitle: 'TRUCK FU – U FU415 – 1993/06 TO 1995-05, TRUCK FU – P FU416 – 1989/11 TO 1993-05 KDSW23DCSD',
+    condition: 'USED', stockQty: 0, price: '31,400', currency: '¥',
+    grn: 'KDSW23DCSD', grnDate: '2026-05-09', qty: 0, status: 'Out of Stock',
+    imageColor: '#2C2A28', thumbColors: ['#1F1B1A', '#4B4845', '#706D6A', '#3A3836'],
+  },
+  {
+    id: '4', code: 'SP01-D01-0004',
+    title: 'Spare Parts Dashboard HINO Ranger (Black)',
+    subtitle: 'FC RANGER – KK FC1JCDD – 2001/06 TO PRESENT KDSW23DCSD',
+    condition: 'USED', stockQty: 0, price: '27,900', currency: '¥',
+    grn: 'KDSW23DCSD', grnDate: '2026-05-10', qty: 0, status: 'Out of Stock',
+    imageColor: '#323131', thumbColors: ['#1E1A1A', '#4E4B49', '#747170', '#404040'],
+  },
+];
+
 // ── Info chip (mirrors EmployeeManagementScreen InfoChip) ─────────────────────
 function ISInfoChip({ label, value }: { label: string; value: string }) {
   const { colors } = useTheme();
@@ -481,6 +535,183 @@ function ItemSellingTable({ onEdit }: { onEdit: (item: ItemSellingRecord) => voi
   );
 }
 
+function GoodsItemCard({ item, cardWidth }: { item: ManageGoodsItem; cardWidth: number }) {
+  const { colors, isDarkMode } = useTheme();
+  const inStock  = item.status === 'In Stock';
+  const photoH   = Math.round(cardWidth * 0.78);
+  const thumbBg  = isDarkMode ? '#252525' : '#F5F5F5';
+  const thumbBdr = isDarkMode ? '#333' : '#E8E8E8';
+
+  return (
+    <View style={[mg.card, isDarkMode && mg.cardDark, { width: cardWidth }]}>
+
+      {/* ── Photo area ── */}
+      <View style={[mg.photo, { height: photoH, backgroundColor: item.imageColor }]}>
+        {/* faint icon to simulate content */}
+        <MaterialCommunityIcons
+          name="image-outline"
+          size={photoH * 0.38}
+          color="rgba(255,255,255,0.10)"
+          style={{ position: 'absolute' }}
+        />
+        {/* Stock badge */}
+        <View style={[mg.badge, inStock ? mg.badgeIn : mg.badgeOut]}>
+          {inStock && <View style={mg.badgeDot} />}
+          <Text style={mg.badgeTxt}>
+            {inStock ? `${item.stockQty} in stock` : 'Out of Stock'}
+          </Text>
+        </View>
+        {/* ··· button */}
+        <Pressable style={mg.dots} hitSlop={10}>
+          <MaterialCommunityIcons name="dots-horizontal" size={15} color="#FFF" />
+        </Pressable>
+      </View>
+
+      {/* ── Thumbnail strip ── */}
+      <View style={[mg.thumbStrip, { backgroundColor: thumbBg, borderColor: thumbBdr }]}>
+        {item.thumbColors.map((c, i) => (
+          <View key={i} style={[mg.thumb, { backgroundColor: c }]} />
+        ))}
+        <View style={mg.thumbArrow}>
+          <MaterialCommunityIcons name="chevron-right" size={14} color="#AAAAAA" />
+        </View>
+      </View>
+
+      {/* ── Card body ── */}
+      <View style={mg.body}>
+        <Text style={[mg.itemTitle, { color: colors.primaryText }]} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={[mg.itemSub, isDarkMode && mg.itemSubDark]} numberOfLines={2}>
+          {item.subtitle}
+        </Text>
+
+        {/* Code + condition tag */}
+        <View style={mg.codeRow}>
+          <Text style={[mg.itemCode, isDarkMode && mg.itemCodeDark]} numberOfLines={1}>
+            {item.code}
+          </Text>
+          <View style={[mg.condTag, item.condition === 'BRAND NEW' ? mg.condTagNew : mg.condTagUsed]}>
+            <Text style={[mg.condTagTxt, item.condition === 'BRAND NEW' ? mg.condTagTxtNew : mg.condTagTxtUsed]}>
+              {item.condition}
+            </Text>
+          </View>
+        </View>
+
+        {/* Price */}
+        <Text style={[mg.price, { color: isDarkMode ? '#F0F0F0' : '#111' }]}>
+          {item.currency} {item.price}
+        </Text>
+
+        {/* ── Footer: GRN row or out-of-stock ── */}
+        {inStock ? (
+          /* All on one line: SELECT GRN: [pill ▾]  QTY n */
+          <View style={mg.grnRow}>
+            <Text style={[mg.grnLabel, { color: isDarkMode ? '#888' : '#777' }]}>
+              SELECT GRN:
+            </Text>
+            <Pressable style={[mg.grnPill, isDarkMode && mg.grnPillDark]}>
+              <Text style={mg.grnVal} numberOfLines={1}>{item.grn} | {item.grnDate}</Text>
+              <MaterialCommunityIcons name="menu-down" size={11} color="rgba(255,255,255,0.85)" />
+            </Pressable>
+            <Text style={[mg.qtyTxt, { color: isDarkMode ? '#DDD' : '#1C1C1E' }]}>
+              QTY {item.qty}
+            </Text>
+          </View>
+        ) : (
+          /* Out-of-stock: warning banner + link */
+          <View style={mg.outBlock}>
+            <View style={mg.outBanner}>
+              <MaterialCommunityIcons name="alert" size={10} color="#C62828" />
+              <Text style={mg.outBannerTxt}>THIS ITEM IS CURRENTLY OUT OF STOCK.</Text>
+            </View>
+            <Pressable hitSlop={8} style={mg.addStockBtn}>
+              <Text style={mg.addStockTxt}>Add to Stock/GRN</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function ManageGoodsTab() {
+  const { isDarkMode, colors } = useTheme();
+  const { width: screenW }     = useWindowDimensions();
+  const [query, setQuery]      = useState('');
+  const [filter, setFilter]    = useState<GoodsFilter>('All');
+
+  const CARD_GAP  = 10;
+  const H_PAD     = Spacing.md;
+  const cardWidth = Math.floor((screenW - H_PAD * 2 - CARD_GAP) / 2);
+
+  const filtered = useMemo(() => {
+    let items = MANAGE_GOODS_ITEMS;
+    if (filter !== 'All') {
+      const cond = filter === 'Brand New' ? 'BRAND NEW' : 'USED';
+      items = items.filter(item => item.condition === cond);
+    }
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(item =>
+      item.code.toLowerCase().includes(q) ||
+      item.title.toLowerCase().includes(q) ||
+      item.subtitle.toLowerCase().includes(q),
+    );
+  }, [filter, query]);
+
+  return (
+    <View style={mg.tabContainer}>
+      {/* Search bar */}
+      <View style={mg.searchWrap}>
+        <View style={[mg.searchBar, { backgroundColor: isDarkMode ? '#2C2C2E' : '#FFF', borderColor: isDarkMode ? '#3A3A3C' : '#E5E5EA' }]}>
+          <MaterialCommunityIcons name="magnify" size={16} color={colors.placeholder} />
+          <TextInput
+            style={[mg.searchInput, { color: colors.primaryText }]}
+            placeholder="Search goods…"
+            placeholderTextColor={colors.placeholder}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+          />
+          {query.length > 0 && (
+            <Pressable onPress={() => setQuery('')} hitSlop={8} style={isc.clearBtn}>
+              <View style={isc.clearX1} />
+              <View style={isc.clearX2} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+
+      {/* Filter pills */}
+      <View style={mg.filterWrap}>
+        {(['All', 'Brand New', 'Used'] as GoodsFilter[]).map(value => {
+          const selected = filter === value;
+          return (
+            <Pressable key={value} onPress={() => setFilter(value)} style={[mg.filterPill, selected && mg.filterPillActive]} hitSlop={6}>
+              <Text style={[mg.filterTxt, selected && mg.filterTxtActive]}>{value}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* 2-column grid */}
+      {filtered.length === 0 ? (
+        <View style={mg.emptyWrap}>
+          <Text style={[mg.emptyTitle, { color: colors.primaryText }]}>No goods found</Text>
+          <Text style={[mg.emptySubText, { color: colors.placeholder }]}>Try a different search term or filter.</Text>
+        </View>
+      ) : (
+        <View style={mg.grid}>
+          {filtered.map(item => (
+            <GoodsItemCard key={item.id} item={item} cardWidth={cardWidth} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 // ── Placeholder content ───────────────────────────────────────────────────────
 
 function TabPlaceholder({ label, tabKey }: { label: string; tabKey: string }) {
@@ -661,6 +892,9 @@ export function ManageItemScreen() {
     if (activeTab === 'item-selling') {
       return <ItemSellingTable onEdit={setEditItem} />;
     }
+    if (activeTab === 'goods') {
+      return <ManageGoodsTab />;
+    }
     return (
       <TabPlaceholder
         label={activeTabItem?.label ?? activeTab}
@@ -743,6 +977,66 @@ const ph = StyleSheet.create({
   iconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(89,89,89,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   title:      { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', color: '#595959', textAlign: 'center' },
   sub:        { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: '#AAAAAA', textAlign: 'center', lineHeight: 20 },
+});
+
+const mg = StyleSheet.create({
+  // ── Tab chrome ──────────────────────────────────────────────────────────────
+  tabContainer:     { paddingBottom: 20 },
+  searchWrap:       { paddingHorizontal: Spacing.md, paddingBottom: 12 },
+  searchBar:        { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, height: 42, borderRadius: 10, borderWidth: 1 },
+  searchInput:      { flex: 1, fontFamily: FontFamily.regular, fontSize: FontSize.sm, paddingVertical: 0 },
+  filterWrap:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: Spacing.md, marginBottom: 14 },
+  filterPill:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: '#F3F3F7' },
+  filterPillActive: { backgroundColor: Colors.primaryHighlight },
+  filterTxt:        { fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: '600', color: '#5A5A6C' },
+  filterTxtActive:  { color: '#FFFFFF' },
+  grid:             { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: Spacing.md },
+  emptyWrap:        { alignItems: 'center', paddingTop: 42, gap: 8 },
+  emptyTitle:       { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700' },
+  emptySubText:     { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: '#9090A0', textAlign: 'center', maxWidth: 280, lineHeight: 20 },
+  // ── Card shell ───────────────────────────────────────────────────────────────
+  card:             { backgroundColor: '#FFF', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#DCDCE4', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4, elevation: 2 },
+  cardDark:         { backgroundColor: '#1C1C1E', borderColor: '#2A2A2C' },
+  // ── Photo ────────────────────────────────────────────────────────────────────
+  photo:            { width: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  badge:            { position: 'absolute', zIndex: 3, top: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  badgeIn:          { backgroundColor: 'rgba(0,0,0,0.70)' },
+  badgeOut:         { backgroundColor: '#F4511E' },
+  badgeDot:         { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4CAF50' },
+  badgeTxt:         { fontFamily: FontFamily.medium, fontSize: 9, fontWeight: '700', color: '#FFF' },
+  dots:             { position: 'absolute', zIndex: 3, top: 8, right: 8, width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center' },
+  // ── Thumbnail strip ──────────────────────────────────────────────────────────
+  thumbStrip:       { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 6, borderTopWidth: 1 },
+  thumb:            { flex: 1, height: 34, borderRadius: 5 },
+  thumbArrow:       { width: 20, height: 34, alignItems: 'center', justifyContent: 'center' },
+  // ── Card body ────────────────────────────────────────────────────────────────
+  body:             { paddingHorizontal: 10, paddingTop: 9, paddingBottom: 10, gap: 5 },
+  itemTitle:        { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', lineHeight: 15, letterSpacing: 0.1 },
+  itemSub:          { fontFamily: FontFamily.regular, fontSize: 9, color: '#6A6A7A', lineHeight: 13 },
+  itemSubDark:      { color: '#9090A0' },
+  codeRow:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
+  itemCode:         { fontFamily: FontFamily.medium, fontSize: 9, color: '#888898', flex: 1 },
+  itemCodeDark:     { color: '#70708080' },
+  condTag:          { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2, borderWidth: 1 },
+  condTagNew:       { backgroundColor: 'rgba(46,125,50,0.08)', borderColor: 'rgba(46,125,50,0.30)' },
+  condTagUsed:      { backgroundColor: '#F2F2F5', borderColor: '#DCDCE0' },
+  condTagTxt:       { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700' },
+  condTagTxtNew:    { color: '#2E7D32' },
+  condTagTxtUsed:   { color: '#595968' },
+  price:            { fontFamily: FontFamily.bold, fontSize: FontSize.md, fontWeight: '700', letterSpacing: 0.1 },
+  // ── GRN row — all on one line ────────────────────────────────────────────────
+  grnRow:           { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  grnLabel:         { fontFamily: FontFamily.regular, fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.3, flexShrink: 0 },
+  grnPill:          { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: '#3C3C3E', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 4 },
+  grnPillDark:      { backgroundColor: '#4A4A4C' },
+  grnVal:           { flex: 1, fontFamily: FontFamily.medium, fontSize: 8, color: '#FFF' },
+  qtyTxt:           { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', flexShrink: 0 },
+  // ── Out-of-stock ─────────────────────────────────────────────────────────────
+  outBlock:         { gap: 5, marginTop: 3 },
+  outBanner:        { flexDirection: 'row', alignItems: 'flex-start', gap: 4, backgroundColor: 'rgba(198,40,40,0.08)', borderWidth: 1, borderColor: 'rgba(198,40,40,0.22)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 },
+  outBannerTxt:     { flex: 1, fontFamily: FontFamily.medium, fontSize: 8, fontWeight: '700', color: '#C62828', lineHeight: 12 },
+  addStockBtn:      { alignSelf: 'flex-end' },
+  addStockTxt:      { fontFamily: FontFamily.medium, fontSize: 10, fontWeight: '600', color: '#1565C0' },
 });
 
 const isc = StyleSheet.create({

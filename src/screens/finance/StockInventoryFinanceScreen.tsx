@@ -192,11 +192,11 @@ function PendingAdjCard({ record, index, onApplied }: { record: PendingAdjRecord
           {/* ── Header: type tag · status · index ── */}
           <View style={pc.header}>
             <View style={[pc.typeBadge, { backgroundColor: typeStyle.bg }]}>
-              <Text style={[pc.typeTxt, { color: typeStyle.text }]}>{TYPE_FULL[record.type]}</Text>
+              <Text style={pc.typeTxt}>{TYPE_FULL[record.type]}</Text>
             </View>
             <View style={{ flex: 1 }} />
             <View style={pc.statusBadge}>
-              <View style={pc.statusDot} />
+              <MaterialCommunityIcons name="alert-circle" size={14} color="#D97706" />
               <Text style={pc.statusTxt}>Pending</Text>
             </View>
             <Text style={[pc.idx, { color: colors.placeholder, marginLeft: 8 }]}>#{index + 1}</Text>
@@ -207,7 +207,7 @@ function PendingAdjCard({ record, index, onApplied }: { record: PendingAdjRecord
           {/* ── Stock No. + Item No. ── */}
           <View style={pc.idRow}>
             <View style={pc.idField}>
-              <Text style={pc.idLabel}>Stock No.</Text>
+              <Text style={pc.idLabel}>Store No.</Text>
               <Text style={[pc.idValue, { color: colors.primaryText }]}>{record.serialNo}</Text>
             </View>
             <View style={[pc.idSep, { backgroundColor: sep }]} />
@@ -254,10 +254,6 @@ function PendingAdjCard({ record, index, onApplied }: { record: PendingAdjRecord
               <MaterialCommunityIcons name="eye-outline" size={13} color="#595959" />
               <Text style={pc.btnTxt}>View</Text>
             </Pressable>
-            <Pressable style={({ pressed }) => [pc.btn, pc.btnEdit, pressed && pc.btnPressed]} hitSlop={4}>
-              <MaterialCommunityIcons name="pencil-outline" size={13} color="#595959" />
-              <Text style={pc.btnTxt}>Edit</Text>
-            </Pressable>
             <View style={{ flex: 1 }} />
             <Pressable
               onPress={() => setApproveVisible(true)}
@@ -292,7 +288,37 @@ function PendingAdjCard({ record, index, onApplied }: { record: PendingAdjRecord
 
 // ── Damage Approve Modal ───────────────────────────────────────────────────────
 
-type LineState = 'pending' | 'approved' | 'applied';
+type LineState = 'pending' | 'approved' | 'applied' | 'rejected';
+
+interface DamageHistoryEntry {
+  id:         string;
+  date:       string;
+  grnNumber:  string;
+  loseQty:    string;
+  damageQty:  string;
+  reviewedBy: string;
+  status:     'Approved' | 'Rejected';
+  message?:   string;
+}
+
+const DAMAGE_HISTORY: DamageHistoryEntry[] = [
+  {
+    id: 'dh1', date: '15 Mar 2024', grnNumber: 'GRN-2024-0034',
+    loseQty: '1', damageQty: '2', reviewedBy: 'Finance Officer',
+    status: 'Approved',
+  },
+  {
+    id: 'dh2', date: '02 Feb 2024', grnNumber: 'GRN-2024-0021',
+    loseQty: '3', damageQty: '3', reviewedBy: 'Finance Officer',
+    status: 'Rejected',
+    message: 'Insufficient documentation. Physical verification required before approval.',
+  },
+  {
+    id: 'dh3', date: '18 Jan 2024', grnNumber: 'GRN-2024-0008',
+    loseQty: '1', damageQty: '1', reviewedBy: 'Finance Officer',
+    status: 'Approved',
+  },
+];
 
 function DamageApproveModal({
   visible,
@@ -307,10 +333,14 @@ function DamageApproveModal({
 }) {
   const { colors, isDarkMode } = useTheme();
   const [lineStates, setLineStates] = useState<Record<string, LineState>>({});
+  const [rejectionMessages, setRejectionMessages] = useState<Record<string, string>>({});
 
   // Reset on each open
   useEffect(() => {
-    if (visible) setLineStates({});
+    if (visible) {
+      setLineStates({});
+      setRejectionMessages({});
+    }
   }, [visible, record.id]);
 
   const getState = (id: string): LineState => lineStates[id] ?? 'pending';
@@ -318,8 +348,25 @@ function DamageApproveModal({
   // Toggle pending ↔ approved (applied is final, cannot be undone)
   const toggleApprove = (id: string) => {
     const cur = getState(id);
-    if (cur === 'applied') return;
+    if (cur === 'applied' || cur === 'rejected') return;
     setLineStates(prev => ({ ...prev, [id]: cur === 'pending' ? 'approved' : 'pending' }));
+  };
+
+  // Toggle pending ↔ rejected
+  const toggleReject = (id: string) => {
+    const cur = getState(id);
+    if (cur === 'applied') return;
+    if (cur === 'rejected') {
+      setLineStates(prev => ({ ...prev, [id]: 'pending' }));
+      setRejectionMessages(prev => { const n = { ...prev }; delete n[id]; return n; });
+    } else {
+      setLineStates(prev => ({ ...prev, [id]: 'rejected' }));
+    }
+  };
+
+  // Update rejection message
+  const updateRejectionMessage = (id: string, msg: string) => {
+    setRejectionMessages(prev => ({ ...prev, [id]: msg }));
   };
 
   // Apply all currently-approved lines at once → applied (final)
@@ -338,19 +385,27 @@ function DamageApproveModal({
       return n;
     });
 
-  // Bulk: reset approved (not applied) lines back to pending
-  const clearAll = () =>
+  // Bulk: reset all non-applied lines back to pending, clear messages
+  const clearAll = () => {
     setLineStates(prev => {
       const n = { ...prev };
       record.grnLines.forEach(l => { if (n[l.id] !== 'applied') n[l.id] = 'pending'; });
       return n;
     });
+    setRejectionMessages(prev => {
+      const n = { ...prev };
+      record.grnLines.forEach(l => { if (lineStates[l.id] !== 'applied') delete n[l.id]; });
+      return n;
+    });
+  };
 
   const total       = record.grnLines.length;
   const appliedCnt  = record.grnLines.filter(l => getState(l.id) === 'applied').length;
   const approvedCnt = record.grnLines.filter(l => getState(l.id) === 'approved').length;
+  const rejectedCnt = record.grnLines.filter(l => getState(l.id) === 'rejected').length;
+  const pendingCnt  = record.grnLines.filter(l => getState(l.id) === 'pending').length;
   const allApplied  = appliedCnt === total;
-  const hasPending  = record.grnLines.some(l => getState(l.id) === 'pending');
+  const hasPending  = pendingCnt > 0;
 
   const div = isDarkMode ? '#2C2C2E' : '#EBEBF0';
 
@@ -438,77 +493,242 @@ function DamageApproveModal({
               showsVerticalScrollIndicator={false}>
 
               {record.grnLines.map((line, idx) => {
+                const isFirst    = idx === 0;
+                const isDisabled = !isFirst;
                 const state      = getState(line.id);
                 const isApproved = state === 'approved';
                 const isApplied  = state === 'applied';
-                const isDone     = isApproved || isApplied;
+                const isRejected = state === 'rejected';
+                const isDone     = isApproved || isApplied || isRejected;
                 const isLast     = idx === record.grnLines.length - 1;
 
                 return (
-                  <View key={line.id} style={[
-                    am.tableRow,
-                    isDarkMode && am.tableRowDark,
-                    isApproved && am.tableRowApproved,
-                    isApplied  && am.tableRowApplied,
-                    isLast     && { borderBottomWidth: 0 },
-                  ]}>
+                  // Outer wrapper — column layout so the reject panel sits BELOW the row
+                  <View
+                    key={line.id}
+                    style={isRejected ? { borderLeftWidth: 3, borderLeftColor: '#C62828' } : undefined}>
 
-                    {/* GRN info */}
-                    <View style={am.tdGrn}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <MaterialCommunityIcons
-                          name="file-document-outline"
-                          size={10}
-                          color={isDone ? '#2E7D32' : colors.placeholder}
-                        />
+                    {/* ── Horizontal row content ── */}
+                    <View style={[
+                      am.tableRow,
+                      isDarkMode && am.tableRowDark,
+                      isApproved && am.tableRowApproved,
+                      isApplied  && am.tableRowApplied,
+                      isRejected && { backgroundColor: 'rgba(198,40,40,0.07)', borderBottomWidth: 0 },
+                      isDisabled && am.tableRowDisabled,
+                      !isRejected && isLast && { borderBottomWidth: 0 },
+                    ]}>
+
+                      {/* GRN info */}
+                      <View style={am.tdGrn}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <MaterialCommunityIcons
+                            name="file-document-outline"
+                            size={10}
+                            color={isDisabled ? '#C0C0C6' : (isRejected ? '#C62828' : (isDone ? '#2E7D32' : colors.placeholder))}
+                          />
+                          <Text
+                            style={[am.tdGrnNum, { color: isDisabled ? '#B0B0B8' : (isRejected ? '#C62828' : (isDone ? '#2E7D32' : colors.primaryText)) }]}
+                            numberOfLines={1}>
+                            {line.grnNumber}
+                          </Text>
+                        </View>
                         <Text
-                          style={[am.tdGrnNum, { color: isDone ? '#2E7D32' : colors.primaryText }]}
+                          style={[am.tdGrnMeta, { color: isDisabled ? '#C8C8CC' : (isRejected ? 'rgba(198,40,40,0.65)' : (isDone ? 'rgba(46,125,50,0.65)' : colors.placeholder)) }]}
                           numberOfLines={1}>
-                          {line.grnNumber}
+                          {line.grnDate}  ·  {line.warehouse}
                         </Text>
                       </View>
-                      <Text
-                        style={[am.tdGrnMeta, { color: isDone ? 'rgba(46,125,50,0.65)' : colors.placeholder }]}
-                        numberOfLines={1}>
-                        {line.grnDate}  ·  {line.warehouse}
-                      </Text>
+
+                      {/* Qty columns */}
+                      <Text style={[am.tdNum, { color: isDisabled ? '#C0C0C6' : (isRejected ? 'rgba(198,40,40,0.5)' : colors.primaryText) }]}>{line.currentStock}</Text>
+                      <Text style={[am.tdNum, { color: isDisabled ? '#D8B0B0' : (isRejected ? 'rgba(198,40,40,0.5)' : (line.damageStock !== '0' ? '#C62828' : colors.placeholder)) }]}>{line.damageStock}</Text>
+                      <Text style={[am.tdNum, { color: isDisabled ? '#D8C0A8' : (isRejected ? 'rgba(198,40,40,0.5)' : (line.loseQty !== '0' ? '#E65100' : colors.placeholder)) }]}>{line.loseQty}</Text>
+                      <Text style={[am.tdNum, { color: isDisabled ? '#C0C0C6' : (isRejected ? 'rgba(198,40,40,0.5)' : colors.primaryText) }]}>{line.mainQty}</Text>
+
+                      {/* Action column */}
+                      <View style={am.tdActContainer}>
+                        {isDisabled ? (
+                          // Locked row — no buttons
+                          <View style={am.tdAct}>
+                            <View style={am.disabledCircle}>
+                              <MaterialCommunityIcons name="lock-outline" size={10} color="#C0C0C6" />
+                            </View>
+                          </View>
+                        ) : (
+                          // Active row — approve + reject
+                          <>
+                            <View style={am.tdAct}>
+                              {isApplied ? (
+                                <MaterialCommunityIcons name="check-circle" size={20} color="#2E7D32" />
+                              ) : isRejected ? (
+                                <MaterialCommunityIcons name="close-circle" size={20} color="#C62828" />
+                              ) : (
+                                <Pressable
+                                  onPress={() => toggleApprove(line.id)}
+                                  hitSlop={8}
+                                  style={({ pressed }) => [
+                                    am.approveCircle,
+                                    isApproved && am.approveCircleOn,
+                                    pressed    && { opacity: 0.7 },
+                                  ]}>
+                                  <MaterialCommunityIcons
+                                    name="check"
+                                    size={11}
+                                    color={isApproved ? '#FFFFFF' : '#B0B0B8'}
+                                  />
+                                </Pressable>
+                              )}
+                            </View>
+                            {!isApplied && (
+                              <Pressable
+                                onPress={() => toggleReject(line.id)}
+                                hitSlop={8}
+                                style={({ pressed }) => [
+                                  am.rejectBtn,
+                                  isRejected && am.rejectBtnActive,
+                                  pressed && { opacity: 0.7 },
+                                ]}>
+                                <MaterialCommunityIcons
+                                  name="close"
+                                  size={11}
+                                  color={isRejected ? '#FFFFFF' : '#C0C0C6'}
+                                />
+                              </Pressable>
+                            )}
+                          </>
+                        )}
+                      </View>
                     </View>
 
-                    {/* Qty columns */}
-                    <Text style={[am.tdNum, { color: colors.primaryText }]}>{line.currentStock}</Text>
-                    <Text style={[am.tdNum, { color: '#C62828'         }]}>{line.damageStock}</Text>
-                    <Text style={[am.tdNum, { color: '#E65100'         }]}>{line.loseQty}</Text>
-                    <Text style={[am.tdNum, { color: colors.primaryText }]}>{line.mainQty}</Text>
+                    {/* ── Reject panel — appears inline below the row ── */}
+                    {isRejected && (
+                      <View style={[
+                        am.rejectPanel,
+                        { backgroundColor: isDarkMode ? '#271A1A' : '#FFF8F7', borderBottomColor: div },
+                        isLast && { borderBottomWidth: 0 },
+                      ]}>
+                        {/* Header row */}
+                        <View style={am.rejectPanelHeader}>
+                          <View style={am.rejectPanelIcon}>
+                            <MaterialCommunityIcons name="message-alert-outline" size={12} color="#C62828" />
+                          </View>
+                          <Text style={[am.rejectPanelTitle, { color: '#C62828' }]}>
+                            Rejection Reason
+                          </Text>
+                          <Pressable
+                            onPress={() => toggleReject(line.id)}
+                            hitSlop={8}
+                            style={({ pressed }) => [am.rejectUndo, pressed && { opacity: 0.6 }]}>
+                            <MaterialCommunityIcons name="undo-variant" size={13} color="#8E8E93" />
+                            <Text style={[am.rejectUndoTxt, { color: '#8E8E93' }]}>Undo</Text>
+                          </Pressable>
+                        </View>
 
-                    {/* Approve circle — right side of row */}
-                    <View style={am.tdAct}>
-                      {isApplied ? (
-                        <MaterialCommunityIcons name="check-circle" size={20} color="#2E7D32" />
-                      ) : (
-                        <Pressable
-                          onPress={() => toggleApprove(line.id)}
-                          hitSlop={8}
-                          style={({ pressed }) => [
-                            am.approveCircle,
-                            isApproved && am.approveCircleOn,
-                            pressed    && { opacity: 0.7 },
-                          ]}>
-                          <MaterialCommunityIcons
-                            name="check"
-                            size={11}
-                            color={isApproved ? '#FFFFFF' : '#B0B0B8'}
-                          />
-                        </Pressable>
-                      )}
-                    </View>
+                        {/* Text input */}
+                        <TextInput
+                          style={[
+                            am.rejectInput,
+                            {
+                              borderColor: (rejectionMessages[line.id] ?? '').length > 0
+                                ? '#C62828'
+                                : (isDarkMode ? '#5A2A2A' : '#FFCDD2'),
+                              color: colors.primaryText,
+                              backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF',
+                            },
+                          ]}
+                          placeholder="Type rejection reason here…"
+                          placeholderTextColor={isDarkMode ? '#6E4040' : '#F4A0A0'}
+                          value={rejectionMessages[line.id] ?? ''}
+                          onChangeText={(msg) => updateRejectionMessage(line.id, msg)}
+                          multiline
+                          maxLength={500}
+                        />
 
+                        {/* Char count */}
+                        <Text style={[am.rejectHint, { color: colors.placeholder, textAlign: 'right', marginTop: 4 }]}>
+                          {(rejectionMessages[line.id] ?? '').length} / 500
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 );
               })}
+              <View style={[am.histSection, { borderTopColor: div }]}>
+                <View style={[am.histHeader, { borderBottomColor: div }]}>
+                  <MaterialCommunityIcons name="history" size={13} color="#8E8E93" />
+                  <Text style={[am.histTitle, { color: colors.primaryText }]}>History</Text>
+                </View>
+
+                {DAMAGE_HISTORY.map((h, i) => (
+                  <View
+                    key={h.id}
+                    style={[
+                      am.histRow,
+                      { borderBottomColor: div },
+                      i === DAMAGE_HISTORY.length - 1 && { borderBottomWidth: 0 },
+                    ]}>
+                    <View style={am.histInfo}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Text style={[am.histGrn, { color: colors.primaryText }]}>{h.grnNumber}</Text>
+                        <Text style={[am.histDate, { color: colors.placeholder }]}>· {h.date}</Text>
+                      </View>
+                      <Text style={[am.histQty, { color: colors.placeholder }]}>
+                        Lose: {h.loseQty}  ·  Dmg: {h.damageQty}  ·  {h.reviewedBy}
+                      </Text>
+                      {h.status === 'Rejected' && h.message && (
+                        <View style={am.rejectNote}>
+                          <MaterialCommunityIcons name="information-outline" size={11} color="#C62828" style={{ marginTop: 1 }} />
+                          <Text style={am.rejectMsg}>{h.message}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={[am.histBadge, h.status === 'Approved' ? am.histBadgeApproved : am.histBadgeRejected]}>
+                      <MaterialCommunityIcons
+                        name={h.status === 'Approved' ? 'check' : 'close'}
+                        size={10}
+                        color={h.status === 'Approved' ? '#2E7D32' : '#C62828'}
+                      />
+                      <Text style={[am.histBadgeTxt, { color: h.status === 'Approved' ? '#2E7D32' : '#C62828' }]}>
+                        {h.status}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
             </ScrollView>
 
             {/* ── Footer ── */}
             <View style={[am.footer, { borderTopColor: div }]}>
+              {/* Stat pills */}
+              <View style={am.footerStats}>
+                {approvedCnt > 0 && (
+                  <View style={[am.statPill, { backgroundColor: 'rgba(46,125,50,0.11)' }]}>
+                    <MaterialCommunityIcons name="check" size={10} color="#2E7D32" />
+                    <Text style={[am.statPillTxt, { color: '#2E7D32' }]}>{approvedCnt} approved</Text>
+                  </View>
+                )}
+                {rejectedCnt > 0 && (
+                  <View style={[am.statPill, { backgroundColor: 'rgba(198,40,40,0.11)' }]}>
+                    <MaterialCommunityIcons name="close" size={10} color="#C62828" />
+                    <Text style={[am.statPillTxt, { color: '#C62828' }]}>{rejectedCnt} rejected</Text>
+                  </View>
+                )}
+                {pendingCnt > 0 && (
+                  <View style={[am.statPill, { backgroundColor: 'rgba(245,158,11,0.11)' }]}>
+                    <MaterialCommunityIcons name="clock-outline" size={10} color="#D97706" />
+                    <Text style={[am.statPillTxt, { color: '#D97706' }]}>{pendingCnt} pending</Text>
+                  </View>
+                )}
+                {appliedCnt > 0 && (
+                  <View style={[am.statPill, { backgroundColor: 'rgba(46,125,50,0.18)' }]}>
+                    <MaterialCommunityIcons name="check-circle-outline" size={10} color="#1B5E20" />
+                    <Text style={[am.statPillTxt, { color: '#1B5E20' }]}>{appliedCnt} applied</Text>
+                  </View>
+                )}
+              </View>
+              {/* Apply button */}
               <Pressable
                 disabled={approvedCnt === 0 && !allApplied}
                 onPress={allApplied ? () => { onApplied(); onClose(); } : applyAll}
@@ -527,8 +747,8 @@ function DamageApproveModal({
                   {allApplied
                     ? 'Done — All Applied'
                     : approvedCnt > 0
-                      ? `Apply All  (${approvedCnt} approved)`
-                      : `${appliedCnt} of ${total} applied`}
+                      ? `Apply & Approve  (${approvedCnt})`
+                      : 'Apply & Approve'}
                 </Text>
               </Pressable>
             </View>
@@ -938,6 +1158,150 @@ function ExcessApproveModal({
 
 // ── Pending Finance Approval tab ───────────────────────────────────────────────
 
+type AmtFilter  = 'All' | 'low' | 'mid' | 'high';
+type TypeFilter = AdjType | 'All';
+
+const TYPE_FILTER_OPTIONS: TypeFilter[] = ['All', 'Damage', 'Excess', 'ISU', 'Goods Vehicle', 'Item'];
+const AMT_FILTER_OPTIONS: { key: AmtFilter; label: string }[] = [
+  { key: 'All',  label: 'All Amounts'  },
+  { key: 'low',  label: '< LKR 20K'   },
+  { key: 'mid',  label: 'LKR 20K–50K' },
+  { key: 'high', label: '> LKR 50K'   },
+];
+
+function parseAmount(s: string): number {
+  return parseInt(s.replace(/[^0-9]/g, ''), 10) || 0;
+}
+
+// ── Compact Filter Select (inline dropdown below trigger) ─────────────────────
+
+interface FSOption { key: string; label: string; color?: string }
+
+function CompactFilterSelect({
+  label, options, value, onChange, isDarkMode, colors,
+}: {
+  label:      string;
+  options:    FSOption[];
+  value:      string;
+  onChange:   (key: string) => void;
+  isDarkMode: boolean;
+  colors:     any;
+}) {
+  const [open,   setOpen]   = useState(false);
+  const [search, setSearch] = useState('');
+
+  const sel     = options.find(o => o.key === value);
+  const hasVal  = !!sel && sel.key !== 'All';
+  const display = hasVal ? sel!.label : 'All';
+  const accent  = hasVal ? (sel!.color ?? Colors.primaryHighlight) : undefined;
+
+  const visible = search.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
+    : options;
+
+  const bg     = isDarkMode ? '#1C1C1E' : '#FFFFFF';
+  const bdrClr = open ? Colors.primaryHighlight
+    : hasVal  ? Colors.primaryHighlight
+    : isDarkMode ? '#3A3A3C' : '#D8D8DE';
+  const mutedC = isDarkMode ? '#666' : '#9A9A9A';
+  const divC   = isDarkMode ? '#2C2C2E' : '#F0F0F5';
+
+  return (
+    <View style={[cfs.wrap, open && cfs.wrapOpen]}>
+      {/* ── Trigger ── */}
+      <Pressable
+        onPress={() => { setOpen(o => !o); setSearch(''); }}
+        style={({ pressed }) => [
+          cfs.trigger,
+          { borderColor: bdrClr, backgroundColor: bg },
+          hasVal && cfs.triggerActive,
+          open   && cfs.triggerOpen,
+          pressed && { opacity: 0.75 },
+        ]}>
+        <Text style={[cfs.triggerLabel, { color: mutedC }]}>{label}</Text>
+        <View style={cfs.triggerDivider} />
+        <Text style={[cfs.triggerValue, { color: accent ?? (isDarkMode ? '#DDD' : '#1C1C1E') }]} numberOfLines={1}>
+          {display}
+        </Text>
+        <MaterialCommunityIcons
+          name={open ? 'chevron-up' : 'chevron-down'}
+          size={12}
+          color={open ? Colors.primaryHighlight : (accent ?? mutedC)}
+        />
+      </Pressable>
+
+      {/* ── Inline dropdown panel — appears directly below trigger ── */}
+      {open && (
+        <View style={[cfs.dropPanel, { backgroundColor: bg, borderColor: bdrClr }]}>
+          <View style={[cfs.dropSearch, { borderBottomColor: Colors.primaryHighlight, backgroundColor: bg }]}>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder={`Search ${label.toLowerCase()}…`}
+              placeholderTextColor={Colors.primaryHighlight}
+              style={[cfs.dropSearchInput, { color: colors.primaryText }]}
+              autoCapitalize="none"
+            />
+          </View>
+          <ScrollView
+            style={cfs.dropList}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            {visible.map((opt, i) => {
+              const active = opt.key === value;
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => { onChange(opt.key); setOpen(false); setSearch(''); }}
+                  style={({ pressed }) => [
+                    cfs.dropOpt,
+                    i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: divC },
+                    active  && { backgroundColor: '#1976D2' },
+                    pressed && !active && { backgroundColor: isDarkMode ? '#2A2A2C' : '#F5F5F7' },
+                  ]}>
+                  {opt.color && !active && (
+                    <View style={[cfs.optDot, { backgroundColor: opt.color }]} />
+                  )}
+                  <Text style={[cfs.dropOptTxt, { color: active ? '#FFF' : (isDarkMode ? '#DDD' : '#1C1C1E') }]}>
+                    {opt.label}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name={active ? 'check-circle' : 'check-circle-outline'}
+                    size={15}
+                    color={active ? '#FFF' : (isDarkMode ? '#555' : '#C8C8D0')}
+                  />
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ── CompactFilterSelect styles ─────────────────────────────────────────────────
+
+const cfs = StyleSheet.create({
+  wrap:           { flex: 1 },
+  wrapOpen:       { zIndex: 100, elevation: 100 },
+  // Trigger (single line)
+  trigger:        { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1.5, borderRadius: 7, paddingHorizontal: 8, paddingVertical: 6 },
+  triggerOpen:    { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0 },
+  triggerActive:  { backgroundColor: Colors.primaryHighlight + '0A' },
+  triggerLabel:   { fontFamily: FontFamily.medium, fontSize: 9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, flexShrink: 0 },
+  triggerDivider: { width: 1, height: 10, backgroundColor: '#D8D8DE' },
+  triggerValue:   { flex: 1, fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: '700' },
+  // Inline dropdown
+  dropPanel:      { borderWidth: 1.5, borderTopWidth: 0, borderBottomLeftRadius: 7, borderBottomRightRadius: 7, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.10, shadowRadius: 8, elevation: 100 },
+  dropSearch:     { borderBottomWidth: 2, paddingHorizontal: 10, paddingVertical: 7 },
+  dropSearchInput:{ fontFamily: FontFamily.regular, fontSize: FontSize.xs, paddingVertical: 0 },
+  dropList:       { maxHeight: 180 },
+  dropOpt:        { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 10 },
+  optDot:         { width: 7, height: 7, borderRadius: 4, flexShrink: 0 },
+  dropOptTxt:     { flex: 1, fontFamily: FontFamily.medium, fontSize: FontSize.xs, fontWeight: '500' },
+});
+
 function PendingFinanceApprovalTab({ onRefresh, refreshing, records, onRecordApplied }: {
   onRefresh:       () => Promise<void>;
   refreshing:      boolean;
@@ -946,9 +1310,23 @@ function PendingFinanceApprovalTab({ onRefresh, refreshing, records, onRecordApp
 }) {
   const { colors, isDarkMode } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterOpen,  setFilterOpen]  = useState(false);
+  const [typeFilter,  setTypeFilter]  = useState<TypeFilter>('All');
+  const [amtFilter,   setAmtFilter]   = useState<AmtFilter>('All');
+
+  const activeFilterCount = (typeFilter !== 'All' ? 1 : 0) + (amtFilter !== 'All' ? 1 : 0);
 
   const filtered = useMemo(() => {
-    const base = records.filter(r => r.type === 'Damage' || r.type === 'Excess');
+    let base = [...records];
+    if (typeFilter !== 'All') base = base.filter(r => r.type === typeFilter);
+    if (amtFilter !== 'All') {
+      base = base.filter(r => {
+        const amt = parseAmount(r.amount);
+        if (amtFilter === 'low')  return amt < 20000;
+        if (amtFilter === 'mid')  return amt >= 20000 && amt <= 50000;
+        return amt > 50000;
+      });
+    }
     const q = searchQuery.trim().toLowerCase();
     if (!q) return base;
     return base.filter(r =>
@@ -956,7 +1334,7 @@ function PendingFinanceApprovalTab({ onRefresh, refreshing, records, onRecordApp
       r.type.toLowerCase().includes(q) ||
       r.actionStockAdj.toLowerCase().includes(q),
     );
-  }, [searchQuery, records]);
+  }, [searchQuery, records, typeFilter, amtFilter]);
 
   return (
     <ScrollView
@@ -972,7 +1350,7 @@ function PendingFinanceApprovalTab({ onRefresh, refreshing, records, onRecordApp
         />
       }>
 
-      {/* Section header */}
+      {/* ── Section header ── */}
       <View style={pa.sectionHeader}>
         <Text style={[pa.sectionTitle, { color: colors.primaryText }]}>
           Pending Finance Approval
@@ -982,7 +1360,70 @@ function PendingFinanceApprovalTab({ onRefresh, refreshing, records, onRecordApp
         </View>
       </View>
 
-      {/* Search bar */}
+      {/* ── Single filter / remove-filter button ── */}
+      <View style={pa.filterBtnRow}>
+        <Pressable
+          onPress={() => {
+            if (filterOpen) {
+              // Close + clear all filters
+              setTypeFilter('All');
+              setAmtFilter('All');
+              setFilterOpen(false);
+            } else {
+              setFilterOpen(true);
+            }
+          }}
+          style={({ pressed }) => [
+            pa.filterToggleBtn,
+            filterOpen
+              ? pa.filterToggleBtnRemove
+              : {
+                  backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7',
+                  borderColor: isDarkMode ? '#3A3A3C' : '#E0E0E8',
+                },
+            pressed && { opacity: 0.75 },
+          ]}>
+          <MaterialCommunityIcons
+            name={filterOpen ? 'filter-remove' : 'tune-variant'}
+            size={14}
+            color={filterOpen ? '#FFF' : '#595959'}
+          />
+          <Text style={[pa.filterToggleTxt, filterOpen && { color: '#FFF' }]}>
+            {filterOpen ? 'Remove Filter' : 'Filter'}
+          </Text>
+          {!filterOpen && (
+            <MaterialCommunityIcons name="chevron-down" size={13} color="#8E8E93" />
+          )}
+        </Pressable>
+      </View>
+
+      {/* ── Filter grid — stays visible until Remove Filter is clicked ── */}
+      {filterOpen && (
+        <View style={pa.filterGridWrap}>
+          <CompactFilterSelect
+            label="Type"
+            options={TYPE_FILTER_OPTIONS.map(k => ({
+              key:   k,
+              label: k === 'All' ? 'All Types' : k,
+              color: k !== 'All' ? TYPE_COLORS[k as AdjType]?.text : undefined,
+            }))}
+            value={typeFilter}
+            onChange={v => setTypeFilter(v as TypeFilter)}
+            isDarkMode={isDarkMode}
+            colors={colors}
+          />
+          <CompactFilterSelect
+            label="Amount"
+            options={AMT_FILTER_OPTIONS.map(o => ({ key: o.key, label: o.label }))}
+            value={amtFilter}
+            onChange={v => setAmtFilter(v as AmtFilter)}
+            isDarkMode={isDarkMode}
+            colors={colors}
+          />
+        </View>
+      )}
+
+      {/* ── Search bar ── */}
       <View style={pa.searchRow}>
         <View style={[pa.searchBar, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F7', borderColor: isDarkMode ? '#3A3A3C' : '#E8E8F0' }]}>
           <MaterialCommunityIcons name="magnify" size={17} color="#8E8E93" />
@@ -1004,21 +1445,25 @@ function PendingFinanceApprovalTab({ onRefresh, refreshing, records, onRecordApp
         </View>
       </View>
 
-      {/* Card list */}
+      {/* ── Card list ── */}
       {filtered.length === 0 ? (
         <View style={pa.empty}>
           <MaterialCommunityIcons name="tag-search-outline" size={36} color="rgba(89,89,89,0.3)" />
           <Text style={[pa.emptyTitle, { color: colors.primaryText }]}>
-            {searchQuery.trim() ? 'No matches found' : 'No pending adjustments'}
+            {searchQuery.trim() || activeFilterCount > 0 ? 'No matches found' : 'No pending adjustments'}
           </Text>
           <Text style={[pa.emptySub, { color: colors.placeholder }]}>
             {searchQuery.trim()
               ? `Nothing matched "${searchQuery}"`
-              : 'All price adjustments are up to date.'}
+              : activeFilterCount > 0
+                ? 'Try adjusting your filters.'
+                : 'All price adjustments are up to date.'}
           </Text>
-          {searchQuery.trim().length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} style={pa.clearSearchBtn}>
-              <Text style={pa.clearSearchTxt}>Clear search</Text>
+          {(searchQuery.trim().length > 0 || activeFilterCount > 0) && (
+            <Pressable
+              onPress={() => { setSearchQuery(''); setTypeFilter('All'); setAmtFilter('All'); }}
+              style={pa.clearSearchBtn}>
+              <Text style={pa.clearSearchTxt}>Clear filters</Text>
             </Pressable>
           )}
         </View>
@@ -1477,7 +1922,6 @@ export function StockInventoryFinanceScreen() {
     };
     setPendingRecords(prev => prev.filter(r => r.id !== recordId));
     setHistoryRecords(prev => [entry, ...prev]);
-    setStockSubTab('history');   // auto-switch to History tab
   }
 
   const placeholderIcon     = TAB_ICONS[activeTab];
@@ -1485,7 +1929,7 @@ export function StockInventoryFinanceScreen() {
   const placeholderSubtitle = TAB_SUBTITLES[activeTab];
 
   return (
-    <SubModuleLayout parentModuleId="3" title="Stock & Inventory Finance" showBack={true} selfManagesScroll={true}>
+    <SubModuleLayout parentModuleId="3" title="Stock And Inventory Adjustment" showBack={true} selfManagesScroll={true}>
       <View style={s.container}>
 
         {/* Main tab bar */}
@@ -1604,8 +2048,21 @@ const pa = StyleSheet.create({
   empty:        { alignItems: 'center', justifyContent: 'center', paddingTop: 60, paddingHorizontal: Spacing.xl, gap: 8 },
   emptyTitle:   { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '700', textAlign: 'center' },
   emptySub:     { fontFamily: FontFamily.regular, fontSize: 12, textAlign: 'center', lineHeight: 18 },
-  clearSearchBtn:{ marginTop: 4, paddingHorizontal: Spacing.lg, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.primaryHighlight },
-  clearSearchTxt:{ fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '700', color: Colors.primaryHighlight },
+  clearSearchBtn:  { marginTop: 4, paddingHorizontal: Spacing.lg, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.primaryHighlight },
+  clearSearchTxt:  { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '700', color: Colors.primaryHighlight },
+  removeFltBtn:    { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', marginHorizontal: Spacing.md, marginBottom: 12, backgroundColor: '#2E7D32', borderRadius: 7, paddingHorizontal: 14, paddingVertical: 9 },
+  removeFltTxt:    { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '700', color: '#FFFFFF' },
+  // ── Filter toggle button row ────────────────────────────────────────────────
+  filterBtnRow:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, marginBottom: 8, gap: 8 },
+  filterToggleBtn:       { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, borderRadius: 9, paddingHorizontal: 12, paddingVertical: 7 },
+  filterToggleBtnOpen:   { backgroundColor: Colors.primaryHighlight + '0D', borderColor: Colors.primaryHighlight },
+  filterToggleBtnRemove: { backgroundColor: '#2E7D32', borderColor: '#2E7D32' },
+  filterToggleTxt:    { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: '600', color: '#595959' },
+  filterCountDot:     { width: 17, height: 17, borderRadius: 9, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
+  filterCountDotTxt:  { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#FFF' },
+  // ── Compact filter panel ────────────────────────────────────────────────────
+  filterGridWrap:     { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: Spacing.md, marginBottom: 10 },
+  filterGrid:         { flexDirection: 'row', gap: 8 },
 });
 
 // ── Pending adj card styles ────────────────────────────────────────────────────
@@ -1619,28 +2076,28 @@ const pc = StyleSheet.create({
   // Header row
   header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, marginBottom: 8 },
   typeBadge:    { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  typeTxt:      { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  typeTxt:      { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', letterSpacing: 0.3, color: '#1C1C1E' },
   idx:          { fontFamily: FontFamily.regular, fontSize: 11 },
-  statusBadge:  { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(245,158,11,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  statusBadge:  { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(245,158,11,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   statusDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' },
-  statusTxt:    { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', color: '#D97706' },
+  statusTxt:    { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#D97706' },
   // Divider
   divider:      { height: 1, marginHorizontal: 12, marginBottom: 8 },
   // Stock No. + Item No.
   idRow:        { flexDirection: 'row', paddingHorizontal: 12, marginBottom: 4 },
   idField:      { flex: 1 },
   idSep:        { width: 1, marginHorizontal: 10, alignSelf: 'stretch' },
-  idLabel:      { fontFamily: FontFamily.regular, fontSize: 9, color: '#9A9A9A', marginBottom: 2 },
+  idLabel:      { fontFamily: FontFamily.regular, fontSize: 9, color: '#E53935', marginBottom: 2 },
   idValue:      { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '600' },
   // Item name
   itemRow:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, marginBottom: 10 },
   itemName:     { fontFamily: FontFamily.regular, fontSize: FontSize.xs, flex: 1 },
   // Adjustment section
-  adjSectionLabel: { fontFamily: FontFamily.medium, fontSize: 9, color: '#9A9A9A', paddingHorizontal: 12, marginBottom: 4, marginTop: 4 },
+  adjSectionLabel: { fontFamily: FontFamily.medium, fontSize: 9, color: '#E53935', paddingHorizontal: 12, marginBottom: 4, marginTop: 4 },
   adjRow:       { flexDirection: 'row', paddingHorizontal: 12, marginBottom: 6 },
   adjCol:       { flex: 1, alignItems: 'center' },
   adjSep:       { width: 1, marginHorizontal: 4, alignSelf: 'stretch' },
-  adjLabel:     { fontFamily: FontFamily.regular, fontSize: 9, color: '#9A9A9A', marginBottom: 2, textAlign: 'center' },
+  adjLabel:     { fontFamily: FontFamily.regular, fontSize: 9, color: '#E53935', marginBottom: 2, textAlign: 'center' },
   adjValue:     { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '600', textAlign: 'center' },
   // GRN Type No
   grnRow:       { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, marginBottom: 10 },
@@ -1727,6 +2184,42 @@ const am = StyleSheet.create({
   tdAct:             { width: 38, alignItems: 'center', justifyContent: 'center' },
   approveCircle:     { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(89,89,89,0.09)', borderWidth: 1.5, borderColor: '#D0D0D8', alignItems: 'center', justifyContent: 'center' },
   approveCircleOn:   { backgroundColor: '#2E7D32', borderColor: '#2E7D32', shadowColor: '#2E7D32', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
+  // ── Disabled row ──
+  tableRowDisabled:  { opacity: 0.38 },
+  disabledCircle:    { width: 26, height: 26, borderRadius: 13, backgroundColor: '#F0F0F5', borderWidth: 1.5, borderColor: '#E0E0E6', alignItems: 'center', justifyContent: 'center' },
+  // ── History section ──
+  histSection:       { borderTopWidth: 1, marginTop: 4 },
+  histHeader:        { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderBottomWidth: 1 },
+  histTitle:         { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  histRow:           { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  histInfo:          { flex: 1, marginRight: 10, gap: 3 },
+  histGrn:           { fontFamily: FontFamily.bold, fontSize: FontSize.xs, fontWeight: '700' },
+  histDate:          { fontFamily: FontFamily.regular, fontSize: 10 },
+  histQty:           { fontFamily: FontFamily.regular, fontSize: 10, lineHeight: 14 },
+  rejectNote:        { flexDirection: 'row', alignItems: 'flex-start', gap: 5, backgroundColor: 'rgba(198,40,40,0.07)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(198,40,40,0.18)', marginTop: 4 },
+  rejectMsg:         { flex: 1, fontFamily: FontFamily.regular, fontSize: 10, color: '#C62828', lineHeight: 14 },
+  histBadge:         { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 4, alignSelf: 'flex-start', marginTop: 2 },
+  histBadgeApproved: { backgroundColor: 'rgba(46,125,50,0.10)' },
+  histBadgeRejected: { backgroundColor: 'rgba(198,40,40,0.10)' },
+  histBadgeTxt:      { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700' },
+  // ── Reject row functionality ──
+  tableRowRejected:  { backgroundColor: 'rgba(198,40,40,0.07)' },
+  tdActContainer:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  rejectBtn:         { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(198,40,40,0.1)', borderWidth: 1.5, borderColor: '#F0C0C0', alignItems: 'center', justifyContent: 'center' },
+  rejectBtnActive:   { backgroundColor: '#C62828', borderColor: '#C62828', shadowColor: '#C62828', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
+  // ── Reject panel (inline below the active row) ──
+  rejectPanel:       { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1 },
+  rejectPanelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  rejectPanelIcon:   { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(198,40,40,0.12)', alignItems: 'center', justifyContent: 'center' },
+  rejectPanelTitle:  { flex: 1, fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700' },
+  rejectInput:       { borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontFamily: FontFamily.regular, fontSize: 12, minHeight: 80, textAlignVertical: 'top', lineHeight: 18 },
+  rejectHint:        { fontFamily: FontFamily.regular, fontSize: 9 },
+  rejectUndo:        { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5 },
+  rejectUndoTxt:     { fontFamily: FontFamily.medium, fontSize: 10, fontWeight: '600' },
+  // ── Footer stats ──
+  footerStats:       { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: 10 },
+  statPill:          { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
+  statPillTxt:       { fontFamily: FontFamily.medium, fontSize: 10, fontWeight: '600' },
   // ── Footer ──
   footer:            { paddingHorizontal: 14, paddingTop: 11, paddingBottom: 16, borderTopWidth: 1 },
   applyBtn:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, paddingVertical: 13, backgroundColor: '#A8A8AE' },

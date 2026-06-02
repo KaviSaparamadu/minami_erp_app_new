@@ -31,7 +31,9 @@ type Filter = 'All' | 'Active' | 'Inactive';
 const SU_TABS: PageTabItem[] = [
   { key: 'system-users', label: 'System Users', color: '#595959' },
 ];
-const FILTERS: Filter[] = ['All', 'Active', 'Inactive'];
+const FILTERS:      Filter[]  = ['All', 'Active', 'Inactive'];
+const ROLE_OPTIONS: string[]  = ['All', 'Administrator', 'Manager', 'Staff', 'Support', 'Viewer'];
+const DEPT_OPTIONS: string[]  = ['All', 'Finance', 'Human Resources', 'IT', 'Operations', 'Sales', 'Procurement'];
 
 const STATUS_COLORS: Record<UserStatus, string> = { Active: '#30A84B', Inactive: '#E53935' };
 const STATUS_BG: Record<UserStatus, string> = {
@@ -206,11 +208,120 @@ function UserCard({
   );
 }
 
+// ─── Filter Select Field ──────────────────────────────────────────────────────
+
+interface FSOption { key: string; label: string }
+
+function FilterSelectField({
+  placeholder, options, value, onChange, isDarkMode, colors,
+}: {
+  placeholder: string;
+  options:     FSOption[];
+  value:       string;
+  onChange:    (v: string) => void;
+  isDarkMode:  boolean;
+  colors:      any;
+}) {
+  const [open, setOpen] = useState(false);
+  const [srch, setSrch] = useState('');
+
+  const sel    = options.find(o => o.key === value);
+  const hasVal = !!sel && sel.key !== 'All';
+  const visible = srch.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(srch.toLowerCase()))
+    : options;
+
+  const bg      = isDarkMode ? '#1C1C1E' : '#FFF';
+  const bdrClr  = open ? Colors.primaryHighlight : (isDarkMode ? '#3A3A3C' : '#D0D0D8');
+  const rowDiv  = isDarkMode ? '#2C2C2E' : '#F0F0F5';
+
+  return (
+    <View style={fsd.wrap}>
+      {/* ── Trigger ── */}
+      <Pressable
+        onPress={() => { setOpen(o => !o); setSrch(''); }}
+        style={[fsd.trigger, { borderColor: bdrClr, backgroundColor: bg }, open && fsd.triggerOpen]}>
+        <Text
+          style={[fsd.triggerTxt, { color: hasVal ? Colors.primaryHighlight : (isDarkMode ? '#666' : '#9A9A9A') }]}
+          numberOfLines={1}>
+          {hasVal ? sel!.label : placeholder}
+        </Text>
+        <MaterialCommunityIcons
+          name={open ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={open ? Colors.primaryHighlight : (isDarkMode ? '#666' : '#AAAAAA')}
+        />
+      </Pressable>
+
+      {/* ── Dropdown panel ── */}
+      {open && (
+        <View style={[fsd.panel, { backgroundColor: bg, borderColor: bdrClr }]}>
+          {/* Search input */}
+          <View style={[fsd.searchBox, { borderBottomColor: Colors.primaryHighlight, backgroundColor: bg }]}>
+            <TextInput
+              value={srch}
+              onChangeText={setSrch}
+              placeholder={placeholder}
+              placeholderTextColor={Colors.primaryHighlight}
+              style={[fsd.searchInput, { color: colors.primaryText }]}
+              autoCapitalize="none"
+            />
+          </View>
+          {/* Options */}
+          <ScrollView style={fsd.optList} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {visible.map((opt, i) => {
+              const active = opt.key === value;
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => { onChange(opt.key); setOpen(false); setSrch(''); }}
+                  style={({ pressed }) => [
+                    fsd.optRow,
+                    i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: rowDiv },
+                    active && fsd.optRowActive,
+                    pressed && !active && { backgroundColor: isDarkMode ? '#2A2A2C' : '#F5F5F7' },
+                  ]}>
+                  <Text style={[fsd.optTxt, { color: active ? '#FFF' : (isDarkMode ? '#DDD' : '#1C1C1E') }]}>
+                    {opt.label}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name={active ? 'check-circle' : 'check-circle-outline'}
+                    size={17}
+                    color={active ? '#FFF' : (isDarkMode ? '#444' : '#C8C8D0')}
+                  />
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const fsd = StyleSheet.create({
+  wrap:        { marginBottom: 10 },
+  trigger:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 13 },
+  triggerOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0 },
+  triggerTxt:  { flex: 1, fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: '500' },
+  panel:       { borderWidth: 1.5, borderTopWidth: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.09, shadowRadius: 8, elevation: 4 },
+  searchBox:   { borderBottomWidth: 2, paddingHorizontal: 14, paddingVertical: 10 },
+  searchInput: { fontFamily: FontFamily.regular, fontSize: FontSize.sm, paddingVertical: 0 },
+  optList:     { maxHeight: 200 },
+  optRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12 },
+  optRowActive:{ backgroundColor: '#1976D2' },
+  optTxt:      { flex: 1, fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: '500' },
+});
+
 // ─── List view ────────────────────────────────────────────────────────────────
 function SystemUsersListView({
   counts,
   filter,
   setFilter,
+  roleFilter,
+  setRoleFilter,
+  deptFilter,
+  setDeptFilter,
   searchQuery,
   setSearchQuery,
   onOpenCreate,
@@ -221,29 +332,55 @@ function SystemUsersListView({
   loading,
   onRefresh,
 }: {
-  counts: Record<Filter, number>;
-  filter: Filter;
-  setFilter: (f: Filter) => void;
-  searchQuery: string;
+  counts:         Record<Filter, number>;
+  filter:         Filter;
+  setFilter:      (f: Filter) => void;
+  roleFilter:     string;
+  setRoleFilter:  (v: string) => void;
+  deptFilter:     string;
+  setDeptFilter:  (v: string) => void;
+  searchQuery:    string;
   setSearchQuery: (q: string) => void;
-  onOpenCreate: () => void;
-  onView: (u: SystemUser) => void;
-  onEdit: (u: SystemUser) => void;
-  onDelete: (u: SystemUser) => void;
-  filteredUsers: SystemUser[];
-  loading: boolean;
-  onRefresh: () => Promise<void> | void;
+  onOpenCreate:   () => void;
+  onView:         (u: SystemUser) => void;
+  onEdit:         (u: SystemUser) => void;
+  onDelete:       (u: SystemUser) => void;
+  filteredUsers:  SystemUser[];
+  loading:        boolean;
+  onRefresh:      () => Promise<void> | void;
 }) {
-  const { colors, isDarkMode } = useTheme();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const { colors, isDarkMode }  = useTheme();
+  const scrollViewRef            = useRef<ScrollView>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const dyn = useMemo(() => createDynamicStyles(colors, isDarkMode), [colors, isDarkMode]);
+
+  const activeFilterCount =
+    (filter    !== 'All' ? 1 : 0) +
+    (roleFilter !== 'All' ? 1 : 0) +
+    (deptFilter !== 'All' ? 1 : 0);
+
+  function clearAllFilters() {
+    setFilter('All');
+    setRoleFilter('All');
+    setDeptFilter('All');
+  }
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await onRefresh();
     setRefreshing(false);
   };
+
+  const statusOptions = FILTERS.map(f => ({
+    key:   f,
+    label: f === 'All' ? `All  (${counts.All})` : `${f}  (${counts[f]})`,
+  }));
+  const roleOptions = ROLE_OPTIONS.map(r => ({ key: r, label: r }));
+  const deptOptions = DEPT_OPTIONS.map(d => ({ key: d, label: d }));
+
+  const bg  = isDarkMode ? '#1C1C1E' : '#FFF';
+  const bdr = isDarkMode ? '#3A3A3C' : '#E8E8F0';
 
   return (
     <View style={{ flex: 1 }}>
@@ -254,6 +391,7 @@ function SystemUsersListView({
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#595959" />
         }>
@@ -263,49 +401,106 @@ function SystemUsersListView({
         </View>
 
         <View style={lv.searchFilterContainer}>
-          <View style={lv.searchAndFilterRow}>
-            <View style={[lv.searchWrapper, dyn.searchWrapper]}>
-              <View style={[lv.searchBar, dyn.searchBar]}>
-                <UIIcon name="search" size={16} color="#8E8E93" />
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder="Search by name, email, role…"
-                  placeholderTextColor="#8E8E93"
-                  style={[lv.searchInput, dyn.searchInput]}
-                  autoCapitalize="none"
-                  returnKeyType="search"
-                />
-                {searchQuery.length > 0 && (
-                  <Pressable onPress={() => setSearchQuery('')} style={lv.clearBtn} hitSlop={8}>
-                    <View style={[lv.clearX1, { backgroundColor: colors.placeholder }]} />
-                    <View style={[lv.clearX2, { backgroundColor: colors.placeholder }]} />
-                  </Pressable>
-                )}
-              </View>
-              <Pressable
-                onPress={onOpenCreate}
-                style={({ pressed }) => [lv.addBtn, pressed && lv.addBtnPressed]}
-                accessibilityRole="button">
-                <View style={lv.addBtnIcon} />
-                <View style={lv.addBtnIconV} />
-              </Pressable>
-            </View>
 
-            <View style={lv.pillRow}>
-              {FILTERS.map(f => {
-                const active = filter === f;
-                return (
-                  <Pressable key={f} onPress={() => setFilter(f)} style={[lv.pill, active && lv.pillActive]}>
-                    <Text style={[lv.pillTxt, dyn.pillTxt, active && lv.pillTxtActive]}>{f}</Text>
-                    <View style={[lv.pillBadge, active && lv.pillBadgeActive]}>
-                      <Text style={[lv.pillBadgeTxt, active && lv.pillBadgeTxtActive]}>{counts[f]}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
+          {/* ── Filter button row ── */}
+          <View style={lv.filterBtnRow}>
+            <Pressable
+              onPress={() => setFilterOpen(o => !o)}
+              style={({ pressed }) => [
+                lv.filterBtn,
+                { borderColor: filterOpen ? Colors.primaryHighlight : bdr, backgroundColor: bg },
+                filterOpen && lv.filterBtnActive,
+                pressed && { opacity: 0.7 },
+              ]}>
+              <MaterialCommunityIcons
+                name="tune-variant"
+                size={15}
+                color={filterOpen ? Colors.primaryHighlight : '#595959'}
+              />
+              <Text style={[lv.filterBtnTxt, filterOpen && { color: Colors.primaryHighlight }]}>
+                Filter
+              </Text>
+              {activeFilterCount > 0 && (
+                <View style={lv.filterCountBadge}>
+                  <Text style={lv.filterCountTxt}>{activeFilterCount}</Text>
+                </View>
+              )}
+              <MaterialCommunityIcons
+                name={filterOpen ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color={filterOpen ? Colors.primaryHighlight : '#8E8E93'}
+              />
+            </Pressable>
+
+            {activeFilterCount > 0 && (
+              <Pressable
+                onPress={clearAllFilters}
+                style={({ pressed }) => [lv.removeFltBtn, pressed && { opacity: 0.8 }]}>
+                <MaterialCommunityIcons name="filter-remove" size={14} color="#FFF" />
+                <Text style={lv.removeFltTxt}>Remove Filter</Text>
+              </Pressable>
+            )}
           </View>
+
+          {/* ── Collapsible filter section ── */}
+          {filterOpen && (
+            <View style={lv.filterSection}>
+              <FilterSelectField
+                placeholder="Select status"
+                options={statusOptions}
+                value={filter}
+                onChange={v => setFilter(v as Filter)}
+                isDarkMode={isDarkMode}
+                colors={colors}
+              />
+              <FilterSelectField
+                placeholder="Select role"
+                options={roleOptions}
+                value={roleFilter}
+                onChange={setRoleFilter}
+                isDarkMode={isDarkMode}
+                colors={colors}
+              />
+              <FilterSelectField
+                placeholder="Select department"
+                options={deptOptions}
+                value={deptFilter}
+                onChange={setDeptFilter}
+                isDarkMode={isDarkMode}
+                colors={colors}
+              />
+            </View>
+          )}
+
+          {/* ── Search bar + add button ── */}
+          <View style={[lv.searchWrapper, dyn.searchWrapper]}>
+            <View style={[lv.searchBar, dyn.searchBar]}>
+              <UIIcon name="search" size={16} color="#8E8E93" />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search by name, email, role…"
+                placeholderTextColor="#8E8E93"
+                style={[lv.searchInput, dyn.searchInput]}
+                autoCapitalize="none"
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => setSearchQuery('')} style={lv.clearBtn} hitSlop={8}>
+                  <View style={[lv.clearX1, { backgroundColor: colors.placeholder }]} />
+                  <View style={[lv.clearX2, { backgroundColor: colors.placeholder }]} />
+                </Pressable>
+              )}
+            </View>
+            <Pressable
+              onPress={onOpenCreate}
+              style={({ pressed }) => [lv.addBtn, pressed && lv.addBtnPressed]}
+              accessibilityRole="button">
+              <View style={lv.addBtnIcon} />
+              <View style={lv.addBtnIconV} />
+            </Pressable>
+          </View>
+
         </View>
 
         {loading ? (
@@ -364,6 +559,8 @@ export function CreateSystemUsersScreen() {
   const [users,        setUsers]        = useState<SystemUser[]>([]);
   const [loading]                       = useState(false);
   const [filter,       setFilter]       = useState<Filter>('All');
+  const [roleFilter,   setRoleFilter]   = useState('All');
+  const [deptFilter,   setDeptFilter]   = useState('All');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode,    setModalMode]    = useState<SystemUserModalMode>('create');
@@ -371,17 +568,17 @@ export function CreateSystemUsersScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDelete,     setPendingDelete]     = useState<SystemUser | null>(null);
 
-  const statusFiltered = filter === 'All'
-    ? users
-    : users.filter(u => u.status === filter);
-
-  const q = searchQuery.trim().toLowerCase();
-  const filteredUsers = q === ''
-    ? statusFiltered
-    : statusFiltered.filter(u =>
-        [u.fullName, u.username, u.email, u.roleName, u.department]
-          .some(v => v?.toLowerCase().includes(q)),
-      );
+  const filteredUsers = useMemo(() => {
+    let base = filter === 'All' ? users : users.filter(u => u.status === filter);
+    if (roleFilter !== 'All') base = base.filter(u => u.roleName   === roleFilter);
+    if (deptFilter !== 'All') base = base.filter(u => u.department === deptFilter);
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter(u =>
+      [u.fullName, u.username, u.email, u.roleName, u.department]
+        .some(v => v?.toLowerCase().includes(q)),
+    );
+  }, [users, filter, roleFilter, deptFilter, searchQuery]);
 
   const counts: Record<Filter, number> = {
     All:      users.length,
@@ -445,6 +642,10 @@ export function CreateSystemUsersScreen() {
               counts={counts}
               filter={filter}
               setFilter={setFilter}
+              roleFilter={roleFilter}
+              setRoleFilter={setRoleFilter}
+              deptFilter={deptFilter}
+              setDeptFilter={setDeptFilter}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               onOpenCreate={openCreate}
@@ -574,6 +775,16 @@ const lv = StyleSheet.create({
   pillBadgeActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
   pillBadgeTxt:    { fontFamily: FontFamily.regular, fontSize: 9, fontWeight: '600', color: '#666666' },
   pillBadgeTxtActive: { color: '#FFF', fontWeight: '700' },
+  // ── Filter controls ────────────────────────────────────────────────────────
+  filterBtnRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  filterBtn:        { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1.5, borderRadius: 9, paddingHorizontal: 12, paddingVertical: 8 },
+  filterBtnActive:  { backgroundColor: Colors.primaryHighlight + '0D' },
+  filterBtnTxt:     { fontFamily: FontFamily.medium, fontSize: FontSize.sm, fontWeight: '600', color: '#595959' },
+  filterCountBadge: { width: 17, height: 17, borderRadius: 9, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
+  filterCountTxt:   { fontFamily: FontFamily.bold, fontSize: 9, fontWeight: '700', color: '#FFF' },
+  removeFltBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#2E7D32', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  removeFltTxt:     { fontFamily: FontFamily.bold, fontSize: FontSize.sm, fontWeight: '700', color: '#FFF' },
+  filterSection:    { marginBottom: 4 },
 });
 
 // ─── User card styles ─────────────────────────────────────────────────────────
