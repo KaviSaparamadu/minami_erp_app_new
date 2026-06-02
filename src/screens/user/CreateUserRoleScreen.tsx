@@ -136,6 +136,7 @@ function RoleFormModal({ visible, mode, role, onClose, onSave }: {
 
   useEffect(() => {
     if (!visible) return;
+    yPos.current = {};
     if (role) {
       setRoleName(role.roleName);
       setDescription(role.description ?? '');
@@ -146,8 +147,7 @@ function RoleFormModal({ visible, mode, role, onClose, onSave }: {
     setShowReset(false);
   }, [visible, role]);
 
-  function doReset() {
-    setRoleName('');
+  function doReset() {  
     setDescription('');
   }
 
@@ -203,6 +203,7 @@ function RoleFormModal({ visible, mode, role, onClose, onSave }: {
                     placeholderTextColor={Colors.placeholder}
                     editable={!isView}
                     returnKeyType="next"
+                    onFocus={() => scrollTo('roleName')}
                     onSubmitEditing={() => {
                       descRef.current?.focus();
                       scrollTo('description');
@@ -222,6 +223,7 @@ function RoleFormModal({ visible, mode, role, onClose, onSave }: {
                     editable={!isView}
                     multiline
                     textAlignVertical="top"
+                    onFocus={() => scrollTo('description')}
                     style={[ms.descInput, !isView && ms.descActive]}
                   />
                 </View>

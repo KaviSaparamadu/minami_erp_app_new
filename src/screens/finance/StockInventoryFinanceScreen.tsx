@@ -930,10 +930,9 @@ function ExcessApproveModal({
                   </Pressable>
                 </View>
 
-                {/* Qty Sent reference bar — loaded from stock adjustment */}
+                {/* Qty reference bar — loaded from stock adjustment */}
                 <View style={[em.qtySentBar, { backgroundColor: isDarkMode ? '#1C1C1E' : '#F4F6FB', borderBottomColor: div }]}>
-                  <MaterialCommunityIcons name="truck-delivery-outline" size={13} color="#1565C0" />
-                  <Text style={[em.qtySentLbl, { color: colors.placeholder }]}>Qty Sent</Text>
+                  <Text style={[em.qtySentLbl, { color: colors.placeholder }]}>Qty</Text>
                   <View style={em.qtySentPills}>
                     <View style={[em.qtySentPill, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E8EDF8' }]}>
                       <Text style={[em.qtySentUnit, { color: colors.placeholder }]}>MAIN</Text>
