@@ -346,7 +346,7 @@ function PendingTabIcon({ active }: { active: boolean }) {
 type AdjTab = 'adjustment' | 'pending';
 const ADJ_TABS: { id: AdjTab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
   { id: 'adjustment', label: 'Adjustment', Icon: AdjTabIcon },
-  { id: 'pending',    label: 'Pending',    Icon: PendingTabIcon },
+  { id: 'pending',    label: 'Pending Approval',    Icon: PendingTabIcon },
 ];
 
 const ITEM_IMAGE_MAP: Record<string, string[]> = {
@@ -1095,9 +1095,10 @@ function StockAdjViewModal({ item, onClose }: { item: StoreItem; onClose: () => 
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function StockAdjModal({ item, storeCode, onClose, onSave }: {
+function StockAdjModal({ item, storeCode, storeNo, onClose, onSave }: {
   item: StoreItem;
   storeCode: string;
+  storeNo?: string;
   onClose: () => void;
   onSave: (updated: StoreItem) => void;
 }) {
@@ -1126,7 +1127,9 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
   // Excess form — qty only
   const [mainQty,        setMainQty]        = useState('');
   const [loseQty,        setLoseQty]        = useState('');
-  const [showSerial,   setShowSerial]   = useState(false);
+  const [showSerial,      setShowSerial]      = useState(false);
+  const [showSerialStep,  setShowSerialStep]  = useState(false);
+  const [serialMethod,    setSerialMethod]    = useState<'apply' | 'auto' | 'common' | null>(null);
   const [activeImg,  setActiveImg]  = useState(0);
   const [thumbStart,  setThumbStart]  = useState(0);
   const [showImages, setShowImages] = useState(false);
@@ -1451,39 +1454,36 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
             <View style={[sa.exRow, sa.exRowBorder]}>
               <View style={sa.exHalf}>
                 <Text style={sa.exLbl}>Main Qty</Text>
-                <View style={[sa.exBox, sa.exBoxQty, sa.exBoxQtyLarge, { flexDirection: 'row', alignItems: 'center' }]}>
+                <View style={[sa.exBox, sa.exBoxQtyLarge, { flexDirection: 'row', alignItems: 'stretch' }]}>
                   <TextInput value={mainQty} onChangeText={setMainQty}
                     keyboardType="numeric" style={[sa.exInput, sa.exInputQty, sa.exInputQtyLarge, { flex: 1 }]}
-                    placeholder="0" placeholderTextColor="#C8F0CE" textAlign="center" />
-                  <Text style={sa.exUnitTag}>/kg</Text>
+                    placeholder="0" placeholderTextColor="#B0B0B8" textAlign="center" />
+                  <View style={sa.exUnitPill}>
+                    <Text style={sa.exUnitPillTxt}>kg</Text>
+                  </View>
                 </View>
               </View>
               <View style={[sa.exHalf, sa.exHalfR]}>
                 <Text style={sa.exLbl}>Lose QTY</Text>
-                <View style={[sa.exBox, sa.exBoxQty, sa.exBoxQtyLarge, { flexDirection: 'row', alignItems: 'center' }]}>
+                <View style={[sa.exBox, sa.exBoxQtyLarge, { flexDirection: 'row', alignItems: 'stretch' }]}>
                   <TextInput value={loseQty} onChangeText={setLoseQty}
                     keyboardType="numeric" style={[sa.exInput, sa.exInputQty, sa.exInputQtyLarge, { flex: 1 }]}
-                    placeholder="0" placeholderTextColor="#C8F0CE" textAlign="center" />
-                  <Text style={sa.exUnitTag}>/g</Text>
+                    placeholder="0" placeholderTextColor="#B0B0B8" textAlign="center" />
+                  <View style={sa.exUnitPill}>
+                    <Text style={sa.exUnitPillTxt}>g</Text>
+                  </View>
                 </View>
               </View>
             </View>
 
             {/* ── Action buttons ── */}
-            <View style={[sa.serialFooter, { marginHorizontal: -14, marginBottom: 0, borderTopWidth: 1, borderTopColor: '#F0F0F5', gap: 5 }]}>
+            <View style={[sa.serialFooter, { marginHorizontal: -14, marginBottom: 0, borderTopWidth: 1, borderTopColor: '#F0F0F5' }]}>
               <Pressable
                 disabled={!canSave}
-                onPress={() => setShowSerial(true)}
-                style={[sa.serialFooterBtn, sa.serialFooterBtnOutline, !canSave && sa.serialFooterBtnDisabled]}>
-                <MaterialCommunityIcons name="barcode" size={14} color={canSave ? '#595959' : '#C0C0CC'} />
-                <Text style={[sa.serialFooterTxt, { color: '#595959' }, !canSave && sa.serialFooterTxtDisabled]}>Add Makers Serial</Text>
-              </Pressable>
-              <Pressable
-                disabled={!canSave}
-                onPress={handleSave}
+                onPress={() => { setSerialMethod(null); setShowSerialStep(true); }}
                 style={[sa.serialFooterBtn, sa.serialFooterBtnSave, !canSave && sa.serialFooterBtnDisabled]}>
-                <MaterialCommunityIcons name="content-save-outline" size={12} color={canSave ? '#FFF' : '#C0C0CC'} />
-                <Text style={[sa.serialFooterTxt, !canSave && sa.serialFooterTxtDisabled]}>Stock Adjustment</Text>
+                <MaterialCommunityIcons name="arrow-right" size={12} color={canSave ? '#FFF' : '#C0C0CC'} />
+                <Text style={[sa.serialFooterTxt, !canSave && sa.serialFooterTxtDisabled]}>Next</Text>
               </Pressable>
             </View>
 
@@ -1629,13 +1629,13 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
                 placeholderTextColor="#BBBBC0" />
             </View>
 
-            {/* ── Stock Adjustment button ── */}
+            {/* ── Next button ── */}
             <Pressable
               disabled={!canSave}
-              onPress={handleSave}
+              onPress={() => { setSerialMethod(null); setShowSerialStep(true); }}
               style={[dmg.dmgSaveBtn, !canSave && dmg.dmgSaveBtnDisabled]}>
-              <MaterialCommunityIcons name="content-save-outline" size={15} color={canSave ? '#FFF' : '#C0C0CC'} />
-              <Text style={[dmg.dmgSaveTxt, !canSave && { color: '#C0C0CC' }]}>Stock Adjustment</Text>
+              <MaterialCommunityIcons name="arrow-right" size={15} color={canSave ? '#FFF' : '#C0C0CC'} />
+              <Text style={[dmg.dmgSaveTxt, !canSave && { color: '#C0C0CC' }]}>Next</Text>
             </Pressable>
 
           </View>
@@ -1646,7 +1646,13 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
           {DETAIL_ROWS.map(([label, val]) => (
             <View key={label} style={[sa.compactRow, sa.compactRowBorder]}>
               <Text style={sa.compactLbl}>{label}</Text>
-              <Text style={sa.compactVal} numberOfLines={2}>{val}</Text>
+              {label === 'Store Code' && storeNo ? (
+                <Text style={sa.compactVal} numberOfLines={2}>
+                  {val} <Text style={sa.compactValBold}>{storeNo}</Text>
+                </Text>
+              ) : (
+                <Text style={sa.compactVal} numberOfLines={2}>{val}</Text>
+              )}
             </View>
           ))}
           <Pressable
@@ -1749,8 +1755,8 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
     <>
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={[sa.modalOverlay, showImages && sa.modalOverlayTop]}>
-        <KeyboardAvoidingView style={sa.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={[sa.cardWrapper, { height: showImages ? SCREEN_H * 0.92 : adjType === null ? SCREEN_H * 0.65 : adjType === 'excess' ? SCREEN_H * 0.82 : SCREEN_H * 0.88 }]}>
+        <View style={sa.kav}>
+          <View style={[sa.cardWrapper, { height: showImages ? SCREEN_H * 0.92 : SCREEN_H * 0.85 }]}>
 
             {/* Close button — centred on top border, same as EmployeeFormModal */}
             <Pressable onPress={onClose}
@@ -1776,49 +1782,148 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
                 </View>
               </View>
 
-              {/* ── Tab bar ── */}
-              <View style={sa.tabBarWrap}>
-                {ADJ_TABS.map(tab => {
-                  const active = activeTab === tab.id;
-                  return (
-                    <Pressable key={tab.id} onPress={() => setActiveTab(tab.id)}
-                      style={[sa.tabBtn, active && sa.tabBtnActive]}>
-                      <tab.Icon active={active} />
-                      <Text style={[sa.tabLbl, active && sa.tabLblActive]}>{tab.label}</Text>
-                      {active && <View style={sa.tabUnderline} />}
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {/* ── Tab content ── */}
-              <ScrollView
-                ref={scrollViewRef}
-                contentContainerStyle={sa.form}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}>
-                {tabContent[activeTab]()}
-                <View style={{ height: 8 }} />
-              </ScrollView>
-
-              {/* Excess report: Edit + Confirm & Save pinned at bottom */}
-              {adjType === 'excess' && excReportData && (
-                <View style={[dmg.reportBtnRow, { marginHorizontal: 14, marginBottom: 10, marginTop: 0 }]}>
-                  <Pressable onPress={() => setExcReportData(null)} style={[dmg.reportBtn, dmg.reportBtnEdit]}>
-                    <MaterialCommunityIcons name="pencil-outline" size={14} color="#595959" />
-                    <Text style={[dmg.reportBtnTxt, { color: '#595959' }]}>Edit</Text>
-                  </Pressable>
-                  <Pressable onPress={() => onSave(excReportData.updatedItem)} style={[dmg.reportBtn, dmg.reportBtnConfirm, { backgroundColor: '#30A84B' }]}>
-                    <MaterialCommunityIcons name="check-circle-outline" size={14} color="#FFF" />
-                    <Text style={dmg.reportBtnTxt}>Confirm & Save</Text>
-                  </Pressable>
+              {/* ── Tab bar (hidden on serial step) ── */}
+              {!showSerialStep && (
+                <View style={sa.tabBarWrap}>
+                  {ADJ_TABS.map(tab => {
+                    const active = activeTab === tab.id;
+                    return (
+                      <Pressable key={tab.id} onPress={() => setActiveTab(tab.id)}
+                        style={[sa.tabBtn, active && sa.tabBtnActive]}>
+                        <tab.Icon active={active} />
+                        <Text style={[sa.tabLbl, active && sa.tabLblActive]}>{tab.label}</Text>
+                        {active && <View style={sa.tabUnderline} />}
+                      </Pressable>
+                    );
+                  })}
                 </View>
+              )}
+
+              {showSerialStep ? (
+                /* ── Serial Method Selection Step ── */
+                <>
+                  <ScrollView contentContainerStyle={sa.smWrap} showsVerticalScrollIndicator={false}>
+
+                    {/* Step header */}
+                    <View style={sa.smHdr}>
+                      <View style={sa.smHdrIcon}>
+                        <MaterialCommunityIcons name="barcode-scan" size={16} color="#FFF" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={sa.smHdrTitle}>Serial Identification Method</Text>
+                        <Text style={sa.smHdrSub}>Choose how items will be serialised</Text>
+                      </View>
+                    </View>
+
+                    {/* Option — Apply */}
+                    <Pressable onPress={() => setSerialMethod('apply')}
+                      style={[sa.smCard, serialMethod === 'apply' && sa.smCardActive]}>
+                      <View style={[sa.smRadio, serialMethod === 'apply' && sa.smRadioActive]}>
+                        {serialMethod === 'apply' && <View style={sa.smRadioDot} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={sa.smCardTitleRow}>
+                          <MaterialCommunityIcons name="tag-check-outline" size={15}
+                            color={serialMethod === 'apply' ? Colors.primaryHighlight : '#595959'} />
+                          <Text style={[sa.smCardTitle, serialMethod === 'apply' && sa.smCardTitleActive]}>Apply</Text>
+                        </View>
+                        <Text style={sa.smCardDesc}>
+                          For goods with a standard manufacturer serial number. Manually enter or assign each serial number to the item.
+                        </Text>
+                      </View>
+                    </Pressable>
+
+                    {/* Option — Auto Generate */}
+                    <Pressable onPress={() => setSerialMethod('auto')}
+                      style={[sa.smCard, serialMethod === 'auto' && sa.smCardActive]}>
+                      <View style={[sa.smRadio, serialMethod === 'auto' && sa.smRadioActive]}>
+                        {serialMethod === 'auto' && <View style={sa.smRadioDot} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={sa.smCardTitleRow}>
+                          <MaterialCommunityIcons name="cog-sync-outline" size={15}
+                            color={serialMethod === 'auto' ? Colors.primaryHighlight : '#595959'} />
+                          <Text style={[sa.smCardTitle, serialMethod === 'auto' && sa.smCardTitleActive]}>Auto Generate</Text>
+                        </View>
+                        <Text style={sa.smCardDesc}>
+                          The system will automatically generate and assign serial numbers to each item. Print the generated serials and paste them on the items.
+                        </Text>
+                      </View>
+                    </Pressable>
+
+                    {/* Option — Common Serial */}
+                    <Pressable onPress={() => setSerialMethod('common')}
+                      style={[sa.smCard, serialMethod === 'common' && sa.smCardActive]}>
+                      <View style={[sa.smRadio, serialMethod === 'common' && sa.smRadioActive]}>
+                        {serialMethod === 'common' && <View style={sa.smRadioDot} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={sa.smCardTitleRow}>
+                          <MaterialCommunityIcons name="layers-outline" size={15}
+                            color={serialMethod === 'common' ? Colors.primaryHighlight : '#595959'} />
+                          <Text style={[sa.smCardTitle, serialMethod === 'common' && sa.smCardTitleActive]}>Common Serial</Text>
+                        </View>
+                        <Text style={sa.smCardDesc}>
+                          For goods that do not require unique identification. All items will be identified by their GRN number instead of individual serial numbers.
+                        </Text>
+                      </View>
+                    </Pressable>
+
+                    <View style={{ height: 12 }} />
+                  </ScrollView>
+
+                  {/* Footer — Back + Proceed */}
+                  <View style={sa.smFooter}>
+                    <Pressable onPress={() => setShowSerialStep(false)}
+                      style={({ pressed }) => [sa.smBackBtn, pressed && { opacity: 0.7 }]}>
+                      <MaterialCommunityIcons name="arrow-left" size={14} color="#595959" />
+                      <Text style={sa.smBackTxt}>Back</Text>
+                    </Pressable>
+                    <Pressable
+                      disabled={!serialMethod}
+                      onPress={() => {
+                        if (serialMethod === 'apply') { setShowSerialStep(false); setShowSerial(true); }
+                        else handleSave();
+                      }}
+                      style={[sa.smProceedBtn, !serialMethod && sa.smProceedBtnDisabled]}>
+                      <Text style={[sa.smProceedTxt, !serialMethod && sa.smProceedTxtDisabled]}>Proceed</Text>
+                      <MaterialCommunityIcons name="arrow-right" size={14}
+                        color={serialMethod ? '#FFF' : '#C0C0CC'} />
+                    </Pressable>
+                  </View>
+                </>
+              ) : (
+                <>
+                  {/* ── Tab content ── */}
+                  <ScrollView
+                    ref={scrollViewRef}
+                    contentContainerStyle={sa.form}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}>
+                    {tabContent[activeTab]()}
+                    <View style={{ height: 8 }} />
+                  </ScrollView>
+
+                  {/* Excess report: Edit + Confirm & Save pinned at bottom */}
+                  {adjType === 'excess' && excReportData && (
+                    <View style={[dmg.reportBtnRow, { marginHorizontal: 14, marginBottom: 10, marginTop: 0 }]}>
+                      <Pressable onPress={() => setExcReportData(null)} style={[dmg.reportBtn, dmg.reportBtnEdit]}>
+                        <MaterialCommunityIcons name="pencil-outline" size={14} color="#595959" />
+                        <Text style={[dmg.reportBtnTxt, { color: '#595959' }]}>Edit</Text>
+                      </Pressable>
+                      <Pressable onPress={() => onSave(excReportData.updatedItem)} style={[dmg.reportBtn, dmg.reportBtnConfirm, { backgroundColor: '#30A84B' }]}>
+                        <MaterialCommunityIcons name="check-circle-outline" size={14} color="#FFF" />
+                        <Text style={dmg.reportBtnTxt}>Confirm & Save</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </>
               )}
 
 
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </View>
     </Modal>
     {showSerial && (
@@ -1836,7 +1941,7 @@ function StockAdjModal({ item, storeCode, onClose, onSave }: {
 
 // ── Items Availability ────────────────────────────────────────────────────────
 
-function ItemsAvailabilityView({ storeCode }: { storeCode: string }) {
+function ItemsAvailabilityView({ storeCode, storeNo }: { storeCode: string; storeNo?: string }) {
   const { colors, isDarkMode } = useTheme();
   const [items,   setItems]   = useState<StoreItem[]>(MOCK_ITEMS);
   const [search,  setSearch]  = useState('');
@@ -1926,6 +2031,7 @@ function ItemsAvailabilityView({ storeCode }: { storeCode: string }) {
         <StockAdjModal
           item={adjItem}
           storeCode={storeCode}
+          storeNo={storeNo}
           onClose={() => setAdjItem(null)}
           onSave={handleStockUpdate}
         />
@@ -2376,7 +2482,8 @@ export function StoreDetailScreen() {
   const storeId   = params?.storeId as string | undefined;
   const store     = stores.find(s => s.id === storeId);
   const title     = store?.storeName || store?.storeNo || 'Store';
-  const storeCode = store ? `${store.storeNo} - ${store.storeCode}` : 'Store';
+  const storeCode     = store?.storeCode ?? '';
+  const storeNoLabel  = store?.storeNo   ?? '';
 
   return (
     <SubModuleLayout
@@ -2395,7 +2502,10 @@ export function StoreDetailScreen() {
         <View style={scr.storeBar}>
           <View style={scr.storeBarAccent} />
           <View style={{ flex: 1 }}>
-            <Text style={scr.storeBarName} numberOfLines={1}>{title}</Text>
+            <View style={scr.storeBarRow}>
+              <Text style={scr.storeBarName} numberOfLines={1}>{title}</Text>
+              {storeNoLabel ? <Text style={scr.storeBarBigNo}>{storeNoLabel}</Text> : null}
+            </View>
             <Text style={scr.storeBarCode} numberOfLines={1}>{storeCode}</Text>
           </View>
           <Pressable
@@ -2416,7 +2526,7 @@ export function StoreDetailScreen() {
 
         <View style={[scr.panel, scr.panelOffset]}>
           {pageTab === 'items-availability' ? (
-            <ItemsAvailabilityView storeCode={storeCode} />
+            <ItemsAvailabilityView storeCode={storeCode} storeNo={storeNoLabel} />
           ) : pageTab === 'items' ? (
             <ItemsTabView onCreateItem={() => setShowCreateItem(true)} />
           ) : pageTab === 'simple-grn' ? (
@@ -2442,10 +2552,13 @@ const scr = StyleSheet.create({
   container:      { flex: 1, paddingTop: 2 },
   storeCodeBar:   { paddingHorizontal: Spacing.md, paddingBottom: 6 },
   storeCodeTxt:   { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#595959' },
-  storeBar:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 10, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBF0', gap: 10 },
-  storeBarAccent: { width: 4, height: 36, backgroundColor: '#B71C1C', borderRadius: 2 },
+  storeBar:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EBEBF0', gap: 10 },
+  storeBarAccent: { width: 4, height: 44, backgroundColor: '#B71C1C', borderRadius: 2 },
+  storeBarRow:    { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   storeBarName:   { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#1C1C1E' },
+  storeBarBigNo:  { fontFamily: FontFamily.bold, fontSize: 20, fontWeight: '700', color: '#1C1C1E', lineHeight: 24 },
   storeBarCode:   { fontFamily: FontFamily.regular, fontSize: 10, color: '#8E8E93', marginTop: 1 },
+  storeBarNoTxt:  { fontFamily: FontFamily.bold, fontSize: 10, fontWeight: '700', color: '#1C1C1E' },
   changeBtn:      { paddingHorizontal: 8, paddingVertical: 4 },
   changeBtnTxt:   { fontFamily: FontFamily.medium, fontSize: 9, fontWeight: '600', color: Colors.primaryHighlight, fontStyle: 'italic' },
   tabBarWrap:     { paddingHorizontal: Spacing.md, paddingTop: 8 },
@@ -2686,7 +2799,7 @@ const dmg = StyleSheet.create({
 // Stock Adjustment modal — matches EmployeeFormModal structure exactly
 const sa = StyleSheet.create({
   // Modal structure
-  modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 },
+  modalOverlay:    { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12 },
   modalOverlayTop: { justifyContent: 'flex-start', paddingTop: 22 },
   kav:             { width: '100%' },
   cardWrapper:     { width: '100%' },
@@ -2737,6 +2850,7 @@ const sa = StyleSheet.create({
   compactRowBorder: { borderBottomWidth: 1, borderBottomColor: '#F4F4F8' },
   compactLbl:       { width: 62, fontFamily: FontFamily.regular, fontSize: 9, color: '#9090A0', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3, paddingTop: 1, flexShrink: 0 },
   compactVal:       { flex: 1, fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#1C1C1E' },
+  compactValBold:   { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: Colors.primaryHighlight },
 
   // Adjustment fields wrapper card
   detailCard:      { backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 14, shadowColor: '#8888AA', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 },
@@ -2769,15 +2883,17 @@ const sa = StyleSheet.create({
   exLblRow:     { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 },
   autoTag:      { backgroundColor: 'rgba(48,168,75,0.12)', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
   autoTagTxt:   { fontFamily: FontFamily.bold, fontSize: 8, fontWeight: '700', color: '#2E7D32' },
-  exBox:        { backgroundColor: '#F5F5F7', borderRadius: 7, borderWidth: 1, borderColor: '#DCDCE0', paddingHorizontal: 8 },
-  exBoxLose:    { backgroundColor: 'rgba(233,30,99,0.04)', borderColor: 'rgba(233,30,99,0.22)' },
-  exBoxQty:     { backgroundColor: 'rgba(48,168,75,0.05)', borderColor: 'rgba(48,168,75,0.28)' },
-  exInput:      { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', paddingVertical: 7 },
-  exInputQty:      { color: '#30A84B' },
-  exBoxQtyLarge:   { paddingHorizontal: 10 },
+  exBox:           { backgroundColor: '#FFFFFF', borderRadius: 7, borderWidth: 1, borderColor: '#DCDCE0', paddingHorizontal: 8, overflow: 'hidden' },
+  exBoxLose:       { backgroundColor: 'rgba(233,30,99,0.04)', borderColor: 'rgba(233,30,99,0.22)' },
+  exBoxQty:        { backgroundColor: '#FFFFFF', borderColor: '#D0D0D8' },
+  exInput:         { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#1C1C1E', paddingVertical: 7 },
+  exInputQty:      { color: '#1C1C1E' },
+  exBoxQtyLarge:   { paddingHorizontal: 10, paddingRight: 0 },
   exInputQtyLarge: { fontSize: 22, fontWeight: '700', paddingVertical: 12 },
   exUnitTag:       { fontFamily: FontFamily.bold, fontSize: 11, fontWeight: '700', color: '#30A84B', paddingRight: 8, opacity: 0.8 },
   exUnitTagPrice:  { fontFamily: FontFamily.regular, fontSize: 10, color: '#AEAEB2', paddingRight: 6 },
+  exUnitPill:      { borderLeftWidth: 1, borderLeftColor: '#D0D0D8', backgroundColor: '#E8F5E9', paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  exUnitPillTxt:   { fontFamily: FontFamily.bold, fontSize: 12, fontWeight: '700', color: '#2E7D32' },
   grnMatchBtn:        { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: 'rgba(233,30,99,0.22)', backgroundColor: 'rgba(233,30,99,0.04)', marginVertical: 8 },
   grnMatchIconCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(233,30,99,0.10)', alignItems: 'center', justifyContent: 'center' },
   grnMatchTxt:        { flex: 1, fontFamily: FontFamily.medium, fontSize: 11, fontWeight: '600', color: Colors.primaryHighlight },
@@ -2827,6 +2943,29 @@ const sa = StyleSheet.create({
   pendingIconRing: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(144,144,160,0.10)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   pendingTitle:    { fontFamily: FontFamily.bold, fontSize: 14, fontWeight: '700', color: '#1C1C1E' },
   pendingSubtxt:   { fontFamily: FontFamily.regular, fontSize: 12, color: '#9090A0' },
+
+  // ── Serial method step ──
+  smWrap:              { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4 },
+  smHdr:               { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
+  smHdrIcon:           { width: 34, height: 34, borderRadius: 8, backgroundColor: Colors.primaryHighlight, alignItems: 'center', justifyContent: 'center' },
+  smHdrTitle:          { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#1C1C1E' },
+  smHdrSub:            { fontFamily: FontFamily.regular, fontSize: 10, color: '#9090A0', marginTop: 2 },
+  smCard:              { flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E5EA', padding: 14, marginBottom: 10 },
+  smCardActive:        { borderColor: Colors.primaryHighlight, backgroundColor: 'rgba(233,30,99,0.03)' },
+  smRadio:             { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#C0C0CC', alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
+  smRadioActive:       { borderColor: Colors.primaryHighlight },
+  smRadioDot:          { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primaryHighlight },
+  smCardTitleRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 5 },
+  smCardTitle:         { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#1C1C1E' },
+  smCardTitleActive:   { color: Colors.primaryHighlight },
+  smCardDesc:          { fontFamily: FontFamily.regular, fontSize: 11, color: '#6E6E7A', lineHeight: 17 },
+  smFooter:            { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#EBEBEB', backgroundColor: '#FAFAFA' },
+  smBackBtn:           { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: '#D0D0D8' },
+  smBackTxt:           { fontFamily: FontFamily.medium, fontSize: 12, fontWeight: '600', color: '#595959' },
+  smProceedBtn:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: '#595959' },
+  smProceedBtnDisabled:{ backgroundColor: '#EAEAEE' },
+  smProceedTxt:        { fontFamily: FontFamily.bold, fontSize: 13, fontWeight: '700', color: '#FFF' },
+  smProceedTxtDisabled:{ color: '#C0C0CC' },
 
   // Footer
 });

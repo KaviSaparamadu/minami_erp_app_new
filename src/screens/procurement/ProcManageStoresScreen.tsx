@@ -225,11 +225,14 @@ function StoreModal({ visible, mode, item, stores, onClose, onSave }: {
   const [entity,          setEntity]          = useState('');
   const [storeColor,      setStoreColor]      = useState('');
   const [description,     setDescription]     = useState('');
+  const [storeCodeInput,  setStoreCodeInput]  = useState('');
+  const [codeIsManual,    setCodeIsManual]    = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [saving,          setSaving]          = useState(false);
   const [showReset,       setShowReset]       = useState(false);
 
-  const descRef = useRef<TextInput>(null);
+  const descRef     = useRef<TextInput>(null);
+  const codeRef     = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -239,23 +242,32 @@ function StoreModal({ visible, mode, item, stores, onClose, onSave }: {
       setEntity(item.entity);
       setStoreColor(item.storeColor);
       setDescription(item.description ?? '');
+      setStoreCodeInput(item.storeCode);
+      setCodeIsManual(true);
     } else {
       setWorkBranch(''); setStoreName(''); setEntity('');
       setStoreColor(''); setDescription('');
+      setStoreCodeInput(''); setCodeIsManual(false);
     }
     setShowReset(false);
     setShowColorPicker(false);
   }, [visible, item]);
 
+  useEffect(() => {
+    if (!codeIsManual) {
+      setStoreCodeInput(genStoreCode(workBranch, storeName, entity));
+    }
+  }, [workBranch, storeName, entity, codeIsManual]);
+
   function doReset() {
     setWorkBranch(''); setStoreName(''); setEntity('');
     setStoreColor(''); setDescription('');
+    setStoreCodeInput(''); setCodeIsManual(false);
     setShowColorPicker(false);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }
 
-  const storeNo   = String(stores.length + (isEdit ? 0 : 1)).padStart(2, '0');
-  const storeCode = genStoreCode(workBranch, storeName, entity);
+  const storeNo = String(stores.length + (isEdit ? 0 : 1)).padStart(2, '0');
 
   function handleSave() {
     if (!workBranch || !storeName.trim() || !entity) return;
@@ -264,7 +276,7 @@ function StoreModal({ visible, mode, item, stores, onClose, onSave }: {
       setSaving(false);
       onSave({
         storeNo,
-        storeCode,
+        storeCode: storeCodeInput.trim() || genStoreCode(workBranch, storeName, entity),
         workBranch,
         storeName: storeName.trim(),
         entity,
@@ -309,13 +321,18 @@ function StoreModal({ visible, mode, item, stores, onClose, onSave }: {
                 </View>
               </View>
 
-              {/* Store no + auto code */}
+              {/* Store no + name + auto code */}
               {!isView && (
                 <View style={ms.storeInfo}>
                   <Text style={ms.storeNoTxt}>
                     You are creating store no: <Text style={ms.storeNoNum}>{storeNo}</Text>
                   </Text>
-                  <Text style={ms.storeCodeTxt}>{storeCode}</Text>
+                  {storeName.trim() ? (
+                    <Text style={ms.storeNameTxt} numberOfLines={1}>{storeName.trim()}</Text>
+                  ) : (
+                    <Text style={ms.storeNamePlaceholder}>Store name will appear here</Text>
+                  )}
+                  <Text style={ms.storeCodeTxt}>{storeCodeInput}</Text>
                 </View>
               )}
 
@@ -348,6 +365,24 @@ function StoreModal({ visible, mode, item, stores, onClose, onSave }: {
                       value={storeName} onChangeText={setStoreName}
                       placeholder="Enter store name" placeholderTextColor={Colors.placeholder}
                       autoCapitalize="words" returnKeyType="next"
+                      onSubmitEditing={() => codeRef.current?.focus()} style={fi.input} />
+                  </View>
+
+                  <View style={fi.wrapper}>
+                    <View style={fi.codeRow}>
+                      <Text style={fi.label}>Store Code <Text style={fi.req}>*</Text></Text>
+                      {codeIsManual && (
+                        <Pressable onPress={() => setCodeIsManual(false)} hitSlop={8}>
+                          <Text style={fi.codeSync}>↺ Auto</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                    <TextInput
+                      ref={codeRef}
+                      value={storeCodeInput}
+                      onChangeText={v => { setStoreCodeInput(v); setCodeIsManual(true); }}
+                      placeholder="e.g. HO - MA - GP01" placeholderTextColor={Colors.placeholder}
+                      autoCapitalize="characters" returnKeyType="next"
                       onSubmitEditing={() => descRef.current?.focus()} style={fi.input} />
                   </View>
 
@@ -979,6 +1014,8 @@ const ms = StyleSheet.create({
   storeInfo:   { backgroundColor: '#FFFFFF', paddingHorizontal: Spacing.lg, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EBEBEB' },
   storeNoTxt:  { fontFamily: FontFamily.regular, fontSize: FontSize.sm, color: '#595959' },
   storeNoNum:  { fontFamily: FontFamily.bold, fontWeight: FontWeight.bold, color: '#1C1C1E' },
+  storeNameTxt:        { fontFamily: FontFamily.bold, fontSize: 16, fontWeight: FontWeight.bold, color: '#1C1C1E', marginTop: 4 },
+  storeNamePlaceholder:{ fontFamily: FontFamily.regular, fontSize: 13, color: '#B0B0B8', fontStyle: 'italic', marginTop: 4 },
   storeCodeTxt:{ fontFamily: FontFamily.bold, fontSize: 20, fontWeight: FontWeight.bold, color: '#1C1C1E', marginTop: 2, letterSpacing: 1 },
   form:        { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
   footer:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E5E5EA' },
@@ -1006,6 +1043,8 @@ const fi = StyleSheet.create({
   req:      { color: Colors.primaryHighlight },
   input:    { fontFamily: FontFamily.regular, fontSize: FontSize.md, color: Colors.primaryText, paddingVertical: 8, borderBottomWidth: 1.5, borderBottomColor: '#D0D0D0', paddingHorizontal: 0 },
   multiline:{ borderBottomWidth: 0, borderWidth: 1, borderColor: '#D0D0D0', borderRadius: 8, paddingHorizontal: 10, minHeight: 80, textAlignVertical: 'top' },
+  codeRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 },
+  codeSync: { fontFamily: FontFamily.medium, fontSize: FontSize.xs, color: Colors.primaryHighlight },
 });
 
 // ── Store dropdown styles ─────────────────────────────────────────────────────

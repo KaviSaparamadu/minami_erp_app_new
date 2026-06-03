@@ -36,6 +36,7 @@ function StoreCard({ store, onPress }: { store: Store; onPress: () => void }) {
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [sc.card, { backgroundColor: bg }, pressed && { opacity: 0.8 }]}>
+      <Text style={[sc.storeName, { color: textColor }]} numberOfLines={1}>{store.storeName}</Text>
       <Text style={[sc.code, { color: subColor }]} numberOfLines={1}>{store.storeCode}</Text>
       <Text style={[sc.number, { color: textColor }]}>{store.storeNo}</Text>
       <View style={[sc.divider, { backgroundColor: textColor, opacity: 0.25 }]} />
@@ -218,6 +219,15 @@ const sc = StyleSheet.create({
     elevation: 4,
     minHeight: 130,
     justifyContent: 'center',
+  },
+  storeName: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 0,
+    paddingHorizontal: 4,
   },
   code: {
     fontFamily: FontFamily.bold,
