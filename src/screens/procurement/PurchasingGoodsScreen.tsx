@@ -23,7 +23,7 @@ import type { PageTabItem } from '../../components/common/PageTabBar';
 import { TableIcons } from '../../components/common/DataTable';
 import { UIIcon } from '../../components/common/UIIcon';
 import { Colors, FontFamily, FontSize, FontWeight, Spacing } from '../../constants/theme';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '../../hooks/useTheme'; 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
